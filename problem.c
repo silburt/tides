@@ -111,7 +111,7 @@ void problem_init(int argc, char* argv[]){
     }
 
 /*
-	struct particle p1;		// Planet 1
+	struct particle p1;		// Planet 1;
 	p1.x 	= 0.25;	p1.y = 0;	p1.z = 0;
 	p1.ax 	= 0;	p1.ay = 0; 	p1.az = 0;
 	p1.m  	= 0.56e-3;
