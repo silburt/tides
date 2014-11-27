@@ -93,9 +93,9 @@ void problem_init(int argc, char* argv[]){
     w      = calloc(sizeof(double),_N);
     f      = calloc(sizeof(double),_N);
     //Fix later, planet 1 and 2
-    m[0]=1e-3;
-    a[0]=0.05;
-    e[0]=0.15;
+    m[0]=5e-4;
+    a[0]=0.051;
+    e[0]=0.1;
     w[0]=125.*(M_PI/180.);
     f[0]=M_PI/4.;
     
@@ -109,24 +109,6 @@ void problem_init(int argc, char* argv[]){
         struct particle p = tools_init_orbit2d(star.m,m[i],a[i],e[i],w[i],f[i]);
         particles_add(p);
     }
-
-/*
-	struct particle p1;		// Planet 1;
-	p1.x 	= 0.25;	p1.y = 0;	p1.z = 0;
-	p1.ax 	= 0;	p1.ay = 0; 	p1.az = 0;
-	p1.m  	= 0.56e-3;
-	p1.vz 	= 0;
-	p1.vx 	= 0;	p1.vy = sqrt(G*(star.m+p1.m)/p1.x);;
-	particles_add(p1); 
-	
-	struct particle p2;		// Planet 2
-	p2.x 	= 0.52;	p2.y = 0; 	p2.z = 0;
-	p2.ax 	= 0;	p2.ay = 0; 	p2.az = 0;
-	p2.m  	= 1.89e-3;
-	p2.vz 	= 0;
-	p2.vx 	= 0;	p2.vy = sqrt(G*(star.m+p2.m)/p2.x);
-	particles_add(p2); 
-*/
  
     tau_a  = calloc(sizeof(double),N);  //migration of semi-major axis
 	tau_e  = calloc(sizeof(double),N);  //migration (damp) of eccentricity
@@ -136,9 +118,10 @@ void problem_init(int argc, char* argv[]){
     //Need to find a better way to arrange this
     //tau_a[2] = T;	// Migration timescale of planet 2 is 20000 years.
 	//tau_e[2] = tau_a[2]/K;      // Eccentricity damping timescale.
-    Qp[1]    = 0.35/1.0e4;     // = k_2/Q, k_2 mercury~0.5 (Padovan et al.), Jupiter=Gavrilov et al.
+    //Qp[1]    = 0.35/1.0e4;     // = k_2/Q, k_2 mercury~0.5 (Padovan et al.), Jupiter=Gavrilov et al.
     //Qp[2]    = 0.0127/.5e3;
-    radius[0]=0.1;             //in Rs
+    Qp[1] = 1/1e5;
+    radius[0]=0.0183;             //in Rs
     radius[1]=0.05;
     //radius[2]=0.04;
     
@@ -249,19 +232,17 @@ void problem_output(){
         //double const E = 2*atan(tan(f/2)/terme);
         
         //Tides
-        /*
-        const double R5 = rp*rp*rp*rp*rp;
-        const double factor = sqrt(mu*(com.m+m)*(com.m+m))*R5*Qp[i]/m;
-        const double factor2 = pow(a,11.0/2.0);
-        const double da = -21.0*dt*factor*e*e/factor2;              //Tidal change for a
-        const double de = -(21.0/2.0)*dt*factor*e/(factor2*a);      //Tidal change for e
-        if(i==1 && t < 5.)printf("INI tides: da=%.15f,de=%.15f,a=%f,e=%f \n",da,de,a,e);
-        if(i==1 && t > 49990.)printf("FINI tides: da=%.15f,de=%.15f,a=%f,e=%f \n",da,de,a,e);
+        const double R5a5 = rp*rp*rp*rp*rp/(a*a*a*a*a);
+        const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a*a*a));
+        const double de = -dt*(9.*M_PI/2.)*Qp[i]*GM3a3*R5a5*e/m;        //Tidal change for e
+        const double da = 2*a*e*de;                                     //Tidal change for a
+        
+        if(i==1 && t < 5.)printf("INI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
+        if(i==1 && t > 49996.)printf("FINI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
+        
         a += da;
         e += de;
         if(e < 0.) e=1e-5;
-        */
-        
         
         //Re-update coords.
         const double r_new = a*(1 - e*e)/(1 + e*cosf);
