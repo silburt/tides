@@ -45,17 +45,17 @@
 #include "output.h"
 #include "particle.h"
 #include "boundaries.h"
+#include "../examples/tides/readplanets.c"
 
 double* tau_a; 	/**< Migration timescale in years for all particles */
 double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
 void problem_migration_forces();
 double* Qp;     /**< Q'=k_2/Q used for tides. p for prime> */
-double* radius;
-double* m;
+/*double* m;
 double* a;
 double* e;
 double* w;
-double* f;
+double* f;*/
 
 #ifdef OPENGL
 extern int display_wire;
@@ -66,7 +66,7 @@ void problem_init(int argc, char* argv[]){
 	dt 		= 1e-2*2.*M_PI;		// in year/(2*pi)
 	boxsize 	= 3;			// in AU
 	//tmax		= 4.5e4*2.*M_PI;	// in year/(2*pi)
-    tmax        = 50000;
+    tmax        = 5;
     
     K           = 100;      //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*20000.0;  //tau_a;
@@ -77,16 +77,38 @@ void problem_init(int argc, char* argv[]){
 #endif 	// OPENGL
 	init_box();
 
+//Set up planetary system
+    char c[20]="Kepler-10";
+    printf("You have chosen: %s \n \n",c);
+    double Ms,Rs,a,rho,inc,mp,rp;
+    int char_val, _N;
+    const double w=0., f=0., e=0.1;
+    
+    readplanets(c, &char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp);
+    struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
+    p.r = rp;
+    particles_add(p);
+    printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
+    printf("Planet 1: a=%f,mp=%f,rp=%f \n",a,mp,rp);
+    
+    for(int i=1;i<_N;i++){
+        extractplanets(&char_val,&a,&rho,&inc,&mp,&rp);
+        struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
+        p.r = rp;
+        particles_add(p);
+        printf("Planet %i: a=%f,mp=%f,rp=%f \n",i+1,a,mp,rp);
+    }
+
 	// Initial conditions
 	// Parameters are those of Lee & Peale 2002, Figure 4. 
 	struct particle star;
 	star.x  = 0; star.y  = 0; star.z  = 0;
 	star.vx = 0; star.vy = 0; star.vz = 0;
 	star.ax = 0; star.ay = 0; star.az = 0;
-	star.m  = 1.1;			// This is a sub-solar mass star
+	star.m  = Ms;			// This is a sub-solar mass star
 	particles_add(star);
     
-    int _N = 1; //number of planets
+/*    int _N = 1; //number of planets
     m      = calloc(sizeof(double),_N);
     a      = calloc(sizeof(double),_N);
     e      = calloc(sizeof(double),_N);
@@ -103,27 +125,18 @@ void problem_init(int argc, char* argv[]){
     //a[1]=0.44;
     //e[1]=0.05;
     //w[1]=5.*M_PI/4.;
-    //f[1]=0;
-    
-    for(int i=0;i<_N;i++){
-        struct particle p = tools_init_orbit2d(star.m,m[i],a[i],e[i],w[i],f[i]);
-        particles_add(p);
-    }
- 
+    //f[1]=0;*/
+
     tau_a  = calloc(sizeof(double),N);  //migration of semi-major axis
 	tau_e  = calloc(sizeof(double),N);  //migration (damp) of eccentricity
     Qp     = calloc(sizeof(double),N);  //Q' = k_2/Q
-    radius = calloc(sizeof(double),N);
-
+    
     //Need to find a better way to arrange this
     //tau_a[2] = T;	// Migration timescale of planet 2 is 20000 years.
 	//tau_e[2] = tau_a[2]/K;      // Eccentricity damping timescale.
     //Qp[1]    = 0.35/1.0e4;     // = k_2/Q, k_2 mercury~0.5 (Padovan et al.), Jupiter=Gavrilov et al.
     //Qp[2]    = 0.0127/.5e3;
     Qp[1] = 1/1e5;
-    radius[0]=0.0183;             //in Rs
-    radius[1]=0.05;
-    //radius[2]=0.04;
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
 #ifndef INTEGRATOR_WH			// The WH integrator assumes a heliocentric coordinate system.
@@ -197,7 +210,7 @@ void problem_output(){
         const double m = par->m;
         const double mu = G*(com.m + m);
         //radius of planet must be in AU for units to work out since G=1, [t]=yr/2pi, [m]=m_star
-        const double rp = radius[i]*0.00464913; //converts from Rs to AU units
+        const double rp = par->r*0.00464913; //converts from Rs to AU units
         
         const double dvx = par->vx-com.vx;
         const double dvy = par->vy-com.vy;
@@ -237,8 +250,9 @@ void problem_output(){
         const double de = -dt*(9.*M_PI/2.)*Qp[i]*GM3a3*R5a5*e/m;        //Tidal change for e
         const double da = 2*a*e*de;                                     //Tidal change for a
         
-        if(i==1 && t < 5.)printf("INI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
-        if(i==1 && t > 49996.)printf("FINI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
+        if(i==1 && t<10)printf("radius=%f\n",par->r);
+        //if(i==1 && t < 5.)printf("INI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
+        //if(i==1 && t > 49996.)printf("FINI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
         
         a += da;
         e += de;
