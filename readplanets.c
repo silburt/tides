@@ -19,7 +19,7 @@ void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, 
         fgets(temp, 512, f);
         if((strstr(temp, sysname)) != NULL){
             *char_pos=ftell(f);
-            //printf("A match found on line: %d\n", line_num);
+            printf("A match found on line: %d\n", line_num);
             //printf("char_pos=%i",*char_pos);
             //printf("\n%s\n", temp);
             found_result++;
@@ -39,15 +39,14 @@ void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, 
     //pointed to by datpoint.
     const int numfields=25;
     int i=0;
+    char *string = temp;
     double array[numfields-4];
-    char *p;
-    p=strtok(temp,",");
     while (i<numfields){
+        char *p = strsep(&string,",");
         if(i>=4){
             array[i-4] = (atof(p));
             //printf("string=%f,%i \n",array[i-4],i);
         }
-        p = strtok (NULL, ",");
         i++;
     }
     
@@ -59,6 +58,7 @@ void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, 
     *Rs = array[13];        //Stellar radius
     *mp = array[15]*1e-6;   //planet mass (SOLAR units)
     *rp = array[18];        //planet radius (SOLAR units)
+    //printf("np=%f,a=%f,Ms=%f,mp=%f,rp=%f",array[0],array[4],array[11],array[15],array[18]);
     
     if(*a==0. && array[11] != 0.){//many semi-major axis fields are empty. Calc
         double P = array[1]*24.*60.*60.; //Period in seconds
@@ -85,16 +85,13 @@ void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *
     const int numfields=25;
     int i=0;
     char *string = temp;
-    //char *array[numfields]; //store each field in its own slot
     double array[numfields-4];
     while (i<numfields){
         char *p = strsep(&string,",");
-        //printf("p=%s\n",p);
         if(i>=4){
             array[i-4] = (atof(p));
             //printf("string=%f,%i \n",array[i-4],i);
         }
-        //p = strsep (NULL, ",");
         i++;
     }
     *a = array[4];          //semi-major axis (AU)

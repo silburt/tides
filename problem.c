@@ -73,7 +73,7 @@ void problem_init(int argc, char* argv[]){
 	init_box();
 
     // Initial conditions
-    char c[20]="Kepler-10";
+    char c[20]="Kepler-92";
     printf("You have chosen: %s \n \n",c);
     double Ms,Rs,a,rho,inc,mp,rp;
     int char_val, _N;
