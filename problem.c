@@ -49,13 +49,8 @@
 
 double* tau_a; 	/**< Migration timescale in years for all particles */
 double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
-void problem_migration_forces();
 double* Qp;     /**< Q'=k_2/Q used for tides. p for prime> */
-/*double* m;
-double* a;
-double* e;
-double* w;
-double* f;*/
+void problem_migration_forces();
 
 #ifdef OPENGL
 extern int display_wire;
@@ -66,7 +61,7 @@ void problem_init(int argc, char* argv[]){
 	dt 		= 1e-2*2.*M_PI;		// in year/(2*pi)
 	boxsize 	= 3;			// in AU
 	//tmax		= 4.5e4*2.*M_PI;	// in year/(2*pi)
-    tmax        = 5;
+    tmax        = 5000.;
     
     K           = 100;      //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*20000.0;  //tau_a;
@@ -77,7 +72,7 @@ void problem_init(int argc, char* argv[]){
 #endif 	// OPENGL
 	init_box();
 
-//Set up planetary system
+    // Initial conditions
     char c[20]="Kepler-10";
     printf("You have chosen: %s \n \n",c);
     double Ms,Rs,a,rho,inc,mp,rp;
@@ -85,6 +80,13 @@ void problem_init(int argc, char* argv[]){
     const double w=0., f=0., e=0.1;
     
     readplanets(c, &char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp);
+    struct particle star; //Star MUST be the first particle added.
+	star.x  = 0; star.y  = 0; star.z  = 0;
+	star.vx = 0; star.vy = 0; star.vz = 0;
+	star.ax = 0; star.ay = 0; star.az = 0;
+	star.m  = Ms;			// This is a sub-solar mass star
+	particles_add(star);
+    
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
     particles_add(p);
@@ -97,35 +99,8 @@ void problem_init(int argc, char* argv[]){
         p.r = rp;
         particles_add(p);
         printf("Planet %i: a=%f,mp=%f,rp=%f \n",i+1,a,mp,rp);
+        //printf("Planet %i: mp=%f, x,y,vx,vy=%f,%f,%f,%f \n",i+1,p.m, p.x,p.y,p.vx,p.vy);
     }
-
-	// Initial conditions
-	// Parameters are those of Lee & Peale 2002, Figure 4. 
-	struct particle star;
-	star.x  = 0; star.y  = 0; star.z  = 0;
-	star.vx = 0; star.vy = 0; star.vz = 0;
-	star.ax = 0; star.ay = 0; star.az = 0;
-	star.m  = Ms;			// This is a sub-solar mass star
-	particles_add(star);
-    
-/*    int _N = 1; //number of planets
-    m      = calloc(sizeof(double),_N);
-    a      = calloc(sizeof(double),_N);
-    e      = calloc(sizeof(double),_N);
-    w      = calloc(sizeof(double),_N);
-    f      = calloc(sizeof(double),_N);
-    //Fix later, planet 1 and 2
-    m[0]=5e-4;
-    a[0]=0.051;
-    e[0]=0.1;
-    w[0]=125.*(M_PI/180.);
-    f[0]=M_PI/4.;
-    
-    //m[1]=1.89e-5;
-    //a[1]=0.44;
-    //e[1]=0.05;
-    //w[1]=5.*M_PI/4.;
-    //f[1]=0;*/
 
     tau_a  = calloc(sizeof(double),N);  //migration of semi-major axis
 	tau_e  = calloc(sizeof(double),N);  //migration (damp) of eccentricity
@@ -136,13 +111,13 @@ void problem_init(int argc, char* argv[]){
 	//tau_e[2] = tau_a[2]/K;      // Eccentricity damping timescale.
     //Qp[1]    = 0.35/1.0e4;     // = k_2/Q, k_2 mercury~0.5 (Padovan et al.), Jupiter=Gavrilov et al.
     //Qp[2]    = 0.0127/.5e3;
-    Qp[1] = 1/1e5;
+    Qp[1] = 1./1e5;
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
 #ifndef INTEGRATOR_WH			// The WH integrator assumes a heliocentric coordinate system.
 	tools_move_to_center_of_momentum();  		
 #endif // INTEGRATOR_WH
-
+    
 	system("rm -v orbits.txt"); // delete previous output file
 }
 
@@ -155,7 +130,6 @@ void problem_migration_forces(){
         tau_a[2]=0.;
         tau_e[2]=0.;
     }
-    
     struct particle com = particles[0]; // calculate migration forces with respect to center of mass;
 	for(int i=1;i<N;i++){
 		if (tau_e[i]!=0||tau_a[i]!=0){
@@ -163,12 +137,13 @@ void problem_migration_forces(){
 			const double dvx = p->vx-com.vx;
 			const double dvy = p->vy-com.vy;
 			const double dvz = p->vz-com.vz;
-
+            
 			if (tau_a[i]!=0){ 	// Migration
 				p->ax -=  dvx/(2.*tau_a[i]);
 				p->ay -=  dvy/(2.*tau_a[i]);
 				p->az -=  dvz/(2.*tau_a[i]);
 			}
+
 			if (tau_e[i]!=0){ 	// Eccentricity damping
 				const double mu = G*(com.m + p->m);
 				const double dx = p->x-com.x;
@@ -203,6 +178,7 @@ void problem_inloop(){
 }
 
 void problem_output(){
+    
     struct particle com = particles[0];
     //Tides
     for(int i=1;i<N;i++){
@@ -250,7 +226,7 @@ void problem_output(){
         const double de = -dt*(9.*M_PI/2.)*Qp[i]*GM3a3*R5a5*e/m;        //Tidal change for e
         const double da = 2*a*e*de;                                     //Tidal change for a
         
-        if(i==1 && t<10)printf("radius=%f\n",par->r);
+        //if(i==1 && t<10)printf("radius=%f\n",par->r);
         //if(i==1 && t < 5.)printf("INI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
         //if(i==1 && t > 49996.)printf("FINI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
         
@@ -272,7 +248,7 @@ void problem_output(){
         com = tools_get_center_of_mass(com,particles[i]);  //Does this need to happen before updating par?
         
         //if(i==1 && t<5.)printf("DELTA INI: x,y,vx,vy=%.15f,%.15f,%.15f,%.15f \n ", r_new*coswf - dx, r_new*sinwf -dy, rdot*coswf - rfdot*sinwf -dvx, rdot*sinwf + rfdot*coswf -dvy);
-        //if(i==1 && t > 9990.)printf("DELTA FINI: x,y,vx,vy=%.15f,%.15f,%.15f,%.15f \n ", r_new*coswf - dx, r_new*sinwf -dy, rdot*coswf - rfdot*sinwf -dvx, rdot*sinwf + rfdot*coswf -dvy);
+        if(i==1 && t > 9990.)printf("DELTA FINI: x,y,vx,vy=%.15f,%.15f,%.15f,%.15f \n ", r_new*coswf - dx, r_new*sinwf -dy, rdot*coswf - rfdot*sinwf -dvx, rdot*sinwf + rfdot*coswf -dvy);
     }
 
     
