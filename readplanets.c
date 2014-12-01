@@ -19,7 +19,7 @@ void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, 
         fgets(temp, 512, f);
         if((strstr(temp, sysname)) != NULL){
             *char_pos=ftell(f);
-            printf("A match found on line: %d\n", line_num);
+            printf("A match found on line: %d, proceed with sim. \n\n", line_num);
             //printf("char_pos=%i",*char_pos);
             //printf("\n%s\n", temp);
             found_result++;
@@ -66,6 +66,7 @@ void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, 
         double G_SI = 6.67e-11;
         double calca = P*P*G_SI*mass/(4*M_PI*M_PI);
         *a = pow(calca,1./3.)/1.496e11;     //in AU
+        printf("calculated semi-major axis \n");
     }
 }
 
@@ -106,6 +107,7 @@ void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *
         double G_SI = 6.67e-11;
         double calca = P*P*G_SI*mass/(4*M_PI*M_PI);
         *a = pow(calca,1./3.)/1.496e11;     //in AU
+        printf("calculated semi-major axis \n");
     }
     
 }
