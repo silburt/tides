@@ -50,7 +50,6 @@
 
 double* tau_a; 	/**< Migration timescale in years for all particles */
 double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
-double* Qp;     /**< Q'=k_2/Q used for tides. p for prime> */
 void problem_migration_forces();
 
 #ifdef OPENGL
@@ -61,14 +60,14 @@ void problem_init(int argc, char* argv[]){
 	// Setup constants
 	dt 		= 1e-2*2.*M_PI;         // in year/(2*pi)
 	boxsize 	= 3;                // in AU
-	tmax		= 4.5e4*2.*M_PI;	// in year/(2*pi)
+	tmax		= 1e5*2.*M_PI;      // in year/(2*pi)
     //tmax        = 5000.;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*20000.0;  //tau_a, typical timescale=20,000 years;
     t_mig[0]    = 30000.;           //migration times
     t_mig[1]    = 35000.;           //migration damp out over 5000 years.
-    tides       = 0;                //If tides==0, then no tidal forces on planets.
+    tides       = 1;                //If tides==0, then no tidal forces on planets.
     afac        = 1.1;              //Factor to increase 'a' of OUTER planets by.
     
 #ifdef OPENGL
@@ -94,27 +93,28 @@ void problem_init(int argc, char* argv[]){
     //Extra slot for star
     tau_a  = calloc(sizeof(double),_N+1);  //migration of semi-major axis
 	tau_e  = calloc(sizeof(double),_N+1);  //migration (damp) of eccentricity
-    Qp     = calloc(sizeof(double),_N+1);  //Q' = k_2/Q
     
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
+    assignparams(&tau_atemp,&Qp_temp,mp,rp,t_mig,T);
+    p.Qp=Qp_temp;
     particles_add(p);
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
-    printf("Planet 1: a=%f,mp=%f,rp=%f \n",a,mp,rp);
+    printf("Planet 1: a=%f,mp=%f,rp=%f,Qp=%f \n",a,mp,rp,Qp_temp);
     
     for(int i=1;i<_N;i++){
         extractplanets(&char_val,&a,&rho,&inc,&mp,&rp);
         a *= afac;      //Increase 'a' of outer planets by afac
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
-        particles_add(p);
-        //printf("Planet %i: mp=%f, x,y,vx,vy=%f,%f,%f,%f \n",i+1,p.m, p.x,p.y,p.vx,p.vy);
-        
         assignparams(&tau_atemp,&Qp_temp,mp,rp,t_mig,T);
-        Qp[i+1]=Qp_temp;
+        p.Qp=Qp_temp;
         tau_a[i+1]=tau_atemp;
         tau_e[i+1]=tau_atemp/K;
-        printf("Planet %i: a=%f,afac=%f,mp=%f,rp=%f,Qp=%f,tau_a=%f \n",i+1,a,afac,mp,rp,Qp[i+1],tau_a[i+1]);
+        
+        particles_add(p);
+        //printf("Planet %i: mp=%f, x,y,vx,vy=%f,%f,%f,%f \n",i+1,p.m, p.x,p.y,p.vx,p.vy);
+        printf("Planet %i: a=%f,afac=%f,mp=%f,rp=%f,Qp=%f,tau_a=%f \n",i+1,a,afac,mp,rp,Qp_temp,tau_a[i+1]);
 
     }
     
@@ -192,6 +192,7 @@ void problem_output(){
             const double mu = G*(com.m + m);
             //radius of planet must be in AU for units to work out since G=1, [t]=yr/2pi, [m]=m_star
             const double rp = par->r*0.00464913; //converts from Rs to AU units
+            const double Qp = par->Qp;
         
             const double dvx = par->vx-com.vx;
             const double dvy = par->vy-com.vy;
@@ -228,7 +229,7 @@ void problem_output(){
             //Tides
             const double R5a5 = rp*rp*rp*rp*rp/(a*a*a*a*a);
             const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a*a*a));
-            const double de = -dt*(9.*M_PI/2.)*Qp[i]*GM3a3*R5a5*e/m;        //Tidal change for e
+            const double de = -dt*(9.*M_PI/2.)*Qp*GM3a3*R5a5*e/m;        //Tidal change for e
             const double da = 2*a*e*de;                                     //Tidal change for a
         
             //if(i==1 && t<10)printf("radius=%f\n",par->r);
@@ -263,7 +264,7 @@ void problem_output(){
 	if(output_check(40.)){
         //A.S. - append orbits in orbits.txt. Ordering of outputs goes:
         //time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
-		output_append_orbits("orbits.txt");
+		output_append_orbits("runs/orbits.txt");
 #ifndef INTEGRATOR_WH
 		tools_move_to_center_of_momentum();  			// The WH integrator assumes a heliocentric coordinate system.
 #endif // INTEGRATOR_WH

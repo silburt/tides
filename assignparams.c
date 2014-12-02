@@ -34,14 +34,18 @@ k_2 of Giant planets (Gavrilov & Zharkov, 1977)
 void assignparams(double *tau_a, double *Qp, double mp, double rp, double t_mig[2], double typical_timescale){
     double k2, Q;
     srand(time(NULL));
-    k2 = (rand() %3 + 1)/10.;
+    //k2 = (rand() %3 + 1)/10.;
+    k2 = 0.25;
     
     if(mp > 1e-4 && mp < 1e-3){//Uranus/Neptune Q
-        Q = (rand() %25 + 60)*1e3;
+        //Q = (rand() %25 + 60)*1e3;
+        Q = 7.2e4;
     } else if(mp >= 1e-3){//Saturn/Jupiter Q
-        Q = (rand() %30 + 5)*1e4;
+        //Q = (rand() %30 + 5)*1e4;
+        Q = 1e5;
     } else{//Earth or smaller Q
-        Q = rand() %80 + 10;
+        //Q = rand() %80 + 10;
+        Q = 20;
     }
     *Qp = k2/Q;
     
