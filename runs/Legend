@@ -1,0 +1,2 @@
+orbits_wh.txt - Funky things are happening with the WH integrator, with dt=1e-2*2*M_PI. Try maybe with a smaller timestep, see if that fixes the problem. Also going to see if the same thing happens with the IAS15 integrator. 
+

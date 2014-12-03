@@ -4,12 +4,12 @@
 #include<math.h>
 #include<stddef.h>
 
-void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp);
+void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt);
 
 void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *mp, double *rp);
 
 
-void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp){
+void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt){
     FILE *f = fopen("planets.csv", "r");
     char temp[512];
     int line_num = 0, found_result=0, exit=0;
@@ -50,15 +50,19 @@ void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, 
         i++;
     }
     
-    *_N = array[0];         //number of planets in system
-    *a = array[4];          //semi-major axis (AU)
-    *rho = array[7];        //density (g/cm**3)
-    *inc = array[8];        //inclination
-    *Ms = array[11];        //Stellar mass
-    *Rs = array[13];        //Stellar radius
-    *mp = array[15]*1e-6;   //planet mass (SOLAR units)
-    *rp = array[18];        //planet radius (SOLAR units)
-    //printf("np=%f,a=%f,Ms=%f,mp=%f,rp=%f",array[0],array[4],array[11],array[15],array[18]);
+    *_N = array[0];                     //number of planets in system
+    *a = array[4];                      //semi-major axis (AU)
+    *rho = array[7];                    //density (g/cm**3)
+    *inc = array[8];                    //inclination
+    *Ms = array[11];                    //Stellar mass
+    *Rs = array[13];                    //Stellar radius
+    *mp = array[15]*3e-6;               //planet mass (SOLAR units)
+    *rp = array[18];                    //planet radius (SOLAR units)
+
+    //timestep (1/10th P), in year/(2*pi).
+    //From Viswanath, Divakar 2002-03, need min. of 6*dt per P
+    *dt = 2.*M_PI*array[1]/(365.*10.);
+    printf("The timestep used for this simulation is: %f years",*dt/(2.*M_PI));
     
     if(*a==0. && array[11] != 0.){//many semi-major axis fields are empty. Calc
         double P = array[1]*24.*60.*60.; //Period in seconds
@@ -98,7 +102,7 @@ void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *
     *a = array[4];          //semi-major axis (AU)
     *rho = array[7];        //density (g/cm**3)
     *inc = array[8];        //inclination
-    *mp = array[15]*1e-6;   //planet mass (SOLAR units)
+    *mp = array[15]*3e-6;   //planet mass (SOLAR units)
     *rp = array[18];        //planet radius (SOLAR units)
     
     if(*a==0. && array[11] != 0.){

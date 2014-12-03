@@ -57,18 +57,20 @@ extern int display_wire;
 #endif 	// OPENGL
 
 void problem_init(int argc, char* argv[]){
-	// Setup constants
-	dt 		= 1e-2*2.*M_PI;         // in year/(2*pi)
+	/* Setup constants */
+    //dt = (dt is calc in readplanets.c as P_inner/10.)
 	boxsize 	= 3;                // in AU
-	tmax		= 1e5*2.*M_PI;      // in year/(2*pi)
-    //tmax        = 5000.;
+	tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
+    //tmax        = 5.;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*20000.0;  //tau_a, typical timescale=20,000 years;
     t_mig[0]    = 30000.;           //migration times
     t_mig[1]    = 35000.;           //migration damp out over 5000 years.
-    tides       = 1;                //If tides==0, then no tidal forces on planets.
+    tide_forces = 1;                //If ==0, then no tidal forces on planets.
+    mig_forces  = 0;                //If ==0, no migration.
     afac        = 1.1;              //Factor to increase 'a' of OUTER planets by.
+    txt_file    = "orbits_test_tides_wh.txt";
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -76,18 +78,19 @@ void problem_init(int argc, char* argv[]){
 	init_box();
 
     // Initial conditions
-    char c[20]="Kepler-92";
+    char c[20]="TEST";
     printf("You have chosen: %s \n",c);
     double Ms,Rs,a,rho,inc,mp,rp,tau_atemp,Qp_temp;
     int char_val, _N;
     const double w=0., f=0., e=0.1;
     
-    readplanets(c, &char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp);
+    readplanets(c,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
+    printf("dt = %f \n", dt);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
 	star.vx = 0; star.vy = 0; star.vz = 0;
 	star.ax = 0; star.ay = 0; star.az = 0;
-	star.m  = Ms;			// This is a sub-solar mass star
+	star.m  = Ms;
 	particles_add(star);
     
     //Extra slot for star
@@ -103,6 +106,7 @@ void problem_init(int argc, char* argv[]){
     printf("Planet 1: a=%f,mp=%f,rp=%f,Qp=%f \n",a,mp,rp,Qp_temp);
     
     for(int i=1;i<_N;i++){
+        printf("SHOULDNT BE HERE \n");
         extractplanets(&char_val,&a,&rho,&inc,&mp,&rp);
         a *= afac;      //Increase 'a' of outer planets by afac
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
@@ -123,67 +127,72 @@ void problem_init(int argc, char* argv[]){
 	tools_move_to_center_of_momentum();  		
 #endif // INTEGRATOR_WH
     
-	system("rm -v orbits.txt"); // delete previous output file
+    char sys_arg[50] = "rm -v ";
+    strcat(sys_arg,txt_file);
+	system(sys_arg); // delete previous output file
 }
 
 void problem_migration_forces(){
-    //ramp down the migration force
-    if (t > t_mig[0] && t < t_mig[1]) {
-        tau_a[2] = T + (t - t_mig[0])*(2.*M_PI*200000.0 - T)/(t_mig[1] - t_mig[0]);
-        tau_e[2] = tau_a[2]/K;
-    } else if(t > t_mig[1]){
-        tau_a[2]=0.;
-        tau_e[2]=0.;
+    if(mig_forces==1){
+        //ramp down the migration force
+        if (t > t_mig[0] && t < t_mig[1]) {
+            tau_a[2] = T + (t - t_mig[0])*(2.*M_PI*200000.0 - T)/(t_mig[1] - t_mig[0]);
+            tau_e[2] = tau_a[2]/K;
+        } else if(t > t_mig[1]){
+            tau_a[2]=0.;
+            tau_e[2]=0.;
+        }
+        struct particle com = particles[0]; // calculate migration forces with respect to center of mass;
+        for(int i=1;i<N;i++){ // N = _N + 1 = total number of planets + star
+            if (tau_e[i]!=0||tau_a[i]!=0){
+                struct particle* p = &(particles[i]);
+                const double dvx = p->vx-com.vx;
+                const double dvy = p->vy-com.vy;
+                const double dvz = p->vz-com.vz;
+                
+                if (tau_a[i]!=0){ 	// Migration
+                    p->ax -=  dvx/(2.*tau_a[i]);
+                    p->ay -=  dvy/(2.*tau_a[i]);
+                    p->az -=  dvz/(2.*tau_a[i]);
+                }
+                
+                if (tau_e[i]!=0){ 	// Eccentricity damping
+                    const double mu = G*(com.m + p->m);
+                    const double dx = p->x-com.x;
+                    const double dy = p->y-com.y;
+                    const double dz = p->z-com.z;
+                    
+                    const double hx = dy*dvz - dz*dvy;
+                    const double hy = dz*dvx - dx*dvz;
+                    const double hz = dx*dvy - dy*dvx;
+                    const double h = sqrt ( hx*hx + hy*hy + hz*hz );
+                    const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
+                    const double r = sqrt ( dx*dx + dy*dy + dz*dz );
+                    const double vr = (dx*dvx + dy*dvy + dz*dvz)/r;
+                    const double ex = 1./mu*( (v*v-mu/r)*dx - r*vr*dvx );
+                    const double ey = 1./mu*( (v*v-mu/r)*dy - r*vr*dvy );
+                    const double ez = 1./mu*( (v*v-mu/r)*dz - r*vr*dvz );
+                    const double e = sqrt( ex*ex + ey*ey + ez*ez );		// eccentricity
+                    const double a = -mu/( v*v - 2.*mu/r );			// semi major axis
+                    const double prefac1 = 1./(1.-e*e) /tau_e[i]/1.5;
+                    const double prefac2 = 1./(r*h) * sqrt(mu/a/(1.-e*e))  /tau_e[i]/1.5;
+                    p->ax += -dvx*prefac1 + (hy*dz-hz*dy)*prefac2;
+                    p->ay += -dvy*prefac1 + (hz*dx-hx*dz)*prefac2;
+                    p->az += -dvz*prefac1 + (hx*dy-hy*dx)*prefac2;
+                    //printf("a=%f,e=%f,",a,e);
+                }
+            }
+            com = tools_get_center_of_mass(com,particles[i]);
+        }
     }
-    struct particle com = particles[0]; // calculate migration forces with respect to center of mass;
-	for(int i=1;i<N;i++){ // N = _N + 1 = total number of planets + star
-		if (tau_e[i]!=0||tau_a[i]!=0){
-			struct particle* p = &(particles[i]);
-			const double dvx = p->vx-com.vx;
-			const double dvy = p->vy-com.vy;
-			const double dvz = p->vz-com.vz;
-            
-			if (tau_a[i]!=0){ 	// Migration
-				p->ax -=  dvx/(2.*tau_a[i]);
-				p->ay -=  dvy/(2.*tau_a[i]);
-				p->az -=  dvz/(2.*tau_a[i]);
-			}
-
-			if (tau_e[i]!=0){ 	// Eccentricity damping
-				const double mu = G*(com.m + p->m);
-				const double dx = p->x-com.x;
-				const double dy = p->y-com.y;
-				const double dz = p->z-com.z;
-
-				const double hx = dy*dvz - dz*dvy; 
-				const double hy = dz*dvx - dx*dvz;
-				const double hz = dx*dvy - dy*dvx;
-				const double h = sqrt ( hx*hx + hy*hy + hz*hz );
-				const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
-				const double r = sqrt ( dx*dx + dy*dy + dz*dz );
-				const double vr = (dx*dvx + dy*dvy + dz*dvz)/r;
-				const double ex = 1./mu*( (v*v-mu/r)*dx - r*vr*dvx );
-				const double ey = 1./mu*( (v*v-mu/r)*dy - r*vr*dvy );
-				const double ez = 1./mu*( (v*v-mu/r)*dz - r*vr*dvz );
-				const double e = sqrt( ex*ex + ey*ey + ez*ez );		// eccentricity
-				const double a = -mu/( v*v - 2.*mu/r );			// semi major axis
-				const double prefac1 = 1./(1.-e*e) /tau_e[i]/1.5;
-				const double prefac2 = 1./(r*h) * sqrt(mu/a/(1.-e*e))  /tau_e[i]/1.5;
-				p->ax += -dvx*prefac1 + (hy*dz-hz*dy)*prefac2;
-				p->ay += -dvy*prefac1 + (hz*dx-hx*dz)*prefac2;
-				p->az += -dvz*prefac1 + (hx*dy-hy*dx)*prefac2;
-                //printf("a=%f,e=%f,",a,e);
-			}
-		}
-		com = tools_get_center_of_mass(com,particles[i]);
-	}
+    
 }
 
 void problem_inloop(){
 }
 
 void problem_output(){
-    if(tides==1){
+    if(tide_forces==1){
         struct particle com = particles[0];
         //Tides
         for(int i=1;i<N;i++){
@@ -191,28 +200,30 @@ void problem_output(){
             const double m = par->m;
             const double mu = G*(com.m + m);
             //radius of planet must be in AU for units to work out since G=1, [t]=yr/2pi, [m]=m_star
-            const double rp = par->r*0.00464913; //converts from Rs to AU units
+            const double rp = par->r*0.00464913;       //Rp from Solar Radii to AU
             const double Qp = par->Qp;
-        
+  
+            //printf("\n Tidal 1 orbits: x=%f, y=%f, vx=%f, vy=%f",par->x,par->y,par->vx,par->vy);
             const double dvx = par->vx-com.vx;
             const double dvy = par->vy-com.vy;
             const double dvz = par->vz-com.vz;
             const double dx = par->x-com.x;
             const double dy = par->y-com.y;
             const double dz = par->z-com.z;
-        
+            
             const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
             const double r = sqrt ( dx*dx + dy*dy + dz*dz );
             const double vr = (dx*dvx + dy*dvy + dz*dvz)/r;
             const double ex = 1./mu*( (v*v-mu/r)*dx - r*vr*dvx );
             const double ey = 1./mu*( (v*v-mu/r)*dy - r*vr*dvy );
             const double ez = 1./mu*( (v*v-mu/r)*dz - r*vr*dvz );
-        
+            
             double e = sqrt( ex*ex + ey*ey + ez*ez );   // eccentricity
             double a = -mu/( v*v - 2.*mu/r );			// semi major axis
             double n = sqrt(mu/(a*a*a));
-            double w = atan2(ey,ex);              // seems right upon check -  Fundamentals of Astrodynamics and
-                                              //Applications, by Vallado, 2007
+            //seems right upon check -  Fund. of Astrodyn. and App., by Vallado, 2007
+            double w = atan2(ey,ex);
+
             if(ey < 0.) w = 2*M_PI + w;
             const double rdote = dx*ex + dy*ey + dz*ez;
             const double cosf = rdote/(e*r);
@@ -222,17 +233,19 @@ void problem_output(){
             double const sinwf = sin(w+f);
             double const coswf = cos(w+f);
         
+            //if(a!=a || e!=e || dx!=dx){
+                
+            //}
             //Eccentric Anomaly
             //double terme = sqrt((1+e)/(1-e));
             //double const E = 2*atan(tan(f/2)/terme);
-        
+            
             //Tides
             const double R5a5 = rp*rp*rp*rp*rp/(a*a*a*a*a);
             const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a*a*a));
             const double de = -dt*(9.*M_PI/2.)*Qp*GM3a3*R5a5*e/m;        //Tidal change for e
-            const double da = 2*a*e*de;                                     //Tidal change for a
-        
-            //if(i==1 && t<10)printf("radius=%f\n",par->r);
+            const double da = 2*a*e*de;                                  //Tidal change for a
+            
             //if(i==1 && t < 5.)printf("INI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
             //if(i==1 && t > 49996.)printf("FINI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
         
@@ -261,10 +274,10 @@ void problem_output(){
 	if(output_check(10000.*dt)){
 		output_timing();
 	}
-	if(output_check(40.)){
+	if(output_check(400.)){
         //A.S. - append orbits in orbits.txt. Ordering of outputs goes:
         //time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
-		output_append_orbits("runs/orbits.txt");
+		output_append_orbits(txt_file);
 #ifndef INTEGRATOR_WH
 		tools_move_to_center_of_momentum();  			// The WH integrator assumes a heliocentric coordinate system.
 #endif // INTEGRATOR_WH
