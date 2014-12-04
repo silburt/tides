@@ -59,10 +59,10 @@ void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, 
     *mp = array[15]*3e-6;               //planet mass (SOLAR units)
     *rp = array[18];                    //planet radius (SOLAR units)
 
-    //timestep (1/10th P), in year/(2*pi).
+    //timestep (1/11th P), in year/(2*pi).
     //From Viswanath, Divakar 2002-03, need min. of 6*dt per P
-    *dt = 2.*M_PI*array[1]/(365.*10.);
-    printf("The timestep used for this simulation is: %f years",*dt/(2.*M_PI));
+    *dt = 2.*M_PI*array[1]/(365.*11.);
+    printf("The timestep used for this simulation is (years/2pi): %f \n",*dt/(2.*M_PI));
     
     if(*a==0. && array[11] != 0.){//many semi-major axis fields are empty. Calc
         double P = array[1]*24.*60.*60.; //Period in seconds

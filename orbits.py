@@ -33,12 +33,13 @@ R5a5 = rp*rp*rp*rp*rp/(a*a*a*a*a)
 GM3a3 = (G*Ms*Ms*Ms/(a*a*a))**0.5
 lne = -(9.*pi/2.)*Qp*GM3a3*R5a5/mp
 time = np.arange(0,10**7,10**5)
-e_t = math.e**(lne*time/(2*pi)) -0.9
+e_t = math.e**(lne*time/(2.*pi)) -0.9
 plt.plot(time, e_t, 'k-.', label='analytics')
 
 #e = -(9.*pi/2.)*Qp*(rp**5)*((G*Ms**3)**0.5)/(a**6.5)/mp
 #plt.plot(time, math.e**(e*time), 'm', label='analytics2')
 
+#plt.ylim([0.,0.3])
 plt.xlabel('' + names[arg1])
 plt.ylabel('' + names[arg2])
 plt.show()

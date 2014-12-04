@@ -70,7 +70,7 @@ void problem_init(int argc, char* argv[]){
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 0;                //If ==0, no migration.
     afac        = 1.1;              //Factor to increase 'a' of OUTER planets by.
-    txt_file    = "orbits_test_tides_wh.txt";
+    txt_file    = "orbits_test_tides_wh2.txt";
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -85,7 +85,6 @@ void problem_init(int argc, char* argv[]){
     const double w=0., f=0., e=0.1;
     
     readplanets(c,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
-    printf("dt = %f \n", dt);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
 	star.vx = 0; star.vy = 0; star.vz = 0;
@@ -223,27 +222,26 @@ void problem_output(){
             double n = sqrt(mu/(a*a*a));
             //seems right upon check -  Fund. of Astrodyn. and App., by Vallado, 2007
             double w = atan2(ey,ex);
-
             if(ey < 0.) w = 2*M_PI + w;
+            
             const double rdote = dx*ex + dy*ey + dz*ez;
-            const double cosf = rdote/(e*r);
+            double cosf = rdote/(e*r);
+            cosf = roundf(cosf * 100)*0.01;
             double f = acos(cosf);                  // seems right upon check
             if(vr < 0.) f = 2*M_PI - f;
             double const sinf = sin(f);
             double const sinwf = sin(w+f);
             double const coswf = cos(w+f);
         
-            //if(a!=a || e!=e || dx!=dx){
-                
-            //}
             //Eccentric Anomaly
             //double terme = sqrt((1+e)/(1-e));
             //double const E = 2*atan(tan(f/2)/terme);
             
             //Tides
+            
             const double R5a5 = rp*rp*rp*rp*rp/(a*a*a*a*a);
             const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a*a*a));
-            const double de = -dt*(9.*M_PI/2.)*Qp*GM3a3*R5a5*e/m;        //Tidal change for e
+            const double de = -dt*(9.*M_PI*0.5)*Qp*GM3a3*R5a5*e/m;        //Tidal change for e
             const double da = 2*a*e*de;                                  //Tidal change for a
             
             //if(i==1 && t < 5.)printf("INI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
@@ -256,16 +254,29 @@ void problem_output(){
             //Re-update coords.
             const double r_new = a*(1 - e*e)/(1 + e*cosf);
             n = sqrt(mu/(a*a*a));
-            par->x = r_new*coswf + com.x;
-            par->y = r_new*sinwf + com.y;
+            const double x_new = r_new*coswf + com.x;
+            const double y_new = r_new*sinwf + com.y;
             const double term = n*a/sqrt(1-e*e);
             const double rdot = term*e*sinf;
             const double rfdot = term*(1 + e*cosf);
-            par->vx = rdot*coswf - rfdot*sinwf + com.vx;
-            par->vy = rdot*sinwf + rfdot*coswf + com.vy;
+            const double vx_new = rdot*coswf - rfdot*sinwf + com.vx;
+            const double vy_new = rdot*sinwf + rfdot*coswf + com.vy;
+            
+            //Stop program if nan values being produced.
+            if(x_new!=x_new || y_new!=y_new || vx_new!=vx_new ||vy_new!=vy_new){
+                printf("\n cartesian before: dx=%f,dy=%f,dz=%f,ex=%f,ey=%f,ex=%f,r=%f,vx=%f,vy=%f,com.vx=%f,com.vy=%f,v=%f \n",dx,dy,dz,ex,ey,ez,r,par->vx,par->vy,com.vx,com.vy,v);
+                printf("Orbital elements: mu=%f,e=%f,a=%f,w=%f,rdote=%f,cosf=%.15f,f=%f,dt=%f,de=%f,da=%f,GM3a3=%f,R5a5=%f \n",mu,e,a,w,rdote,cosf,f,dt,de,da,GM3a3,R5a5);
+                printf("\n cartesian after: x_new=%f,y_new=%f,vx_new=%f,vy_new=%f,term=%f,rdot=%f,rfdot=%f \n",x_new,y_new,vx_new,vy_new,term,rdot,rfdot);
+                exit(0);
+            }
+            
+            par->x = x_new;
+            par->y = y_new;
+            par->vx = vx_new;
+            par->vy = vy_new;
         
-            com = tools_get_center_of_mass(com,particles[i]);  //Does this need to happen before updating par?
-        
+            com = tools_get_center_of_mass(com,particles[i]);
+            
             //if(i==1 && t<5.)printf("DELTA INI: x,y,vx,vy=%.15f,%.15f,%.15f,%.15f \n ", r_new*coswf - dx, r_new*sinwf -dy, rdot*coswf - rfdot*sinwf -dvx, rdot*sinwf + rfdot*coswf -dvy);
             //if(i==1 && t > 9990.)printf("DELTA FINI: x,y,vx,vy=%.15f,%.15f,%.15f,%.15f \n ", r_new*coswf - dx, r_new*sinwf -dy, rdot*coswf - rfdot*sinwf -dvx, rdot*sinwf + rfdot*coswf -dvy);
         }
