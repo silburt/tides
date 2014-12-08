@@ -25,14 +25,15 @@ rp = 0.0183*0.00464913       #Jupiter=0.1, Earth=0.01, Neptune = 0.035
 mp = 0.00003   #Jupiter=.001, Earth=3e-6, Neptune = 5e-5
 Ms = 1.         #Units of solar mass
 a = 0.057217    #AU
-G = 1.          #AU^3/Msun*yr*2pi
+G = 1.          #AU^3/Msun*(yr/2pi)
 Qp = 0.1/10.     #k_2/Q
 pi = math.pi
 
+com=Ms+mp
 R5a5 = rp*rp*rp*rp*rp/(a*a*a*a*a)
-GM3a3 = (G*Ms*Ms*Ms/(a*a*a))**0.5
+GM3a3 = (G*com*com*com/(a*a*a))**0.5
 lne = -(9.*pi/2.)*Qp*GM3a3*R5a5/mp
-time = np.arange(0,10**7,10**5)
+time = np.arange(0,7*10**7,10**5)
 e_t = math.e**(lne*time/(2.*pi)) -0.9
 plt.plot(time, e_t, 'k-.', label='analytics')
 

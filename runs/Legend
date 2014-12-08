@@ -1,2 +1,1 @@
-orbits_wh.txt - Funky things are happening with the WH integrator, with dt=1e-2*2*M_PI. Try maybe with a smaller timestep, see if that fixes the problem. Also going to see if the same thing happens with the IAS15 integrator. 
-
+ orbits_test_tides_wh.txt - first successful run with tides for a test planet with a=0.057217,mp=0.000030,rp=0.018300,Qp=0.010000, star: Rs=1.000000, Ms=1.000000. Completed with no errors, and the tidal forces are pretty close (but not exactly) to the theoretical prediction.
