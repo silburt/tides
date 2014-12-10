@@ -62,7 +62,7 @@ void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, 
     //timestep (P/11.), in year/(2*pi).
     //From Viswanath, Divakar 2002-03, need min. of 6*dt per P
     *dt = 2.*M_PI*array[1]/(365.*11.);
-    printf("The timestep used for this simulation is (years/2pi): %f \n",*dt/(2.*M_PI));
+    printf("The timestep used for this simulation is (years/2pi): %f \n",*dt);
     
     if(*a==0. && array[11] != 0.){//many semi-major axis fields are empty. Calc
         double P = array[1]*24.*60.*60.; //Period in seconds

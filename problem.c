@@ -50,6 +50,7 @@
 
 double* tau_a; 	/**< Migration timescale in years for all particles */
 double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
+double counter=0;
 void problem_migration_forces();
 
 #ifdef OPENGL
@@ -58,10 +59,10 @@ extern int display_wire;
 
 void problem_init(int argc, char* argv[]){
 	/* Setup constants */
-    //dt = (dt is calc in readplanets.c as P_inner/10.)
+    //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-	tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
-    //tmax        = 5.;
+	//tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
+    tmax        = 1e5;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*20000.0;  //tau_a, typical timescale=20,000 years;
@@ -69,7 +70,7 @@ void problem_init(int argc, char* argv[]){
     t_mig[1]    = 35000.;           //migration damp out over 5000 years.
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 0;                //If ==0, no migration.
-    afac        = 1.1;              //Factor to increase 'a' of OUTER planets by.
+    afac        = 1.0;              //Factor to increase 'a' of OUTER planets by.
     txt_file    = "orbits_test_tides_wh2.txt";
     
 #ifdef OPENGL
@@ -82,8 +83,8 @@ void problem_init(int argc, char* argv[]){
     printf("You have chosen: %s \n",c);
     double Ms,Rs,a,rho,inc,mp,rp,tau_atemp,Qp_temp;
     int char_val, _N;
-    const double w=0., f=0., e=0.1;
     
+    const double f=0., w=0., e=0.1;
     readplanets(c,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
@@ -118,7 +119,7 @@ void problem_init(int argc, char* argv[]){
         particles_add(p);
         //printf("Planet %i: mp=%f, x,y,vx,vy=%f,%f,%f,%f \n",i+1,p.m, p.x,p.y,p.vx,p.vy);
         printf("Planet %i: a=%f,afac=%f,mp=%f,rp=%f,Qp=%f,tau_a=%f \n",i+1,a,afac,mp,rp,Qp_temp,tau_a[i+1]);
-
+        
     }
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
@@ -129,6 +130,7 @@ void problem_init(int argc, char* argv[]){
     char sys_arg[50] = "rm -v ";
     strcat(sys_arg,txt_file);
 	system(sys_arg); // delete previous output file
+    system("rm -v output.txt");
 }
 
 void problem_migration_forces(){
@@ -216,47 +218,58 @@ void problem_output(){
             const double ex = 1./mu*( (v*v-mu/r)*dx - r*vr*dvx );
             const double ey = 1./mu*( (v*v-mu/r)*dy - r*vr*dvy );
             const double ez = 1./mu*( (v*v-mu/r)*dz - r*vr*dvz );
-            
             double e = sqrt( ex*ex + ey*ey + ez*ez );   // eccentricity
-            double a = -mu/( v*v - 2.*mu/r );			// semi major axis
-            double n = sqrt(mu/(a*a*a));
-            //seems right upon check -  Fund. of Astrodyn. and App., by Vallado, 2007
-            //Also from wiki
-            double w = atan2(ey,ex);
-            if(ey < 0.) w = 2*M_PI + w;
+            //double a = -mu/( v*v - 2.*mu/r );			// semi major axis
+            //const double cosE = (a - r)/(a*e);
+            //double cosf = (1 - e*e)/(e - e*e*cosE) - 1/e;
             
-            // true anomaly (wiki)
+            // true anomaly + periapse (wiki, Fund. of Astrodyn. and App., by Vallado, 2007)
             const double rdote = dx*ex + dy*ey + dz*ez;
             double cosf = rdote/(e*r);
+            //double cosf = (a*(1 - e*e) - r)/(r*e);
             if(cosf >= 1.) cosf = 1.;
             if(cosf <= -1.) cosf = -1.;
-            double f = acos(cosf);
-            if(vr < 0.) f = 2*M_PI - f;
-            double const sinf = sin(f);
-            double const sinwf = sin(w+f);
-            double const coswf = cos(w+f);
-        
+            //double f = acos(cosf);
+            //if(vr < 0.) f = 2*M_PI - f;
+            //double const sinf = sin(f);
+            double sinf = sqrt(1. - cosf*cosf);
+            if(vr < 0.) sinf *= -1.;
+            //double w = atan2(ey,ex);
+            //if(ey < 0.) w = 2*M_PI + w;
+            double const sinwf = dy/r;
+            double const coswf = dx/r;
+            double a = r*(1 + e*cosf)/(1 - e*e);
+            
             //Eccentric Anomaly
+            //*******
             //double terme = sqrt((1+e)/(1-e));
             //double const E = 2*atan(tan(f/2)/terme);
+            //const double cosf = (cos(E) - e)/(1 - e*cos(E));
+            //printf("check dcosf=%.20f,%.20f,%.20f \n",cosf - (cos(E) - e)/(1 - e*cos(E)), cosf-cosf2, (cos(E) - e)/(1 - e*cos(E)) - cosf2);
+            
+            //double a = r/(1 - e*cos(E));
+            //double n = sqrt(mu/(a*a*a));
+            //printf("a-a2=%.20f,a-a3=%.20f,a2-a3=%.20f \n",a-a2, a-a3, a2-a3);
             
             //Tides
             const double R5a5 = rp*rp*rp*rp*rp/(a*a*a*a*a);
             const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a*a*a));
             const double de = -dt*(9.*M_PI*0.5)*Qp*GM3a3*R5a5*e/m;       //Tidal change for e
-            const double da = 2*a*e*de;                                  //Tidal change for a
+            const double da = 2.*a*e*de;                                 //Tidal change for a
             
             //if(i==1 && t < 5.)printf("INI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
             //if(i==1 && t > 49996.)printf("FINI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
         
-            a += da;
+            //a += da;
             e += de;
         
             //Re-update coords.
             const double r_new = a*(1. - e*e)/(1. + e*cosf);
-            n = sqrt(mu/(a*a*a));
+            //const double r_new = a*(1 - e*cosE);
+            
             const double x_new = r_new*coswf + com.x;
             const double y_new = r_new*sinwf + com.y;
+            const double n = sqrt(mu/(a*a*a));
             const double term = n*a/sqrt(1.- e*e);
             const double rdot = term*e*sinf;
             const double rfdot = term*(1. + e*cosf);
@@ -266,12 +279,22 @@ void problem_output(){
             //Stop program if nan values being produced.
             if(x_new!=x_new || y_new!=y_new || vx_new!=vx_new ||vy_new!=vy_new){
                 printf("\n cartesian before: dx=%f,dy=%f,dz=%f,ex=%f,ey=%f,ex=%f,r=%f,vx=%f,vy=%f,com.vx=%f,com.vy=%f,v=%f \n",dx,dy,dz,ex,ey,ez,r,par->vx,par->vy,com.vx,com.vy,v);
-                printf("Orbital elements: mu=%f,e=%f,a=%f,w=%f,rdote=%f,cosf=%.22f,f=%f,dt=%f,de=%f,da=%f,GM3a3=%f,R5a5=%f \n",mu,e,a,w,rdote,cosf,f,dt,de,da,GM3a3,R5a5);
+                printf("Orbital elements: mu=%f,e=%f,a=%f,cosf=%.22f,dt=%f,de=%f,da=%f,GM3a3=%f,R5a5=%f \n",mu,e,a,cosf,dt,de,da,GM3a3,R5a5);
                 printf("\n cartesian after: x_new=%f,y_new=%f,vx_new=%f,vy_new=%f,term=%f,rdot=%f,rfdot=%f \n",x_new,y_new,vx_new,vy_new,term,rdot,rfdot);
                 exit(0);
             }
             
-            //if(i==1)printf("DELTA FINI: x,y,vx,vy=%.15f,%.15f,%.15f,%.15f \n ", x_new - par->x, y_new-par->y, vx_new-par->vx, vy_new-par->vy);
+            counter += dt;
+            if(counter > 100.){
+                FILE *write;
+                write=fopen("output.txt", "a");
+                if(write == NULL) exit(-1);
+                                //t(yrs),de,dt,e,R5a5,GM3a3,a
+                fprintf(write, "%f,%.25f,%f,%.20f,%.25f,%.10f,%.20f \n", t,de,dt,e,R5a5,GM3a3,a);
+                counter = 0;
+                fclose(write);
+            }
+            //printf("DELTA FINI: dx,dy,dvx,dvy=%.20f,%.20f,%.20f,%.20f,%.20f \n ", x_new - par->x, y_new-par->y, vx_new-par->vx, vy_new-par->vy);
             
             par->x = x_new;
             par->y = y_new;
@@ -280,7 +303,6 @@ void problem_output(){
         
             com = tools_get_center_of_mass(com,particles[i]);
             
-            //if(i==1 && t<5.)printf("DELTA INI: x,y,vx,vy=%.15f,%.15f,%.15f,%.15f \n ", r_new*coswf - dx, r_new*sinwf -dy, rdot*coswf - rfdot*sinwf -dvx, rdot*sinwf + rfdot*coswf -dvy);
         }
     }
     
