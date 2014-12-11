@@ -50,6 +50,8 @@
 
 double* tau_a; 	/**< Migration timescale in years for all particles */
 double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
+double a_old;
+double a_new;
 double counter=0;
 void problem_migration_forces();
 
@@ -61,8 +63,7 @@ void problem_init(int argc, char* argv[]){
 	/* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-	//tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
-    tmax        = 1e5;
+	tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*20000.0;  //tau_a, typical timescale=20,000 years;
@@ -71,7 +72,7 @@ void problem_init(int argc, char* argv[]){
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 0;                //If ==0, no migration.
     afac        = 1.0;              //Factor to increase 'a' of OUTER planets by.
-    txt_file    = "orbits_test_tides_wh2.txt";
+    txt_file    = "orbits_test_tidesworking.txt";
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -97,6 +98,7 @@ void problem_init(int argc, char* argv[]){
     tau_a  = calloc(sizeof(double),_N+1);  //migration of semi-major axis
 	tau_e  = calloc(sizeof(double),_N+1);  //migration (damp) of eccentricity
     
+    a_old = a;
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
     assignparams(&tau_atemp,&Qp_temp,mp,rp,t_mig,T);
@@ -238,7 +240,7 @@ void problem_output(){
             //if(ey < 0.) w = 2*M_PI + w;
             double const sinwf = dy/r;
             double const coswf = dx/r;
-            double a = r*(1 + e*cosf)/(1 - e*e);
+            double a = r*(1. + e*cosf)/(1. - e*e);
             
             //Eccentric Anomaly
             //*******
@@ -252,15 +254,17 @@ void problem_output(){
             //printf("a-a2=%.20f,a-a3=%.20f,a2-a3=%.20f \n",a-a2, a-a3, a2-a3);
             
             //Tides
-            const double R5a5 = rp*rp*rp*rp*rp/(a*a*a*a*a);
-            const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a*a*a));
+            const double a2 = a*a;
+            const double rp2 = rp*rp;
+            const double R5a5 = rp2*rp2*rp/(a2*a2*a);
+            const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a2*a));
             const double de = -dt*(9.*M_PI*0.5)*Qp*GM3a3*R5a5*e/m;       //Tidal change for e
             const double da = 2.*a*e*de;                                 //Tidal change for a
             
             //if(i==1 && t < 5.)printf("INI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
             //if(i==1 && t > 49996.)printf("FINI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
         
-            //a += da;
+            a += da;
             e += de;
         
             //Re-update coords.
@@ -283,9 +287,9 @@ void problem_output(){
                 printf("\n cartesian after: x_new=%f,y_new=%f,vx_new=%f,vy_new=%f,term=%f,rdot=%f,rfdot=%f \n",x_new,y_new,vx_new,vy_new,term,rdot,rfdot);
                 exit(0);
             }
-            
+            /*
             counter += dt;
-            if(counter > 100.){
+            if(counter > 1e3){
                 FILE *write;
                 write=fopen("output.txt", "a");
                 if(write == NULL) exit(-1);
@@ -293,8 +297,8 @@ void problem_output(){
                 fprintf(write, "%f,%.25f,%f,%.20f,%.25f,%.10f,%.20f \n", t,de,dt,e,R5a5,GM3a3,a);
                 counter = 0;
                 fclose(write);
-            }
-            //printf("DELTA FINI: dx,dy,dvx,dvy=%.20f,%.20f,%.20f,%.20f,%.20f \n ", x_new - par->x, y_new-par->y, vx_new-par->vx, vy_new-par->vy);
+            }*/
+            //printf("DELTA FINI: dx,dy,dvx,dvy=%.20f,%.20f,%.20f,%.20f \n ", x_new - par->x, y_new-par->y, vx_new-par->vx, vy_new-par->vy);
             
             par->x = x_new;
             par->y = y_new;

@@ -16,9 +16,9 @@ data = np.loadtxt(fos, delimiter="	")
 for i in range(0,N): #range(0,N) only goes to N-1
     p=data[i::N]
     if arg2 == 9:
-        plt.plot(p[:,arg1], p[:,7]/p[:,7], ''+colors[i])
+        plt.plot(p[:,arg1], p[:,7]/p[:,7], ''+colors[i], label='numerical')
     else:
-        plt.plot(p[:,arg1], p[:,arg2], ''+colors[i])
+        plt.plot(p[:,arg1], p[:,arg2], ''+colors[i], label='numerical')
 
 #Analytics
 rp = 0.0183*0.00464913       #Jupiter=0.1, Earth=0.01, Neptune = 0.035
@@ -33,23 +33,16 @@ com=Ms
 R5a5 = rp*rp*rp*rp*rp/(a*a*a*a*a)
 GM3a3 = (G*com*com*com/(a*a*a))**0.5
 lne = -(9.*pi/2.)*Qp*GM3a3*R5a5/mp
-time = np.arange(0,10**7,10**5)
-e_t = math.e**(lne*time/(2.*pi)) -0.9
-plt.plot(time, e_t, 'k-.', label='analytics')
+time = np.arange(0,p[-1,0],10**5)
+e_t = math.e**(lne*time)*p[0,2] #the 0.1 is a constant of integration
+plt.plot(time, e_t, 'k-.', linewidth=3, label='analytical')
 
 e = 0.09999999874855819426
 dt = 0.00782463923683634696
 de = -dt*(9.*pi*0.5)*Qp*GM3a3*R5a5*e/mp
 
-#check - a small da isn't the cause of the discrepancy
-#a2 = 0.057310
-#R5a5_2 = rp*rp*rp*rp*rp/(a2*a2*a2*a2*a2)
-#GM3a3_2 = (G*com*com*com/(a2*a2*a2))**0.5
-#lne_2 = -(9.*pi/2.)*Qp*GM3a3_2*R5a5_2/mp
-#e_t_2 = math.e**(lne_2*time/(2.*pi)) -0.9
-#plt.plot(time, e_t_2, 'g', label='analytics2')
-
 #plt.ylim([0.057216,0.057218])
 plt.xlabel('' + names[arg1])
 plt.ylabel('' + names[arg2])
+plt.legend(loc='upper right')
 plt.show()
