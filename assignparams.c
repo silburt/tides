@@ -1,10 +1,12 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<unistd.h>
 #include<string.h>
 #include<math.h>
 #include<stddef.h>
+#include<time.h>
 
-void assignparams(double *tau_a, double *Qp, double mp, double rp, double t_mig[2], double typical_timescale);
+void assignparams(double *tau_a, double *Qp, double mp, double rp, double t_mig[2], double typical_timescale, char *charac_txt);
 
 /*
 Q (Goldreich & Soter, 1966):
@@ -31,7 +33,7 @@ k_2 of Giant planets (Gavrilov & Zharkov, 1977)
  Neptune=   0.127
 */
 
-void assignparams(double *tau_a, double *Qp, double mp, double rp, double t_mig[2], double typical_timescale){
+void assignparams(double *tau_a, double *Qp, double mp, double rp, double t_mig[2], double typical_timescale, char *charac_txt){
     double k2, Q;
     srand(time(NULL));
     //k2 = (rand() %3 + 1)/10.;
@@ -50,4 +52,10 @@ void assignparams(double *tau_a, double *Qp, double mp, double rp, double t_mig[
     *Qp = k2/Q;
     
     *tau_a = typical_timescale;
+    
+    FILE *write;
+    write=fopen(charac_txt, "a");
+    //if(write == NULL) exit(EXIT_FAILURE);
+    fprintf(write, "%f,%f,%f \n", mp,rp,*Qp);
+    fclose(write);
 }

@@ -2,14 +2,16 @@
 #include<stdlib.h>
 #include<string.h>
 #include<math.h>
+#include<time.h>
 #include<stddef.h>
+#include<unistd.h>
 
-void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt);
+void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt);
 
 void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *mp, double *rp);
 
 
-void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt){
+void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt){
     FILE *f = fopen("planets.csv", "r");
     char temp[512];
     int line_num = 0, found_result=0, exit=0;
@@ -25,15 +27,9 @@ void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, 
             found_result++;
             exit = 1;
         }
-        
     }
-    
-    if(found_result == 0) {
-        printf("\n Sorry, couldn't find a match.\n");
-    }
-    if(f) {
-        fclose(f);
-    }
+    if(found_result == 0) printf("\n Sorry, couldn't find a match.\n");
+    if(f) fclose(f);
     
     //split temp into tokens using ',' delimeter, store in arrays
     //pointed to by datpoint.
@@ -45,7 +41,6 @@ void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, 
         char *p = strsep(&string,",");
         if(i>=4){
             array[i-4] = (atof(p));
-            //printf("string=%f,%i \n",array[i-4],i);
         }
         i++;
     }
@@ -72,8 +67,20 @@ void readplanets(char *sysname, int *char_pos, int *_N, double *Ms, double *Rs, 
         *a = pow(calca,1./3.)/1.496e11;     //in AU
         printf("calculated semi-major axis \n");
     }
+    
+    //delete previous output file
+    char sys_arg[50] = "rm -v ";
+    strcat(sys_arg,charac_txt);
+    system(sys_arg);
+    //write star characteristics to file. Planet characteristics come in assignparams.c
+    FILE *write;
+    write=fopen(charac_txt, "a");
+    //if(write == NULL) exit(-1);
+    fprintf(write, "%f,%f,%i \n", *Ms,*Rs,*_N);
+    fclose(write);
 }
 
+//*******************************************************************************//
 
 void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *mp, double *rp){
     FILE *f = fopen("planets.csv", "r");

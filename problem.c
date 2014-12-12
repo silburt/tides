@@ -63,7 +63,8 @@ void problem_init(int argc, char* argv[]){
 	/* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-	tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
+	//tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
+    tmax        = 1e6*2*M_PI;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*20000.0;  //tau_a, typical timescale=20,000 years;
@@ -72,7 +73,9 @@ void problem_init(int argc, char* argv[]){
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 0;                //If ==0, no migration.
     afac        = 1.0;              //Factor to increase 'a' of OUTER planets by.
-    txt_file    = "orbits_test_tidesworking.txt";
+    char c[20]  = "Kepler-10";      //System being investigated
+    txt_file    = "orbits_test_tidesworking.txt";   //Where to store orbit params
+    sys_char_txt= "orbits_sys_char.txt";            //Where to store sys params.
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -80,13 +83,12 @@ void problem_init(int argc, char* argv[]){
 	init_box();
 
     // Initial conditions
-    char c[20]="TEST";
     printf("You have chosen: %s \n",c);
     double Ms,Rs,a,rho,inc,mp,rp,tau_atemp,Qp_temp;
     int char_val, _N;
     
     const double f=0., w=0., e=0.1;
-    readplanets(c,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
+    readplanets(c,sys_char_txt,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
 	star.vx = 0; star.vy = 0; star.vz = 0;
@@ -101,27 +103,24 @@ void problem_init(int argc, char* argv[]){
     a_old = a;
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
-    assignparams(&tau_atemp,&Qp_temp,mp,rp,t_mig,T);
+    assignparams(&tau_atemp,&Qp_temp,mp,rp,t_mig,T,sys_char_txt);
     p.Qp=Qp_temp;
     particles_add(p);
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
     printf("Planet 1: a=%f,mp=%f,rp=%f,Qp=%f \n",a,mp,rp,Qp_temp);
     
     for(int i=1;i<_N;i++){
-        printf("SHOULDNT BE HERE \n");
         extractplanets(&char_val,&a,&rho,&inc,&mp,&rp);
         a *= afac;      //Increase 'a' of outer planets by afac
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
-        assignparams(&tau_atemp,&Qp_temp,mp,rp,t_mig,T);
+        assignparams(&tau_atemp,&Qp_temp,mp,rp,t_mig,T,sys_char_txt);
         p.Qp=Qp_temp;
         tau_a[i+1]=tau_atemp;
         tau_e[i+1]=tau_atemp/K;
         
         particles_add(p);
-        //printf("Planet %i: mp=%f, x,y,vx,vy=%f,%f,%f,%f \n",i+1,p.m, p.x,p.y,p.vx,p.vy);
-        printf("Planet %i: a=%f,afac=%f,mp=%f,rp=%f,Qp=%f,tau_a=%f \n",i+1,a,afac,mp,rp,Qp_temp,tau_a[i+1]);
-        
+        printf("Planet %i: a=%f,mp=%f,rp=%f,Qp=%f,tau_a=%f,afac=%f, \n",i+1,a,mp,rp,Qp_temp,tau_a[i+1],afac);
     }
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
@@ -132,7 +131,6 @@ void problem_init(int argc, char* argv[]){
     char sys_arg[50] = "rm -v ";
     strcat(sys_arg,txt_file);
 	system(sys_arg); // delete previous output file
-    system("rm -v output.txt");
 }
 
 void problem_migration_forces(){
@@ -247,11 +245,8 @@ void problem_output(){
             //double terme = sqrt((1+e)/(1-e));
             //double const E = 2*atan(tan(f/2)/terme);
             //const double cosf = (cos(E) - e)/(1 - e*cos(E));
-            //printf("check dcosf=%.20f,%.20f,%.20f \n",cosf - (cos(E) - e)/(1 - e*cos(E)), cosf-cosf2, (cos(E) - e)/(1 - e*cos(E)) - cosf2);
-            
             //double a = r/(1 - e*cos(E));
             //double n = sqrt(mu/(a*a*a));
-            //printf("a-a2=%.20f,a-a3=%.20f,a2-a3=%.20f \n",a-a2, a-a3, a2-a3);
             
             //Tides
             const double a2 = a*a;
@@ -287,18 +282,6 @@ void problem_output(){
                 printf("\n cartesian after: x_new=%f,y_new=%f,vx_new=%f,vy_new=%f,term=%f,rdot=%f,rfdot=%f \n",x_new,y_new,vx_new,vy_new,term,rdot,rfdot);
                 exit(0);
             }
-            /*
-            counter += dt;
-            if(counter > 1e3){
-                FILE *write;
-                write=fopen("output.txt", "a");
-                if(write == NULL) exit(-1);
-                                //t(yrs),de,dt,e,R5a5,GM3a3,a
-                fprintf(write, "%f,%.25f,%f,%.20f,%.25f,%.10f,%.20f \n", t,de,dt,e,R5a5,GM3a3,a);
-                counter = 0;
-                fclose(write);
-            }*/
-            //printf("DELTA FINI: dx,dy,dvx,dvy=%.20f,%.20f,%.20f,%.20f \n ", x_new - par->x, y_new-par->y, vx_new-par->vx, vy_new-par->vy);
             
             par->x = x_new;
             par->y = y_new;
