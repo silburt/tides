@@ -63,7 +63,7 @@ void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double
         double P = array[1]*24.*60.*60.; //Period in seconds
         double mass = array[11]*1.989e30;
         double G_SI = 6.67e-11;
-        double calca = P*P*G_SI*mass/(4*M_PI*M_PI);
+        double calca = P*P*G_SI*mass/(4.*M_PI*M_PI);
         *a = pow(calca,1./3.)/1.496e11;     //in AU
         printf("calculated semi-major axis \n");
     }

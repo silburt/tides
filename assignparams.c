@@ -37,7 +37,8 @@ void assignparams(double *tau_a, double *Qp, double mp, double rp, double t_mig[
     double k2, Q;
     srand(time(NULL));
     //k2 = (rand() %3 + 1)/10.;
-    k2 = 0.1;
+    //k2 = 0.1;
+    k2 = 1.;
     
     if(mp > 1e-4 && mp < 1e-3){//Uranus/Neptune Q
         //Q = (rand() %25 + 60)*1e3;
@@ -47,7 +48,7 @@ void assignparams(double *tau_a, double *Qp, double mp, double rp, double t_mig[
         Q = 1e5;
     } else{//Earth or smaller Q
         //Q = rand() %80 + 10;
-        Q = 10;
+        Q = 10.;
     }
     *Qp = k2/Q;
     

@@ -5,3 +5,5 @@ orbits_test_tides_noda - the ‘da’ part of the tide is turned off, but still 
 orbits_de_noda - outputting various quantities like de, a, GM5a5, Rp5a5 over time, to track the evolution of these variables over time. ‘a’ has occasional but very chaotic changes. 
 
 orbits_nodeda - no de or da effect of tides, but still doing the cartesian->orbital->cartesian. Had an (a_new - a_old > 6.5e-14) stop condition, but never happened. So the variations are small, but seem to be consistently rising. 
+
+orbits_3test_danode - no de/dt, only da/dt. Checking to see if theory matches observations for the da/dt part of the tides, which it does. 
