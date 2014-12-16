@@ -67,8 +67,7 @@ print "Avg. tau_a=%f" % outputa
 print "Avg. tau_e=%f" % outpute
 plt.plot(t_i, a_i, label='a(t)')
 plt.plot(t_i, e_i, label='e(t)')
-#plt.plot(t_i, da_i)
-#plt.plot(t_i, de_i)
+
 plt.ylim([0,0.3])
 plt.xlabel('time (years)')
 plt.ylabel('X(t)')

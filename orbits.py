@@ -29,11 +29,14 @@ names=['time (years)','Semi-Major Axis (AU)','Eccentricity','inclination','Long.
 colors=['b','g','m','r','c','y']
 fos = open(''+file_name, 'r')
 data = np.loadtxt(fos, delimiter="	")
-for i in range(0,N): #range(0,N) only goes to N-1
-    p=data[i::N]
-    if arg2 == 9:
-        plt.plot(p[:,arg1], p[:,7]/p[:,7], ''+colors[i], label='pl.'+str(i+1))
-    else:
+if arg2==9:
+    for i in range(0,N-1):
+        p=data[i::N]
+        q=data[i+1::N]
+        plt.plot(p[:,arg1], q[:,7]/p[:,7], ''+colors[i], label='pl.'+str(i+1)+'/pl.'+str(i))
+else:
+    for i in range(0,N): #range(0,N) only goes to N-1
+        p=data[i::N]
         plt.plot(p[:,arg1], p[:,arg2], ''+colors[i], label='pl.'+str(i+1))
 
 #Analytics - plot e
@@ -63,8 +66,9 @@ if arg2==1:
 
 #de = -dt*(9.*pi*0.5)*Qp*GM3a3*R5a5*e/mp
 
-#plt.ylim([0.057216,0.057218])
+#plt.ylim([0.185,0.19])
+#plt.xlim([1000,30000])
 plt.xlabel('' + names[arg1])
 plt.ylabel('' + names[arg2])
-plt.legend(loc='upper right')
+#plt.legend(loc='upper right')
 plt.show()

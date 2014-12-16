@@ -64,17 +64,17 @@ void problem_init(int argc, char* argv[]){
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
 	//tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
-    tmax        = 1e7*2*M_PI;
+    tmax        = 1e6*2*M_PI;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*20000.0;  //tau_a, typical timescale=20,000 years;
-    t_mig[0]    = 30000.;           //migration times
-    t_mig[1]    = 35000.;           //migration damp out over 5000 years.
+    t_mig[0]    = 30000.;           //migration damp start time.
+    t_mig[1]    = 35000.;           //migration damp out over 5000 years > tau_libration
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
-    mig_forces  = 0;                //If ==0, no migration.
-    afac        = 1.0;              //Factor to increase 'a' of OUTER planets by.
-    char c[20]  = "3TEST";      //System being investigated
-    txt_file    = "orbits_3test_danode.txt";   //Where to store orbit params
+    mig_forces  = 1;                //If ==0, no migration.
+    afac        = 1.1;              //Factor to increase 'a' of OUTER planets by.
+    char c[20]  = "Kepler-92";      //System being investigated
+    txt_file    = "orbits_Kepler92.txt";   //Where to store orbit params
     sys_char_txt= "orbits_sys_char.txt";            //Where to store sys params.
     
 #ifdef OPENGL
@@ -180,7 +180,6 @@ void problem_migration_forces(){
                     p->ax += -dvx*prefac1 + (hy*dz-hz*dy)*prefac2;
                     p->ay += -dvy*prefac1 + (hz*dx-hx*dz)*prefac2;
                     p->az += -dvz*prefac1 + (hx*dy-hy*dx)*prefac2;
-                    //printf("a=%f,e=%f,",a,e);
                 }
             }
             com = tools_get_center_of_mass(com,particles[i]);
