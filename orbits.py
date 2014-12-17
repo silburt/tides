@@ -4,6 +4,7 @@ import numpy as np
 import math
 pi = math.pi
 G = 1.
+analytics = 0
 
 #time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
 file_name=str(sys.argv[1])
@@ -12,6 +13,10 @@ arg2=int(sys.argv[3])
 
 #Get basic system params
 fos = open('orbits_sys_char.txt', 'r')
+content = fos.readlines()
+name = content[0].rstrip('\n')
+fos.seek(0)
+next(fos)
 syschar = np.loadtxt(fos, delimiter=",")
 Ms = syschar[0,0]
 Rs = syschar[0,1]
@@ -27,7 +32,7 @@ for i in range(0,N):
 #Load numerical data
 names=['time (years)','Semi-Major Axis (AU)','Eccentricity','inclination','Long. Asc. Node','arg. of peri','Mean Longitude','Period (Days)','mean anomaly','period ratio']
 colors=['b','g','m','r','c','y']
-fos = open(''+file_name, 'r')
+fos = open('runs/'+file_name, 'r')
 data = np.loadtxt(fos, delimiter="	")
 if arg2==9:
     for i in range(0,N-1):
@@ -40,7 +45,7 @@ else:
         plt.plot(p[:,arg1], p[:,arg2], ''+colors[i], label='pl.'+str(i+1))
 
 #Analytics - plot e
-if arg2==2:
+if arg2==2 and analytics==1:
     time = np.arange(0,p[-1,0],p[-1,0]/200.)
     for i in range(0,N):
         a=data[i,1]
@@ -52,7 +57,7 @@ if arg2==2:
         plt.plot(time, e_t, 'k-.', linewidth=3, label='theoretical pl.'+str(i+1))
 
 #Analytics - plot a
-if arg2==1:
+if arg2==1 and analytics ==0:
     time = np.arange(0,p[-1,0],p[-1,0]/200.)
     for i in range(0,N):
         e   = data[i,2]
@@ -66,9 +71,11 @@ if arg2==1:
 
 #de = -dt*(9.*pi*0.5)*Qp*GM3a3*R5a5*e/mp
 
-#plt.ylim([0.185,0.19])
-#plt.xlim([1000,30000])
+#plt.ylim([0.,0.11])
+#plt.ylim([0.2025,0.2075])
+plt.xlim([60000,70000])
+plt.title(''+name)
 plt.xlabel('' + names[arg1])
 plt.ylabel('' + names[arg2])
-#plt.legend(loc='upper right')
+plt.legend(loc='upper right')
 plt.show()

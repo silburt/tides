@@ -64,17 +64,17 @@ void problem_init(int argc, char* argv[]){
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
 	//tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
-    tmax        = 1e6*2*M_PI;
+    tmax        = 100000;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    T           = 2.*M_PI*20000.0;  //tau_a, typical timescale=20,000 years;
+    T           = 2.*M_PI*50000.0;  //tau_a, typical timescale=20,000 years;
     t_mig[0]    = 30000.;           //migration damp start time.
-    t_mig[1]    = 35000.;           //migration damp out over 5000 years > tau_libration
+    t_mig[1]    = 50000.;           //migration damp out over 5000 years > tau_libration
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.1;              //Factor to increase 'a' of OUTER planets by.
-    char c[20]  = "Kepler-92";      //System being investigated
-    txt_file    = "orbits_Kepler92.txt";   //Where to store orbit params
+    afac        = 1.0;              //Factor to increase 'a' of OUTER planets by.
+    char c[20]  = "TEST";           //System being investigated
+    txt_file    = "runs/orbits_TEST.txt";   //Where to store orbit params
     sys_char_txt= "orbits_sys_char.txt";            //Where to store sys params.
     
 #ifdef OPENGL
@@ -135,9 +135,9 @@ void problem_init(int argc, char* argv[]){
 
 void problem_migration_forces(){
     if(mig_forces==1){
-        //ramp down the migration force
+        //ramp down the migration force (by increasing the migration timescale)
         if (t > t_mig[0] && t < t_mig[1]) {
-            tau_a[2] = T + (t - t_mig[0])*(2.*M_PI*200000.0 - T)/(t_mig[1] - t_mig[0]);
+            tau_a[2] = T + (t - t_mig[0])*(600000.0 - T)/(t_mig[1] - t_mig[0]);
             tau_e[2] = tau_a[2]/K;
         } else if(t > t_mig[1]){
             tau_a[2]=0.;
@@ -240,7 +240,6 @@ void problem_output(){
             double a = r*(1. + e*cosf)/(1. - e*e);
             
             //Eccentric Anomaly
-            //*******
             //double terme = sqrt((1+e)/(1-e));
             //double const E = 2*atan(tan(f/2)/terme);
             //const double cosf = (cos(E) - e)/(1 - e*cos(E));
@@ -252,8 +251,8 @@ void problem_output(){
             const double rp2 = rp*rp;
             const double R5a5 = rp2*rp2*rp/(a2*a2*a);
             const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a2*a));
-            const double de = -dt*(9.*M_PI*0.5)*Qp*GM3a3*R5a5*e/m;       //Tidal change for e
-            const double da = 2.*a*e*de;                                 //Tidal change for a
+            const double de = -dt*(9.*M_PI*0.5)*Qp*GM3a3*R5a5*e/m;   //Tidal change for e
+            const double da = 2.*a*e*de;                             //Tidal change for a
             
             //if(i==1 && t < 5.)printf("INI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
             //if(i==1 && t > 49996.)printf("FINI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
@@ -295,7 +294,7 @@ void problem_output(){
 	if(output_check(10000.*dt)){
 		output_timing();
 	}
-	if(output_check(400.)){
+	if(output_check(40.)){
         //A.S. - append orbits in orbits.txt. Ordering of outputs goes:
         //time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
 		output_append_orbits(txt_file);

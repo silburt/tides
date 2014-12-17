@@ -76,6 +76,7 @@ void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double
     FILE *write;
     write=fopen(charac_txt, "a");
     //if(write == NULL) exit(-1);
+    fprintf(write, "%s \n",sysname);
     fprintf(write, "%f,%f,%i \n", *Ms,*Rs,*_N);
     fclose(write);
 }
