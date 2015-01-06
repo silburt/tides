@@ -64,11 +64,11 @@ void problem_init(int argc, char* argv[]){
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
 	//tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
-    tmax        = 100000;
+    tmax        = 1000000.;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*50000.0;  //tau_a, typical timescale=20,000 years;
-    t_mig       = 30000.;           //migration damp start time.
+    t_mig       = 200000.;           //migration damp start time.
     t_damp      = 20000.;           //length of migration damping. Afterwards, no migration.
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
@@ -87,7 +87,7 @@ void problem_init(int argc, char* argv[]){
     double Ms,Rs,a,rho,inc,mp,rp,tau_atemp,Qp_temp;
     int char_val, _N;
     
-    const double f=0., w=0., e=0.1;
+    const double f=0., w=0., e=0.001;
     readplanets(c,sys_char_txt,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
@@ -103,7 +103,7 @@ void problem_init(int argc, char* argv[]){
     a_old = a;
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
-    assignparams(&tau_atemp,&Qp_temp,mp,rp,t_mig,T,sys_char_txt);
+    assignparams(&tau_atemp,&Qp_temp,mp,rp,T,sys_char_txt);
     p.Qp=Qp_temp;
     particles_add(p);
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
@@ -114,7 +114,7 @@ void problem_init(int argc, char* argv[]){
         a *= afac;      //Increase 'a' of outer planets by afac
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
-        assignparams(&tau_atemp,&Qp_temp,mp,rp,t_mig,T,sys_char_txt);
+        assignparams(&tau_atemp,&Qp_temp,mp,rp,T,sys_char_txt);
         p.Qp=Qp_temp;
         tau_a[i+1]=tau_atemp;
         tau_e[i+1]=tau_atemp/K;
@@ -136,10 +136,11 @@ void problem_init(int argc, char* argv[]){
 void problem_migration_forces(){
     if(mig_forces==1){
         //ramp down the migration force (by increasing the migration timescale)
-        if (t > t_mig && t < (t_mig + t_damp)) {
-            tau_a[2] = T + (t - t_mig[0])*(600000.0 - T)/(t_mig[1] - t_mig[0]);
+        double t_mig2 = t_mig + t_damp; //when migration ends
+        if (t > t_mig && t < t_mig2) {
+            tau_a[2] = T + (t - t_mig)*(600000.0 - T)/(t_mig2 - t_mig);
             tau_e[2] = tau_a[2]/K;
-        } else if(t > (t_mig + t_damp)){
+        } else if(t > t_mig2){
             tau_a[2]=0.;
             tau_e[2]=0.;
         }
