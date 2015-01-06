@@ -38,11 +38,11 @@ if arg2==9:
     for i in range(0,N-1):
         p=data[i::N]
         q=data[i+1::N]
-        plt.plot(p[:,arg1], q[:,7]/p[:,7], ''+colors[i], label='pl.'+str(i+1)+'/pl.'+str(i))
+        plt.plot(p[:,arg1], q[:,7]/p[:,7], ''+colors[i], label='P$_{'+str(i+2)+'}$/P$_{'+str(i+1)+'}$, m$_{'+str(i+2)+'}$/m$_{'+str(i+1)+'}$='+str(mp[i+1]/mp[i])+' m$_{earth}$')
 else:
     for i in range(0,N): #range(0,N) only goes to N-1
         p=data[i::N]
-        plt.plot(p[:,arg1], p[:,arg2], ''+colors[i], label='pl.'+str(i+1))
+        plt.plot(p[:,arg1], p[:,arg2], ''+colors[i], label='m$_{'+str(i+1)+'}$='+str(mp[i]/(3*10**(-6)))+' m$_{earth}$')
 
 #Analytics - plot e
 if arg2==2 and analytics==1:
@@ -57,7 +57,7 @@ if arg2==2 and analytics==1:
         plt.plot(time, e_t, 'k-.', linewidth=3, label='theoretical pl.'+str(i+1))
 
 #Analytics - plot a
-if arg2==1 and analytics ==0:
+if arg2==1 and analytics ==1:
     time = np.arange(0,p[-1,0],p[-1,0]/200.)
     for i in range(0,N):
         e   = data[i,2]
@@ -73,7 +73,7 @@ if arg2==1 and analytics ==0:
 
 #plt.ylim([0.,0.11])
 #plt.ylim([0.2025,0.2075])
-plt.xlim([60000,70000])
+#plt.xlim([60000,70000])
 plt.title(''+name)
 plt.xlabel('' + names[arg1])
 plt.ylabel('' + names[arg2])

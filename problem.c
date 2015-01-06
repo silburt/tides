@@ -68,13 +68,13 @@ void problem_init(int argc, char* argv[]){
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*50000.0;  //tau_a, typical timescale=20,000 years;
-    t_mig[0]    = 30000.;           //migration damp start time.
-    t_mig[1]    = 50000.;           //migration damp out over 5000 years > tau_libration
+    t_mig       = 30000.;           //migration damp start time.
+    t_damp      = 20000.;           //length of migration damping. Afterwards, no migration.
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.0;              //Factor to increase 'a' of OUTER planets by.
     char c[20]  = "TEST";           //System being investigated
-    txt_file    = "runs/orbits_TEST.txt";   //Where to store orbit params
+    txt_file    = "runs/orbits_TEST.txt";           //Where to store orbit params
     sys_char_txt= "orbits_sys_char.txt";            //Where to store sys params.
     
 #ifdef OPENGL
@@ -136,10 +136,10 @@ void problem_init(int argc, char* argv[]){
 void problem_migration_forces(){
     if(mig_forces==1){
         //ramp down the migration force (by increasing the migration timescale)
-        if (t > t_mig[0] && t < t_mig[1]) {
+        if (t > t_mig && t < (t_mig + t_damp)) {
             tau_a[2] = T + (t - t_mig[0])*(600000.0 - T)/(t_mig[1] - t_mig[0]);
             tau_e[2] = tau_a[2]/K;
-        } else if(t > t_mig[1]){
+        } else if(t > (t_mig + t_damp)){
             tau_a[2]=0.;
             tau_e[2]=0.;
         }

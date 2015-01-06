@@ -12,7 +12,7 @@ void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *
 
 
 void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt){
-    FILE *f = fopen("planets.csv", "r");
+    FILE *f = fopen("planets.txt", "r");
     char temp[512];
     int line_num = 0, found_result=0, exit=0;
     
@@ -84,7 +84,7 @@ void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double
 //*******************************************************************************//
 
 void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *mp, double *rp){
-    FILE *f = fopen("planets.csv", "r");
+    FILE *f = fopen("planets.txt", "r");
     char temp[512];
     fseek(f, *char_pos, SEEK_SET);
     fgets(temp, 512, f);
