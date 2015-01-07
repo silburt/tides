@@ -48,8 +48,6 @@
 #include "boundaries.h"
 #include "../examples/tides/readplanets.h"
 #include "../examples/tides/assignparams.h"
-//#include "readplanets.h"
-//#include "assignparams.h"
 
 double* tau_a; 	/**< Migration timescale in years for all particles */
 double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
@@ -90,6 +88,7 @@ void problem_init(int argc, char* argv[]){
     double Ms,Rs,a,rho,inc,mp,rp,tau_atemp,Qp_temp;
     int char_val, _N;
     
+    //**Initial eccentricity**
     const double f=0., w=0., e=0.1;
     readplanets(c,sys_char_txt,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
     struct particle star; //Star MUST be the first particle added.

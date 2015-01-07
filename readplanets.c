@@ -6,6 +6,7 @@
 #include<stddef.h>
 #include<unistd.h>
 #include "readplanets.h"
+#include "../../src/main.h"
 
 void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt){
     FILE *f = fopen("planets.txt", "r");

@@ -1,7 +1,3 @@
-/* This file is made by Ari Silburt, and is relevant for the tides/ example. Due to linking issues, 
- it had to be put in the /src folder, and edited in the Makefile directory.
- */
-
 #include<stdio.h>
 #include<stdlib.h>
 #include<unistd.h>
@@ -10,6 +6,7 @@
 #include<stddef.h>
 #include<time.h>
 #include "assignparams.h"
+#include "../../src/main.h"
 
 /*
 Q (Goldreich & Soter, 1966):
