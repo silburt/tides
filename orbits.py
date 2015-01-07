@@ -73,7 +73,7 @@ if arg2==1 and analytics ==1:
 
 #plt.ylim([0.,0.11])
 #plt.ylim([0.2025,0.2075])
-plt.xlim([600000,640000])
+#plt.xlim([600000,640000])
 plt.title(''+name)
 plt.xlabel('' + names[arg1])
 plt.ylabel('' + names[arg2])

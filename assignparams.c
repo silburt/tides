@@ -1,3 +1,7 @@
+/* This file is made by Ari Silburt, and is relevant for the tides/ example. Due to linking issues, 
+ it had to be put in the /src folder, and edited in the Makefile directory.
+ */
+
 #include<stdio.h>
 #include<stdlib.h>
 #include<unistd.h>
@@ -5,8 +9,7 @@
 #include<math.h>
 #include<stddef.h>
 #include<time.h>
-
-void assignparams(double *tau_a, double *Qp, double mp, double rp, double typical_timescale, char *charac_txt);
+#include "assignparams.h"
 
 /*
 Q (Goldreich & Soter, 1966):

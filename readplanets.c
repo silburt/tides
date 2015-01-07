@@ -5,11 +5,7 @@
 #include<time.h>
 #include<stddef.h>
 #include<unistd.h>
-
-void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt);
-
-void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *mp, double *rp);
-
+#include "readplanets.h"
 
 void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt){
     FILE *f = fopen("planets.txt", "r");
@@ -18,8 +14,8 @@ void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double
     
     while(exit != 1){
         line_num += 1;
-        fgets(temp, 512, f);
-        if((strstr(temp, sysname)) != NULL){
+        fgets(temp, 512, f);      //get row of data from planets.txt
+        if((strstr(temp, sysname)) != NULL){ //see if matches Kepler system name.
             *char_pos=ftell(f);
             printf("A match found on line: %d, proceed with sim. \n\n", line_num);
             //printf("char_pos=%i",*char_pos);
@@ -38,9 +34,9 @@ void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double
     char *string = temp;
     double array[numfields-4];
     while (i<numfields){
-        char *p = strsep(&string,",");
+        char *q = strsep(&string,",");
         if(i>=4){
-            array[i-4] = (atof(p));
+            array[i-4] = (atof(q));
         }
         i++;
     }

@@ -39,14 +39,17 @@
 #include <unistd.h>
 #include <math.h>
 #include <time.h>
+#include <string.h>
 #include "main.h"
 #include "tools.h"
 #include "problem.h"
 #include "output.h"
 #include "particle.h"
 #include "boundaries.h"
-#include "../examples/tides/readplanets.c"
-#include "../examples/tides/assignparams.c"
+#include "../examples/tides/readplanets.h"
+#include "../examples/tides/assignparams.h"
+//#include "readplanets.h"
+//#include "assignparams.h"
 
 double* tau_a; 	/**< Migration timescale in years for all particles */
 double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
@@ -64,17 +67,17 @@ void problem_init(int argc, char* argv[]){
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
 	//tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
-    tmax        = 1000000.;
+    tmax        = 100000.;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*50000.0;  //tau_a, typical timescale=20,000 years;
-    t_mig       = 200000.;           //migration damp start time.
-    t_damp      = 20000.;           //length of migration damping. Afterwards, no migration.
+    t_mig       = 10000.;           //migration damp start time.
+    t_damp      = 18000.;           //length of migration damping. Afterwards, no migration.
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.0;              //Factor to increase 'a' of OUTER planets by.
-    char c[20]  = "TEST";           //System being investigated
-    txt_file    = "runs/orbits_TEST.txt";           //Where to store orbit params
+    afac        = 1.1;              //Factor to increase 'a' of OUTER planets by.
+    char c[20]  = "Kepler-92";           //System being investigated
+    txt_file    = "runs/orbits_Kepler92.txt";           //Where to store orbit params
     sys_char_txt= "orbits_sys_char.txt";            //Where to store sys params.
     
 #ifdef OPENGL
@@ -87,7 +90,7 @@ void problem_init(int argc, char* argv[]){
     double Ms,Rs,a,rho,inc,mp,rp,tau_atemp,Qp_temp;
     int char_val, _N;
     
-    const double f=0., w=0., e=0.001;
+    const double f=0., w=0., e=0.1;
     readplanets(c,sys_char_txt,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
