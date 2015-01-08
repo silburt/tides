@@ -1,38 +1,6 @@
 /**
- * @file 	problem.c
- * @brief 	Example problem: forced migration of GJ876.
- * @author 	Hanno Rein <hanno@hanno-rein.de>
- * 		Willy Kley <kley@uni-tuebingen.de>
- * @detail 	This example applies dissipative forces to two
- * bodies orbiting a central object. The forces are specified
- * in terms of damping timescales for the semi-major axis and
- * eccentricity. This mimics planetary micration in a protostellar disc. 
- * The example reproduces the study of Lee & Peale (2002) on the 
- * formation of the planetary system GJ876. For a comparison, 
- * see figure 4 in their paper. The IAS15 integrator is used 
- * because the forces are velocity dependent.
- * Special thanks goes to Willy Kley for helping me to implement
- * the damping terms as actual forces. 
- *
- * 
- * @section 	LICENSE
- * Copyright (c) 2011 Hanno Rein, Shangfei Liu
- *
- * This file is part of rebound.
- *
- * rebound is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * rebound is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with rebound.  If not, see <http://www.gnu.org/licenses/>.
- *
+Code developed by Ari Silburt to evolve Kepler planets under the influence of tides, with an 
+initial migration to put planets into resonance.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +21,6 @@ double* tau_a; 	/**< Migration timescale in years for all particles */
 double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
 double a_old;
 double a_new;
-double counter=0;
 void problem_migration_forces();
 
 #ifdef OPENGL
@@ -70,12 +37,12 @@ void problem_init(int argc, char* argv[]){
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*50000.0;  //tau_a, typical timescale=20,000 years;
     t_mig       = 10000.;           //migration damp start time.
-    t_damp      = 18000.;           //length of migration damping. Afterwards, no migration.
+    t_damp      = 20000.;           //length of migration damping. Afterwards, no migration.
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.1;              //Factor to increase 'a' of OUTER planets by.
-    char c[20]  = "Kepler-92";           //System being investigated
-    txt_file    = "runs/orbits_Kepler92.txt";           //Where to store orbit params
+    afac        = 1.05;              //Factor to increase 'a' of OUTER planets by.
+    char c[20]  = "TESTP5";           //System being investigated
+    txt_file    = "runs/orbits_TESTP5_0.1Gyr.txt";           //Where to store orbit params
     sys_char_txt= "orbits_sys_char.txt";            //Where to store sys params.
     
 #ifdef OPENGL
@@ -297,8 +264,8 @@ void problem_output(){
 	if(output_check(10000.*dt)){
 		output_timing();
 	}
-	if(output_check(40.)){
-        //A.S. - append orbits in orbits.txt. Ordering of outputs goes:
+	if(output_check(4000.)){
+        //A.S. - append orbits in txt_file. Ordering of outputs goes:
         //time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
 		output_append_orbits(txt_file);
 #ifndef INTEGRATOR_WH

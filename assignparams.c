@@ -35,8 +35,6 @@ k_2 of Giant planets (Gavrilov & Zharkov, 1977)
 
 void assignparams(double *tau_a, double *Qp, double mp, double rp, double typical_timescale, char *charac_txt){
     double k2, Q;
-    srand(time(NULL));
-    //k2 = (rand() %3 + 1)/10.;
     //k2 = 0.1;
     k2 = 1.;
     
