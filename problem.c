@@ -41,7 +41,7 @@ void problem_init(int argc, char* argv[]){
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.05;              //Factor to increase 'a' of OUTER planets by.
-    char c[20]  = "Kepler-92";           //System being investigated
+    char c[20]  = "TESTP5";           //System being investigated
     txt_file    = "runs/orbits_temp.txt";           //Where to store orbit outputs
     
 #ifdef OPENGL
