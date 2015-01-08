@@ -35,8 +35,8 @@ k_2 of Giant planets (Gavrilov & Zharkov, 1977)
 
 void assignparams(double *tau_a, double *Qp, double mp, double rp, double typical_timescale, char *txt_file){
     double k2, Q;
-    //k2 = 0.1;
-    k2 = 1.;
+    k2 = 0.1;
+    //k2 = 1.;
     
     if(mp > 1e-4 && mp < 1e-3){//Uranus/Neptune Q
         //Q = (rand() %25 + 60)*1e3;
