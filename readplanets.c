@@ -8,7 +8,7 @@
 #include "readplanets.h"
 #include "../../src/main.h"
 
-void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt){
+void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt){
     FILE *f = fopen("planets.txt", "r");
     char temp[512];
     int line_num = 0, found_result=0, exit=0;
@@ -67,14 +67,13 @@ void readplanets(char *sysname, char *charac_txt, int *char_pos, int *_N, double
     
     //delete previous output file
     char sys_arg[50] = "rm -v ";
-    strcat(sys_arg,charac_txt);
+    strcat(sys_arg,txt_file);
     system(sys_arg);
     //write star characteristics to file. Planet characteristics come in assignparams.c
     FILE *write;
-    write=fopen(charac_txt, "a");
+    write=fopen(txt_file, "a");
     //if(write == NULL) exit(-1);
-    fprintf(write, "%s \n",sysname);
-    fprintf(write, "%f,%f,%i \n", *Ms,*Rs,*_N);
+    fprintf(write, "%s,%f,%f,%i \n",sysname,*Ms,*Rs,*_N);
     fclose(write);
 }
 

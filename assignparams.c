@@ -33,7 +33,7 @@ k_2 of Giant planets (Gavrilov & Zharkov, 1977)
  Neptune=   0.127
 */
 
-void assignparams(double *tau_a, double *Qp, double mp, double rp, double typical_timescale, char *charac_txt){
+void assignparams(double *tau_a, double *Qp, double mp, double rp, double typical_timescale, char *txt_file){
     double k2, Q;
     //k2 = 0.1;
     k2 = 1.;
@@ -53,7 +53,7 @@ void assignparams(double *tau_a, double *Qp, double mp, double rp, double typica
     *tau_a = typical_timescale;
     
     FILE *write;
-    write=fopen(charac_txt, "a");
+    write=fopen(txt_file, "a");
     //if(write == NULL) exit(EXIT_FAILURE);
     fprintf(write, "%f,%f,%f \n", mp,rp,*Qp);
     fclose(write);

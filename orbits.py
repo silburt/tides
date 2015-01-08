@@ -11,28 +11,27 @@ file_name=str(sys.argv[1])
 arg1=int(sys.argv[2])
 arg2=int(sys.argv[3])
 
-#Get basic system params
-fos = open('orbits_sys_char.txt', 'r')
-content = fos.readlines()
-name = content[0].rstrip('\n')
-fos.seek(0)
-next(fos)
-syschar = np.loadtxt(fos, delimiter=",")
-Ms = syschar[0,0]
-Rs = syschar[0,1]
-N = int(syschar[0,2])
+#Get basic system params from header of file
+fos = open(''+file_name, 'r')
+header = fos.readline()
+header = header.split(",")
+name=header[0]
+Ms = float(header[1])
+Rs = float(header[2])
+N = int(header[3])
 rp = np.zeros(N)
 mp = np.zeros(N)
 Qp = np.zeros(N)
 for i in range(0,N):
-    mp[i] = syschar[i+1,0]
-    rp[i] = syschar[i+1,1]
-    Qp[i] = syschar[i+1,2]
+    header = fos.readline()
+    header = header.split(",")
+    mp[i] = float(header[0])
+    rp[i] = float(header[1])
+    Qp[i] = float(header[2])
 
 #Load numerical data
 names=['time (years)','Semi-Major Axis (AU)','Eccentricity','inclination','Long. Asc. Node','arg. of peri','Mean Longitude','Period (Days)','mean anomaly','period ratio']
 colors=['b','g','m','r','c','y']
-fos = open('runs/'+file_name, 'r')
 data = np.loadtxt(fos, delimiter="	")
 if arg2==9:
     for i in range(0,N-1):

@@ -42,14 +42,19 @@ void problem_init(int argc, char* argv[]){
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.05;              //Factor to increase 'a' of OUTER planets by.
     char c[20]  = "TESTP5";           //System being investigated
-    txt_file    = "runs/orbits_TESTP5_0.1Gyr.txt";           //Where to store orbit params
-    sys_char_txt= "orbits_sys_char.txt";            //Where to store sys params.
+    txt_file    = "runs/orbits_temp.txt";           //Where to store orbit params
+    //sys_char_txt= "orbits_sys_char.txt";            //Where to store sys params.
     
 #ifdef OPENGL
 	display_wire 	= 1;			
 #endif 	// OPENGL
 	init_box();
-
+    
+    //Delete previous file if it exists.
+    char sys_arg[50] = "rm -v ";
+    strcat(sys_arg,txt_file);
+    system(sys_arg); // delete previous output file
+    
     // Initial conditions
     printf("You have chosen: %s \n",c);
     double Ms,Rs,a,rho,inc,mp,rp,tau_atemp,Qp_temp;
@@ -57,7 +62,7 @@ void problem_init(int argc, char* argv[]){
     
     //**Initial eccentricity**
     const double f=0., w=0., e=0.1;
-    readplanets(c,sys_char_txt,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
+    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
 	star.vx = 0; star.vy = 0; star.vz = 0;
@@ -72,7 +77,7 @@ void problem_init(int argc, char* argv[]){
     a_old = a;
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
-    assignparams(&tau_atemp,&Qp_temp,mp,rp,T,sys_char_txt);
+    assignparams(&tau_atemp,&Qp_temp,mp,rp,T,txt_file);
     p.Qp=Qp_temp;
     particles_add(p);
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
@@ -83,7 +88,7 @@ void problem_init(int argc, char* argv[]){
         a *= afac;      //Increase 'a' of outer planets by afac
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
-        assignparams(&tau_atemp,&Qp_temp,mp,rp,T,sys_char_txt);
+        assignparams(&tau_atemp,&Qp_temp,mp,rp,T,txt_file);
         p.Qp=Qp_temp;
         tau_a[i+1]=tau_atemp;
         tau_e[i+1]=tau_atemp/K;
@@ -96,10 +101,7 @@ void problem_init(int argc, char* argv[]){
 #ifndef INTEGRATOR_WH			// The WH integrator assumes a heliocentric coordinate system.
 	tools_move_to_center_of_momentum();  		
 #endif // INTEGRATOR_WH
-    
-    char sys_arg[50] = "rm -v ";
-    strcat(sys_arg,txt_file);
-	system(sys_arg); // delete previous output file
+
 }
 
 void problem_migration_forces(){
@@ -264,7 +266,7 @@ void problem_output(){
 	if(output_check(10000.*dt)){
 		output_timing();
 	}
-	if(output_check(4000.)){
+	if(output_check(tmax/2500.)){
         //A.S. - append orbits in txt_file. Ordering of outputs goes:
         //time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
 		output_append_orbits(txt_file);
