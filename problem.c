@@ -257,8 +257,6 @@ void problem_output(){
             if(output_check(tmax/2500.)){
                 omega[i] = atan2(ey,ex);
                 //if(ey < 0.) omega[i] += 2*M_PI;
-                while(omega[i] >= 2.*M_PI) omega[i] -= 2.*M_PI;
-                while(omega[i] < 0.) omega[i] += 2.*M_PI;
                 double cosE = (a - r)/(a*e);
                 double E;
                 if(cosf > 1. || cosf < -1.){

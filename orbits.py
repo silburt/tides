@@ -76,5 +76,5 @@ if arg2==1 and analytics ==1:
 plt.title(''+name)
 plt.xlabel('' + names[arg1])
 plt.ylabel('' + names[arg2])
-plt.legend(loc='upper right')
+plt.legend(loc='upper left')
 plt.show()
