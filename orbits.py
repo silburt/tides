@@ -30,18 +30,18 @@ for i in range(0,N):
     Qp[i] = float(header[2])
 
 #Load numerical data
-names=['time (years)','Semi-Major Axis (AU)','Eccentricity','inclination','Long. Asc. Node','arg. of peri','Mean Longitude','Period (Days)','mean anomaly','period ratio']
+names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi)','period ratio']
 colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
 if arg2==9:
     for i in range(0,N-1):
         p=data[i::N]
         q=data[i+1::N]
-        plt.plot(p[:,arg1], q[:,7]/p[:,7], ''+colors[i], label='P$_{'+str(i+2)+'}$/P$_{'+str(i+1)+'}$, m$_{'+str(i+2)+'}$/m$_{'+str(i+1)+'}$='+str(mp[i+1]/mp[i]))
+        plt.plot(p[:,arg1], q[:,3]/p[:,3], 'o'+colors[i], label='P$_{'+str(i+2)+'}$/P$_{'+str(i+1)+'}$, m$_{'+str(i+2)+'}$/m$_{'+str(i+1)+'}$='+str(mp[i+1]/mp[i]))
 else:
     for i in range(0,N): #range(0,N) only goes to N-1
         p=data[i::N]
-        plt.plot(p[:,arg1], p[:,arg2], ''+colors[i], label='m$_{'+str(i+1)+'}$='+str(mp[i]/(3*10**(-6)))+' m$_{earth}$')
+        plt.plot(p[:,arg1], p[:,arg2], 'o'+colors[i], label='m$_{'+str(i+1)+'}$='+str(mp[i]/(3*10**(-6)))+' m$_{earth}$')
 
 #Analytics - plot e
 if arg2==2 and analytics==1:
@@ -72,7 +72,7 @@ if arg2==1 and analytics ==1:
 
 #plt.ylim([0.,0.11])
 #plt.ylim([0.2025,0.2075])
-#plt.xlim([600000,640000])
+#plt.xlim([0,30])
 plt.title(''+name)
 plt.xlabel('' + names[arg1])
 plt.ylabel('' + names[arg2])

@@ -19,8 +19,8 @@ initial migration to put planets into resonance.
 
 double* tau_a; 	/**< Migration timescale in years for all particles */
 double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
-double a_old;
-double a_new;
+double *lambda; /**<Resonant angle>**/
+double *omega;  /**<argument of periapsis**/
 void problem_migration_forces();
 
 #ifdef OPENGL
@@ -35,14 +35,14 @@ void problem_init(int argc, char* argv[]){
     tmax        = 100000.;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    T           = 2.*M_PI*50000.0;  //tau_a, typical timescale=20,000 years;
+    T           = 2.*M_PI*300000.0;  //tau_a, typical timescale=20,000 years;
     t_mig       = 10000.;           //migration damp start time.
-    t_damp      = 20000.;           //length of migration damping. Afterwards, no migration.
+    t_damp      = 30000.;           //length of migration damping. Afterwards, no migration.
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.05;              //Factor to increase 'a' of OUTER planets by.
-    char c[20]  = "TESTP5";           //System being investigated
-    txt_file    = "runs/orbits_temp.txt";           //Where to store orbit outputs
+    afac        = 1.0;              //Factor to increase 'a' of OUTER planets by.
+    char c[20]  = "TEST";           //System being investigated
+    txt_file    = "runs/orbits_temp2.txt";           //Where to store orbit outputs
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -60,7 +60,7 @@ void problem_init(int argc, char* argv[]){
     int char_val, _N;
     
     //**Initial eccentricity**
-    const double f=0., w=0., e=0.1;
+    const double f=0., w=M_PI/2., e=0.1;
     readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
@@ -72,8 +72,9 @@ void problem_init(int argc, char* argv[]){
     //Extra slot for star
     tau_a  = calloc(sizeof(double),_N+1);  //migration of semi-major axis
 	tau_e  = calloc(sizeof(double),_N+1);  //migration (damp) of eccentricity
+    lambda = calloc(sizeof(double),_N+1);  //resonant angle for each planet
+    omega = calloc(sizeof(double),_N+1);  //argument of periapsis for each planet
     
-    a_old = a;
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
     assignparams(&tau_atemp,&Qp_temp,mp,rp,T,txt_file);
@@ -108,7 +109,7 @@ void problem_migration_forces(){
         //ramp down the migration force (by increasing the migration timescale)
         double t_mig2 = t_mig + t_damp; //when migration ends
         if (t > t_mig && t < t_mig2) {
-            tau_a[2] = T + (t - t_mig)*(600000.0 - T)/(t_mig2 - t_mig);
+            tau_a[2] = T + (t - t_mig)*(1000000.0 - T)/(t_mig2 - t_mig);
             tau_e[2] = tau_a[2]/K;
         } else if(t > t_mig2){
             tau_a[2]=0.;
@@ -199,13 +200,9 @@ void problem_output(){
             //double cosf = (a*(1 - e*e) - r)/(r*e);
             if(cosf >= 1.) cosf = 1.;
             if(cosf <= -1.) cosf = -1.;
-            //double f = acos(cosf);
-            //if(vr < 0.) f = 2*M_PI - f;
             //double const sinf = sin(f);
             double sinf = sqrt(1. - cosf*cosf);
             if(vr < 0.) sinf *= -1.;
-            //double w = atan2(ey,ex);
-            //if(ey < 0.) w = 2*M_PI + w;
             double const sinwf = dy/r;
             double const coswf = dx/r;
             double a = r*(1. + e*cosf)/(1. - e*e);
@@ -224,9 +221,6 @@ void problem_output(){
             const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a2*a));
             const double de = -dt*(9.*M_PI*0.5)*Qp*GM3a3*R5a5*e/m;   //Tidal change for e
             const double da = 2.*a*e*de;                             //Tidal change for a
-            
-            //if(i==1 && t < 5.)printf("INI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
-            //if(i==1 && t > 49996.)printf("FINI tides: da=%.15f,de=%.15f,tau_a=%f,tau_e=%f,a=%f,e=%f,P=%f \n",da,de,a/(fabs(da/dt)),e/(fabs(de/dt)),a,e,365./n);
         
             a += da;
             e += de;
@@ -238,6 +232,7 @@ void problem_output(){
             const double x_new = r_new*coswf + com.x;
             const double y_new = r_new*sinwf + com.y;
             const double n = sqrt(mu/(a*a*a));
+            
             const double term = n*a/sqrt(1.- e*e);
             const double rdot = term*e*sinf;
             const double rfdot = term*(1. + e*cosf);
@@ -259,19 +254,44 @@ void problem_output(){
         
             com = tools_get_center_of_mass(com,particles[i]);
             
+            if(output_check(tmax/2500.)){
+                omega[i] = atan2(ey,ex);
+                //if(ey < 0.) omega[i] += 2*M_PI;
+                while(omega[i] >= 2.*M_PI) omega[i] -= 2.*M_PI;
+                while(omega[i] < 0.) omega[i] += 2.*M_PI;
+                double cosE = (a - r)/(a*e);
+                double E;
+                if(cosf > 1. || cosf < -1.){
+                    E = M_PI - M_PI*cosE;
+                } else {
+                    E = acos(cosE);
+                }
+                if(vr < 0.) E = 2.*M_PI - E;
+                double MA = E - e*sin(E);
+                lambda[i] = MA + omega[i];
+                double phi = 0.;     //resonant angle
+                if(i>=2) phi = 2.*lambda[i] - lambda[i-1] - omega[i-1]; //2:1 resonance
+                while(phi >= 2*M_PI) phi -= 2*M_PI;
+                while(phi < 0.) phi += 2*M_PI;
+                
+                //output orbits in txt_file.
+                FILE *append;
+                append=fopen(txt_file, "a");
+                fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi);
+                fclose(append);
+                
+                //Output: time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
+                //output_append_orbits(txt_file);
+                
+                #ifndef INTEGRATOR_WH
+                tools_move_to_center_of_momentum();  			// The WH integrator assumes a heliocentric coordinate system.
+                #endif // INTEGRATOR_WH
+            }
         }
     }
-    
+
 	if(output_check(10000.*dt)){
 		output_timing();
-	}
-	if(output_check(tmax/2500.)){
-        //A.S. - append orbits in txt_file. Ordering of outputs goes:
-        //time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
-		output_append_orbits(txt_file);
-#ifndef INTEGRATOR_WH
-		tools_move_to_center_of_momentum();  			// The WH integrator assumes a heliocentric coordinate system.
-#endif // INTEGRATOR_WH
 	}
 }
 
