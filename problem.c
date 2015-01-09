@@ -43,7 +43,7 @@ void problem_init(int argc, char* argv[]){
     tide_delay  = 0.;               //Lag time after which tidal forces are turned on. Requires tide_forces=1!!
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.03;              //Factor to increase 'a' of OUTER planets by.
-    char c[20]  = "TESTP10";           //System being investigated
+    char c[20]  = "TESTP10J";           //System being investigated
     txt_file    = "runs/orbits_temp2.txt";           //Where to store orbit outputs
     
 #ifdef OPENGL
