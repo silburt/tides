@@ -20,7 +20,8 @@ initial migration to put planets into resonance.
 double* tau_a; 	/**< Migration timescale in years for all particles */
 double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
 double *lambda; /**<Resonant angle>**/
-double *omega;  /**<argument of periapsis**/
+double *omega;  /**<argument of periapsis>**/
+int tide_print; /**<print message when tides are turned on>**/
 void problem_migration_forces();
 
 #ifdef OPENGL
@@ -36,9 +37,10 @@ void problem_init(int argc, char* argv[]){
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     T           = 2.*M_PI*300000.0;  //tau_a, typical timescale=20,000 years;
-    t_mig       = 10000.;           //migration damp start time.
+    t_mig       = 10000.;           //Begin damping migration at t_mig.
     t_damp      = 30000.;           //length of migration damping. Afterwards, no migration.
-    tide_forces = 0;                //If ==0, then no tidal forces on planets.
+    tide_forces = 1;                //If ==0, then no tidal forces on planets.
+    tide_delay  = 0.;         //Lag time after which tidal forces are turned on. Requires tide_forces=1!!
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.0;              //Factor to increase 'a' of OUTER planets by.
     char c[20]  = "TEST";           //System being investigated
@@ -53,6 +55,7 @@ void problem_init(int argc, char* argv[]){
     char sys_arg[50] = "rm -v ";
     strcat(sys_arg,txt_file);
     system(sys_arg); // delete previous output file
+    tide_print = 0;
     
     // Initial conditions
     printf("You have chosen: %s \n",c);
@@ -214,7 +217,7 @@ void problem_output(){
         //double n = sqrt(mu/(a*a*a));
         
         //Tides
-        if(tide_forces==1){
+        if(tide_forces==1 && t > tide_delay){
             const double a2 = a*a;
             const double rp2 = rp*rp;
             const double R5a5 = rp2*rp2*rp/(a2*a2*a);
@@ -239,6 +242,12 @@ void problem_output(){
             const double vx_new = rdot*coswf - rfdot*sinwf + com.vx;
             const double vy_new = rdot*sinwf + rfdot*coswf + com.vy;
             
+            par->x = x_new;
+            par->y = y_new;
+            par->vx = vx_new;
+            par->vy = vy_new;
+            com = tools_get_center_of_mass(com,particles[i]);
+            
             //Stop program if nan values being produced.
             if(x_new!=x_new || y_new!=y_new || vx_new!=vx_new ||vy_new!=vy_new){
                 printf("\n cartesian before: dx=%f,dy=%f,dz=%f,ex=%f,ey=%f,ex=%f,r=%f,vx=%f,vy=%f,com.vx=%f,com.vy=%f,v=%f \n",dx,dy,dz,ex,ey,ez,r,par->vx,par->vy,com.vx,com.vy,v);
@@ -247,12 +256,12 @@ void problem_output(){
                 exit(0);
             }
             
-            par->x = x_new;
-            par->y = y_new;
-            par->vx = vx_new;
-            par->vy = vy_new;
-        
-            com = tools_get_center_of_mass(com,particles[i]);
+            //print message
+            if(tide_print == 0){
+                printf("\n ***Tides have just been turned on at t=%f years***\n",t);
+                tide_print = 1;
+            }
+            
         } else { n = sqrt(mu/(a*a*a));}     //Still need to calc this for period. 
         
         if(output_check(tmax/2500.)){
