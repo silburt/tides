@@ -38,7 +38,7 @@ void problem_init(int argc, char* argv[]){
     T           = 2.*M_PI*300000.0;  //tau_a, typical timescale=20,000 years;
     t_mig       = 10000.;           //migration damp start time.
     t_damp      = 30000.;           //length of migration damping. Afterwards, no migration.
-    tide_forces = 1;                //If ==0, then no tidal forces on planets.
+    tide_forces = 0;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.0;              //Factor to increase 'a' of OUTER planets by.
     char c[20]  = "TEST";           //System being investigated
@@ -164,57 +164,57 @@ void problem_inloop(){
 }
 
 void problem_output(){
-    //Tides
-    if(tide_forces==1){
-        struct particle com = particles[0];
-        for(int i=1;i<N;i++){
-            struct particle* par = &(particles[i]);
-            const double m = par->m;
-            const double mu = G*(com.m + m);
-            //radius of planet must be in AU for units to work out since G=1, [t]=yr/2pi, [m]=m_star
-            const double rp = par->r*0.00464913;       //Rp from Solar Radii to AU
-            const double Qp = par->Qp;
-  
-            //printf("\n Tidal 1 orbits: x=%f, y=%f, vx=%f, vy=%f",par->x,par->y,par->vx,par->vy);
-            const double dvx = par->vx-com.vx;
-            const double dvy = par->vy-com.vy;
-            const double dvz = par->vz-com.vz;
-            const double dx = par->x-com.x;
-            const double dy = par->y-com.y;
-            const double dz = par->z-com.z;
+    //Calculate Orbital Elements
+    struct particle com = particles[0];
+    for(int i=1;i<N;i++){
+        struct particle* par = &(particles[i]);
+        const double m = par->m;
+        const double mu = G*(com.m + m);
+        //radius of planet must be in AU for units to work out since G=1, [t]=yr/2pi, [m]=m_star
+        const double rp = par->r*0.00464913;       //Rp from Solar Radii to AU
+        const double Qp = par->Qp;
+
+        const double dvx = par->vx-com.vx;
+        const double dvy = par->vy-com.vy;
+        const double dvz = par->vz-com.vz;
+        const double dx = par->x-com.x;
+        const double dy = par->y-com.y;
+        const double dz = par->z-com.z;
             
-            const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
-            const double r = sqrt ( dx*dx + dy*dy + dz*dz );
-            const double vr = (dx*dvx + dy*dvy + dz*dvz)/r;
-            const double ex = 1./mu*( (v*v-mu/r)*dx - r*vr*dvx );
-            const double ey = 1./mu*( (v*v-mu/r)*dy - r*vr*dvy );
-            const double ez = 1./mu*( (v*v-mu/r)*dz - r*vr*dvz );
-            double e = sqrt( ex*ex + ey*ey + ez*ez );   // eccentricity
-            //double a = -mu/( v*v - 2.*mu/r );			// semi major axis
-            //const double cosE = (a - r)/(a*e);
-            //double cosf = (1 - e*e)/(e - e*e*cosE) - 1/e;
+        const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
+        const double r = sqrt ( dx*dx + dy*dy + dz*dz );
+        const double vr = (dx*dvx + dy*dvy + dz*dvz)/r;
+        const double ex = 1./mu*( (v*v-mu/r)*dx - r*vr*dvx );
+        const double ey = 1./mu*( (v*v-mu/r)*dy - r*vr*dvy );
+        const double ez = 1./mu*( (v*v-mu/r)*dz - r*vr*dvz );
+        double e = sqrt( ex*ex + ey*ey + ez*ez );   // eccentricity
+        //double a = -mu/( v*v - 2.*mu/r );			// semi major axis
+        //const double cosE = (a - r)/(a*e);
+        //double cosf = (1 - e*e)/(e - e*e*cosE) - 1/e;
             
-            // true anomaly + periapse (wiki, Fund. of Astrodyn. and App., by Vallado, 2007)
-            const double rdote = dx*ex + dy*ey + dz*ez;
-            double cosf = rdote/(e*r);
-            //double cosf = (a*(1 - e*e) - r)/(r*e);
-            if(cosf >= 1.) cosf = 1.;
-            if(cosf <= -1.) cosf = -1.;
-            //double const sinf = sin(f);
-            double sinf = sqrt(1. - cosf*cosf);
-            if(vr < 0.) sinf *= -1.;
-            double const sinwf = dy/r;
-            double const coswf = dx/r;
-            double a = r*(1. + e*cosf)/(1. - e*e);
+        // true anomaly + periapse (wiki, Fund. of Astrodyn. and App., by Vallado, 2007)
+        const double rdote = dx*ex + dy*ey + dz*ez;
+        double cosf = rdote/(e*r);
+        //double cosf = (a*(1 - e*e) - r)/(r*e);
+        if(cosf >= 1.) cosf = 1.;
+        if(cosf <= -1.) cosf = -1.;
+        //double const sinf = sin(f);
+        double sinf = sqrt(1. - cosf*cosf);
+        if(vr < 0.) sinf *= -1.;
+        double const sinwf = dy/r;
+        double const coswf = dx/r;
+        double a = r*(1. + e*cosf)/(1. - e*e);
+        double n;
             
-            //Eccentric Anomaly
-            //double terme = sqrt((1+e)/(1-e));
-            //double const E = 2*atan(tan(f/2)/terme);
-            //const double cosf = (cos(E) - e)/(1 - e*cos(E));
-            //double a = r/(1 - e*cos(E));
-            //double n = sqrt(mu/(a*a*a));
-            
-            //Tides
+        //Eccentric Anomaly
+        //double terme = sqrt((1+e)/(1-e));
+        //double const E = 2*atan(tan(f/2)/terme);
+        //const double cosf = (cos(E) - e)/(1 - e*cos(E));
+        //double a = r/(1 - e*cos(E));
+        //double n = sqrt(mu/(a*a*a));
+        
+        //Tides
+        if(tide_forces==1){
             const double a2 = a*a;
             const double rp2 = rp*rp;
             const double R5a5 = rp2*rp2*rp/(a2*a2*a);
@@ -231,7 +231,7 @@ void problem_output(){
             
             const double x_new = r_new*coswf + com.x;
             const double y_new = r_new*sinwf + com.y;
-            const double n = sqrt(mu/(a*a*a));
+            n = sqrt(mu/(a*a*a));
             
             const double term = n*a/sqrt(1.- e*e);
             const double rdot = term*e*sinf;
@@ -253,38 +253,37 @@ void problem_output(){
             par->vy = vy_new;
         
             com = tools_get_center_of_mass(com,particles[i]);
-            
-            if(output_check(tmax/2500.)){
-                omega[i] = atan2(ey,ex);
-                //if(ey < 0.) omega[i] += 2*M_PI;
-                double cosE = (a - r)/(a*e);
-                double E;
-                if(cosf > 1. || cosf < -1.){
-                    E = M_PI - M_PI*cosE;
-                } else {
-                    E = acos(cosE);
-                }
-                if(vr < 0.) E = 2.*M_PI - E;
-                double MA = E - e*sin(E);
-                lambda[i] = MA + omega[i];
-                double phi = 0.;     //resonant angle
-                if(i>=2) phi = 2.*lambda[i] - lambda[i-1] - omega[i-1]; //2:1 resonance
-                while(phi >= 2*M_PI) phi -= 2*M_PI;
-                while(phi < 0.) phi += 2*M_PI;
-                
-                //output orbits in txt_file.
-                FILE *append;
-                append=fopen(txt_file, "a");
-                fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi);
-                fclose(append);
-                
-                //Output: time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
-                //output_append_orbits(txt_file);
-                
-                #ifndef INTEGRATOR_WH
-                tools_move_to_center_of_momentum();  			// The WH integrator assumes a heliocentric coordinate system.
-                #endif // INTEGRATOR_WH
+        } else { n = sqrt(mu/(a*a*a));}     //Still need to calc this for period. 
+        
+        if(output_check(tmax/2500.)){
+            omega[i] = atan2(ey,ex);
+            //if(ey < 0.) omega[i] += 2*M_PI;
+            double cosE = (a - r)/(a*e);
+            double E;
+            if(cosf > 1. || cosf < -1.){
+                E = M_PI - M_PI*cosE;
+            } else {
+                E = acos(cosE);
             }
+            if(vr < 0.) E = 2.*M_PI - E;
+            double MA = E - e*sin(E);
+            lambda[i] = MA + omega[i];
+            double phi = 0.;     //resonant angle
+            if(i>=2) phi = 2.*lambda[i] - lambda[i-1] - omega[i-1]; //2:1 resonance
+            while(phi >= 2*M_PI) phi -= 2*M_PI;
+            while(phi < 0.) phi += 2*M_PI;
+                
+            //output orbits in txt_file.
+            FILE *append;
+            append=fopen(txt_file, "a");
+            //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
+            //               eccentric anomaly, mean longitude, resonant angle
+            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi);
+            fclose(append);
+            
+            #ifndef INTEGRATOR_WH
+            tools_move_to_center_of_momentum();  			// The WH integrator assumes a heliocentric coordinate system.
+            #endif // INTEGRATOR_WH
         }
     }
 
