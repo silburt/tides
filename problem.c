@@ -31,20 +31,20 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
 	/* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
-	boxsize 	= 3;                // in AU
+	boxsize 	= 2;                // in AU
 	//tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
-    tmax        = 100000.;
+    tmax        = 10000000.;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    T           = 2.*M_PI*300000.;  //tau_a, typical timescale=20,000 years;
+    T           = 2.*M_PI*650000.;  //tau_a, typical timescale=20,000 years;
     t_mig       = 20000.;           //Begin damping migration at t_mig.
     t_damp      = 30000.;           //length of migration damping. Afterwards, no migration.
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
-    tide_delay  = 0.;               //Lag time after which tidal forces are turned on. Requires tide_forces=1!!
+    tide_delay  = 5000000.;         //Lag time after which tidal forces are turned on. Requires tide_forces=1!!
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.03;              //Factor to increase 'a' of OUTER planets by.
-    char c[20]  = "TESTP10J";           //System being investigated
-    txt_file    = "runs/orbits_temp2.txt";           //Where to store orbit outputs
+    char c[20]  = "TESTP3";           //System being investigated
+    txt_file    = "runs/orbits_TESTP3_100Myr2.txt";           //Where to store orbit outputs
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -64,7 +64,7 @@ void problem_init(int argc, char* argv[]){
     
     //**Initial eccentricity**
     const double f=0., w=M_PI/2., e=0.1;
-    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
+    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt,tide_forces,tide_delay);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
 	star.vx = 0; star.vy = 0; star.vz = 0;
@@ -277,17 +277,25 @@ void problem_output(){
             if(vr < 0.) E = 2.*M_PI - E;
             double MA = E - e*sin(E);
             lambda[i] = MA + omega[i];
-            double phi = 0.;     //resonant angle
-            if(i>=2) phi = 2.*lambda[i] - lambda[i-1] - omega[i-1]; //2:1 resonance
+            double phi = 0., phi2 = 0., phi3 = 0.;     //resonant angles
+            if(i>=2){//tailored for 2:1 resonance
+                phi = 2.*lambda[i] - lambda[i-1] - omega[i-1];
+                phi2 = 2.*lambda[i] - lambda[i-1] - omega[i];
+                phi3 = omega[i-1] - omega[i];
+            }
             while(phi >= 2*M_PI) phi -= 2*M_PI;
             while(phi < 0.) phi += 2*M_PI;
-                
+            while(phi2 >= 2*M_PI) phi2 -= 2*M_PI;
+            while(phi2 < 0.) phi2 += 2*M_PI;
+            while(phi3 >= 2*M_PI) phi3 -= 2*M_PI;
+            while(phi3 < 0.) phi3 += 2*M_PI;
+            
             //output orbits in txt_file.
             FILE *append;
             append=fopen(txt_file, "a");
             //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
             //               eccentric anomaly, mean longitude, resonant angle
-            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi);
+            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3);
             fclose(append);
             
             #ifndef INTEGRATOR_WH

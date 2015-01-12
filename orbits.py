@@ -19,6 +19,7 @@ name=header[0]
 Ms = float(header[1])
 Rs = float(header[2])
 N = int(header[3])
+tide_delay = float(header[4])
 rp = np.zeros(N)
 mp = np.zeros(N)
 Qp = np.zeros(N)
@@ -30,18 +31,20 @@ for i in range(0,N):
     Qp[i] = float(header[2])
 
 #Load numerical data
-names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi)','period ratio']
+names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Resonant Angle3 (phi3 = w2 - w1)','Period Ratio (P$_{i+1}$/P$_{i}$)']
 colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
-if arg2==9:
+if arg2==11:
     for i in range(0,N-1):
         p=data[i::N]
         q=data[i+1::N]
-        plt.plot(p[:,arg1], q[:,3]/p[:,3], 'o'+colors[i], label='P$_{'+str(i+2)+'}$/P$_{'+str(i+1)+'}$, m$_{'+str(i+2)+'}$/m$_{'+str(i+1)+'}$='+str(mp[i+1]/mp[i]))
+        plt.plot(p[:,arg1], q[:,3]/p[:,3], 'o'+colors[i], label='P$_{'+str(i+2)+',ini}$ ='+str(round(p[0,3],2))+' d, P$_{'+str(i+1)+',ini}$='+str(round(q[0,3],2))+' d, m$_{'+str(i+2)+'}$/m$_{'+str(i+1)+'}$='+str(mp[i+1]/mp[i]))
+    plt.plot([tide_delay, tide_delay], [1.99,2.01], label='tides turned on now!', color='black', linewidth=4)
 else:
     for i in range(0,N): #range(0,N) only goes to N-1
         p=data[i::N]
-        plt.plot(p[:,arg1], p[:,arg2], 'o'+colors[i], label='m$_{'+str(i+1)+'}$='+str(mp[i]/(3*10**(-6)))+' m$_{earth}$')
+        plt.plot(p[:,arg1], p[:,arg2], 'o'+colors[i], label='m$_{'+str(i+1)+'}$='+str(mp[i]/(3*10**(-6)))+' m$_{earth}$', markeredgecolor='none')
+    plt.plot([tide_delay, tide_delay], [min(data[:,arg2]),max(data[:,arg2])], label='tides turned on now!', color='black', linewidth=4)
 
 #Analytics - plot e
 if arg2==2 and analytics==1:

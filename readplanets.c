@@ -8,7 +8,7 @@
 #include "readplanets.h"
 #include "../../src/main.h"
 
-void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt){
+void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt, double tide_force, double tide_delay){
     FILE *f = fopen("planets.txt", "r");
     char temp[512];
     int line_num = 0, found_result=0, exit=0;
@@ -65,6 +65,9 @@ void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *
         printf("calculated semi-major axis \n");
     }
     
+    double tide_delay_output;
+    if(tide_force == 1){ tide_delay_output = tide_delay; } else { tide_delay_output = 0. }
+    
     //delete previous output file
     char sys_arg[50] = "rm -v ";
     strcat(sys_arg,txt_file);
@@ -73,7 +76,7 @@ void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *
     FILE *write;
     write=fopen(txt_file, "a");
     //if(write == NULL) exit(-1);
-    fprintf(write, "%s,%f,%f,%i \n",sysname,*Ms,*Rs,*_N);
+    fprintf(write, "%s,%f,%f,%i,%f \n",sysname,*Ms,*Rs,*_N,tide_delay_output);
     fclose(write);
 }
 
