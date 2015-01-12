@@ -66,7 +66,7 @@ void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *
     }
     
     double tide_delay_output;
-    if(tide_force == 1){ tide_delay_output = tide_delay; } else { tide_delay_output = 0. }
+    if(tide_force == 1){ tide_delay_output = tide_delay; } else { tide_delay_output = 0.; }
     
     //delete previous output file
     char sys_arg[50] = "rm -v ";
