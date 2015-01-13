@@ -33,18 +33,18 @@ void problem_init(int argc, char* argv[]){
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 2;                // in AU
 	//tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
-    tmax        = 10000000.;
+    tmax        = 100000.;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    T           = 2.*M_PI*650000.;  //tau_a, typical timescale=20,000 years;
-    t_mig       = 20000.;           //Begin damping migration at t_mig.
-    t_damp      = 30000.;           //length of migration damping. Afterwards, no migration.
+    T           = 2.*M_PI*80000.;  //tau_a, typical timescale=20,000 years;
+    t_mig       = 10000.;           //Begin damping migration at t_mig.
+    t_damp      = 20000.;           //length of migration damping. Afterwards, no migration.
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
-    tide_delay  = 5000000.;         //Lag time after which tidal forces are turned on. Requires tide_forces=1!!
+    tide_delay  = 0.;         //Lag time after which tidal forces are turned on. Requires tide_forces=1!!
     mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.03;              //Factor to increase 'a' of OUTER planets by.
+    afac        = 1.05;              //Factor to increase 'a' of OUTER planets by.
     char c[20]  = "TESTP3";           //System being investigated
-    txt_file    = "runs/orbits_TESTP3_100Myr2.txt";           //Where to store orbit outputs
+    txt_file    = "runs/orbits_TESTP3.txt";           //Where to store orbit outputs
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -84,7 +84,7 @@ void problem_init(int argc, char* argv[]){
     p.Qp=Qp_temp;
     particles_add(p);
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
-    printf("Planet 1: a=%f,mp=%f,rp=%f,Qp=%f \n",a,mp,rp,Qp_temp);
+    printf("Planet 1: a=%f,e=%f,mp=%f,rp=%f,Qp=%f \n",a,e,mp,rp,Qp_temp);
     
     for(int i=1;i<_N;i++){
         extractplanets(&char_val,&a,&rho,&inc,&mp,&rp);
@@ -97,7 +97,7 @@ void problem_init(int argc, char* argv[]){
         tau_e[i+1]=tau_atemp/K;
         
         particles_add(p);
-        printf("Planet %i: a=%f,mp=%f,rp=%f,Qp=%f,tau_a=%f,afac=%f, \n",i+1,a,mp,rp,Qp_temp,tau_a[i+1],afac);
+        printf("Planet %i: a=%f,e=%f,mp=%f,rp=%f,Qp=%f,tau_a=%f,afac=%f, \n",i+1,a,e,mp,rp,Qp_temp,tau_a[i+1],afac);
     }
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
@@ -112,7 +112,7 @@ void problem_migration_forces(){
         //ramp down the migration force (by increasing the migration timescale)
         double t_mig2 = t_mig + t_damp; //when migration ends
         if (t > t_mig && t < t_mig2) {
-            tau_a[2] = T + (t - t_mig)*(1000000.0 - T)/(t_mig2 - t_mig);
+            tau_a[2] = T + (t - t_mig)*(3000000.0 - T)/(t_mig2 - t_mig);
             tau_e[2] = tau_a[2]/K;
         } else if(t > t_mig2){
             tau_a[2]=0.;
@@ -264,10 +264,15 @@ void problem_output(){
             
         } else { n = sqrt(mu/(a*a*a));}     //Still need to calc this for period. 
         
-        if(output_check(tmax/2500.)){
+        if(output_check(tmax/3500.)){
+        //if(output_check(1.)){
             omega[i] = atan2(ey,ex);
-            //if(ey < 0.) omega[i] += 2*M_PI;
+            if(ey < 0.) omega[i] += 2*M_PI;
+                //omega[i] = acos(ex/e);    //from tools.c
+                //if(ey < 0.) omega[i] = 2*M_PI - omega[i];
             double cosE = (a - r)/(a*e);
+                //double sinE = sqrt(1. - cosE*cosE);
+                //if(vr < 0.) sinE *= -1;
             double E;
             if(cosf > 1. || cosf < -1.){
                 E = M_PI - M_PI*cosE;
@@ -275,7 +280,14 @@ void problem_output(){
                 E = acos(cosE);
             }
             if(vr < 0.) E = 2.*M_PI - E;
+                /*if(abs(sin(E) - sinE) > 1e-4 || abs(w - omega[i]) > 1e-4){
+                    printf("problem!!!\n");
+                    printf("sin(E)=%f, sinE=%f,dsinE=%f \n", sin(E), sinE, sin(E) - sinE);
+                    printf("omega=%f, w=%f, domega=%f \n",omega[i],w, omega[i]-w);
+                    exit(1);
+                }*/
             double MA = E - e*sin(E);
+                //double MA = E - e*sinE;
             lambda[i] = MA + omega[i];
             double phi = 0., phi2 = 0., phi3 = 0.;     //resonant angles
             if(i>=2){//tailored for 2:1 resonance
