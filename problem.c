@@ -36,15 +36,15 @@ void problem_init(int argc, char* argv[]){
     tmax        = 100000.;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    T           = 2.*M_PI*80000.;  //tau_a, typical timescale=20,000 years;
-    t_mig       = 10000.;           //Begin damping migration at t_mig.
-    t_damp      = 20000.;           //length of migration damping. Afterwards, no migration.
-    tide_forces = 1;                //If ==0, then no tidal forces on planets.
-    tide_delay  = 0.;         //Lag time after which tidal forces are turned on. Requires tide_forces=1!!
+    T           = 2.*M_PI*100000.;  //tau_a, typical timescale=80,000 years;
+    t_mig       = 10000.;           //Begin damping migration at t_mig. 10000.
+    t_damp      = 15000.;           //length of migration damping. Afterwards, no migration. 20000.
+    tide_forces = 0;                //If ==0, then no tidal forces on planets.
+    tide_delay  = 0.;               //Lag time after which tidal forces are turned on. Requires tide_forces=1!!
     mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.05;              //Factor to increase 'a' of OUTER planets by.
-    char c[20]  = "TESTP3";           //System being investigated
-    txt_file    = "runs/orbits_TESTP3.txt";           //Where to store orbit outputs
+    afac        = 1.04;              //Factor to increase 'a' of OUTER planets by.
+    char c[20]  = "TESTP5";         //System being investigated
+    txt_file    = "runs/orbits_TESTP5.txt";           //Where to store orbit outputs
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -64,13 +64,27 @@ void problem_init(int argc, char* argv[]){
     
     //**Initial eccentricity**
     const double f=0., w=M_PI/2., e=0.1;
-    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt,tide_forces,tide_delay);
+    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
 	star.vx = 0; star.vy = 0; star.vz = 0;
 	star.ax = 0; star.ay = 0; star.az = 0;
 	star.m  = Ms;
 	particles_add(star);
+    
+    //Write migration, tidal info to file
+    double tide_delay_output = 0., t_mig_output = 0., t_damp_output = 0., T_output = 0., K_output = 0.;
+    if(tide_forces == 1) tide_delay_output = tide_delay;
+    if(mig_forces == 1){
+        t_mig_output = t_mig;
+        t_damp_output = t_damp;
+        T_output = T/(2.*M_PI);
+        K_output = K;
+    }
+    FILE *write;
+    write=fopen(txt_file, "a");
+    fprintf(write, "%f,t_mig=%f,t_damp=%f,T/2pi=%f,K=%f \n",tide_delay_output, t_mig_output, t_damp_output, T_output, K_output);
+    fclose(write);
     
     //Extra slot for star
     tau_a  = calloc(sizeof(double),_N+1);  //migration of semi-major axis

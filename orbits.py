@@ -31,7 +31,7 @@ for i in range(0,N):
     Qp[i] = float(header[2])
 
 #Load numerical data
-names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Resonant Angle3 (phi3 = w2 - w1)','Period Ratio (P$_{i+1}$/P$_{i}$)','Delta (frac. dist. to res.)']
+names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Resonant Angle3 (phi3 = w2 - w1)','Period Ratio (P$_{i+1}$/P$_{i}$)','Resonance Plot']
 colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
 if arg2==11:
@@ -43,11 +43,20 @@ if arg2==11:
         plt.plot([tide_delay, tide_delay], [1.99,2.01], label='tides turned on now!', color='black', linewidth=4)
 elif arg2==12:
     for i in range(0,N-1):
-        p=data[i::N]
         q=data[i+1::N]
-        plt.plot(p[:,arg1], q[:,3]/(2*p[:,3]) - 1, 'o'+colors[i], label='P$_{'+str(i+2)+',ini}$ ='+str(round(p[0,3],2))+' d, P$_{'+str(i+1)+',ini}$='+str(round(q[0,3],2))+' d, m$_{'+str(i+2)+'}$/m$_{'+str(i+1)+'}$='+str(round(mp[i+1]/mp[i],3)), markeredgecolor='none')
-    if tide_delay > 1.:
-        plt.plot([tide_delay, tide_delay], [1.99,2.01], label='tides turned on now!', color='black', linewidth=4)
+        length=len(q[:,8])
+        x = np.zeros(length)
+        y = np.zeros(length)
+        for j in xrange(0,length):
+            R=15.874*q[j,2]
+            x[j]=R*math.cos(q[j,8])
+            y[j]=R*math.sin(q[j,8])
+    nplots=4
+    block=int(length/nplots)
+    for i in range(0,nplots):
+        plt.plot(x[i*block:(i+1)*block],y[i*block:(i+1)*block],'o'+colors[i], label='Resonance Plot block'+str(i+1), markersize=8-i)
+    plt.axhline(0, color='black')
+    plt.axvline(0, color='black')
 else:
     for i in range(0,N): #range(0,N) only goes to N-1
         p=data[i::N]
@@ -86,7 +95,11 @@ if arg2==1 and analytics ==1:
 #plt.ylim([0.2025,0.2075])
 #plt.xlim([30000,40000])
 plt.title(''+name)
-plt.xlabel('' + names[arg1])
-plt.ylabel('' + names[arg2])
-plt.legend(loc='upper left')
+if arg2==12:
+    plt.xlabel('15.874e*cos$\phi$')
+    plt.ylabel('15.874e*sin$\phi$')
+else:
+    plt.xlabel('' + names[arg1])
+    plt.ylabel('' + names[arg2])
+plt.legend(loc='upper right')
 plt.show()
