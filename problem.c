@@ -38,9 +38,6 @@ void problem_init(int argc, char* argv[]){
     tmax        = 150000.;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    //T           = 2.*M_PI*50000.;  //tau_a, typical timescale=80,000 years;
-    //t_mig       = 20000.;           //Begin damping migration at t_mig. 10000.
-    //t_damp      = 15000.;           //length of migration damping. Afterwards, no migration. 20000.
     tide_forces = 0;                //If ==0, then no tidal forces on planets.
     tide_delay  = 0.;               //Lag time after which tidal forces are turned on. Requires tide_forces=1!!
     mig_forces  = 1;                //If ==0, no migration.
@@ -94,7 +91,8 @@ void problem_init(int argc, char* argv[]){
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     double n1 = sqrt(G*Ms/(a*a*a));
     p.r = rp;
-    assignparams(&Qp_temp,mp,rp,txt_file);
+    double null1=-1.,null2=-1.;
+    assignparams(&Qp_temp,mp,rp,&null1,&null2,&n1,a,Ms,txt_file); //Need to make it so that these migration values = 0
     p.Qp=Qp_temp;
     particles_add(p);
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
@@ -106,16 +104,13 @@ void problem_init(int argc, char* argv[]){
         e = pow(mp/Ms, 0.3333333333);
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
-        assignparams(&Qp_temp,mp,rp,txt_file);
+        double T=0.,t_mig_var=0.;
+        assignparams(&Qp_temp,mp,rp,&T,&t_mig_var,&n1,a,Ms,txt_file);
         p.Qp=Qp_temp;
-        double n = sqrt(G*Ms/(a*a*a));
-        double mu43 = pow(mp/Ms,4./3.);
-        double T = 3.75/(n*mu43);  //Goldreich & Schlichting (2014), for 2:1 resonance
-        tau_a[i+1]=T;
-        tau_e[i+1]=T/K;
-        double a_f = pow(4*G*Ms/(n1*n1), 0.33333333333);
-        t_mig[i+1] = T*(a - a_f)/a_f;
-        t_damp[i+1] = t_mig[i+1]/4;
+        tau_a[i+1]=T;               //migration rate
+        tau_e[i+1]=T/K;             //e_damping rate
+        t_mig[i+1]=t_mig_var;       //length of time migrating for
+        t_damp[i+1]=t_mig_var/4.;   //length of time damping migration out for
         particles_add(p);
         printf("Planet %i: a=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i+1,a,e,mp,rp,Qp_temp,tau_a[i+1],t_mig[i+1],t_damp[i+1],afac);
     }

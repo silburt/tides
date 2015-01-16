@@ -4,5 +4,7 @@ Sysname = Name of the system, e.g. Kepler-92, or TESTP5.
 	-PX = In the Case of TESTP5, I am indicating that it is a run where the innermost 		planet has a Period of 5 days. 
 	-J  = J is for Jupiter, indicating that this run is for large, Jovian planets.
 	-I = typically the largest planet is closest to the star. “I” means that that the 	     	largest planet is furthest from the star.
+	-s = smaller masses than nominal runs. E.g. planet masses are 2M_E and 1M_E vs. 		4M_E and 2M_E.
+	-QL = 10x Larger Q value.
 
 timelength = Length of time for the integration. 
