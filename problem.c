@@ -19,8 +19,10 @@ initial migration to put planets into resonance.
 
 double* tau_a; 	/**< Migration timescale in years for all particles */
 double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
-double *lambda; /**<Resonant angle>**/
-double *omega;  /**<argument of periapsis>**/
+double* lambda; /**<Resonant angle>**/
+double* omega;  /**<argument of periapsis>**/
+double* t_mig;  /**<Migration timescale calc according to Goldreich & Schlichting (2014)>**/
+double* t_damp;
 int tide_print; /**<print message when tides are turned on>**/
 void problem_migration_forces();
 
@@ -33,18 +35,18 @@ void problem_init(int argc, char* argv[]){
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 2;                // in AU
 	//tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
-    tmax        = 100000.;
+    tmax        = 150000.;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    T           = 2.*M_PI*100000.;  //tau_a, typical timescale=80,000 years;
-    t_mig       = 10000.;           //Begin damping migration at t_mig. 10000.
-    t_damp      = 15000.;           //length of migration damping. Afterwards, no migration. 20000.
+    //T           = 2.*M_PI*50000.;  //tau_a, typical timescale=80,000 years;
+    //t_mig       = 20000.;           //Begin damping migration at t_mig. 10000.
+    //t_damp      = 15000.;           //length of migration damping. Afterwards, no migration. 20000.
     tide_forces = 0;                //If ==0, then no tidal forces on planets.
     tide_delay  = 0.;               //Lag time after which tidal forces are turned on. Requires tide_forces=1!!
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.04;              //Factor to increase 'a' of OUTER planets by.
-    char c[20]  = "TESTP5";         //System being investigated
-    txt_file    = "runs/orbits_TESTP5.txt";           //Where to store orbit outputs
+    char c[20]  = "TESTP3";         //System being investigated
+    txt_file    = "runs/orbits_TESTP3.txt";           //Where to store orbit outputs
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -59,11 +61,11 @@ void problem_init(int argc, char* argv[]){
     
     // Initial conditions
     printf("You have chosen: %s \n",c);
-    double Ms,Rs,a,rho,inc,mp,rp,tau_atemp,Qp_temp;
+    double Ms,Rs,a,rho,inc,mp,rp,Qp_temp;
     int char_val, _N;
     
     //**Initial eccentricity**
-    const double f=0., w=M_PI/2., e=0.1;
+    double f=0., w=M_PI/2.;
     readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
@@ -72,29 +74,27 @@ void problem_init(int argc, char* argv[]){
 	star.m  = Ms;
 	particles_add(star);
     
-    //Write migration, tidal info to file
-    double tide_delay_output = 0., t_mig_output = 0., t_damp_output = 0., T_output = 0., K_output = 0.;
+    //Write tidal info to file
+    double tide_delay_output = 0;
     if(tide_forces == 1) tide_delay_output = tide_delay;
-    if(mig_forces == 1){
-        t_mig_output = t_mig;
-        t_damp_output = t_damp;
-        T_output = T/(2.*M_PI);
-        K_output = K;
-    }
     FILE *write;
     write=fopen(txt_file, "a");
-    fprintf(write, "%f,t_mig=%f,t_damp=%f,T/2pi=%f,K=%f \n",tide_delay_output, t_mig_output, t_damp_output, T_output, K_output);
+    fprintf(write, "%f \n",tide_delay_output);
     fclose(write);
     
-    //Extra slot for star
+    //Arrays, Extra slot for star, calloc sets values to 0 already.
     tau_a  = calloc(sizeof(double),_N+1);  //migration of semi-major axis
 	tau_e  = calloc(sizeof(double),_N+1);  //migration (damp) of eccentricity
     lambda = calloc(sizeof(double),_N+1);  //resonant angle for each planet
     omega = calloc(sizeof(double),_N+1);  //argument of periapsis for each planet
+    t_mig = calloc(sizeof(double),_N+1);
+    t_damp = calloc(sizeof(double),_N+1);
     
+    double e=pow(mp/Ms, 0.3333333333);  //Goldreich & Schlichting (2014)
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
+    double n1 = sqrt(G*Ms/(a*a*a));
     p.r = rp;
-    assignparams(&tau_atemp,&Qp_temp,mp,rp,T,txt_file);
+    assignparams(&Qp_temp,mp,rp,txt_file);
     p.Qp=Qp_temp;
     particles_add(p);
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
@@ -103,15 +103,21 @@ void problem_init(int argc, char* argv[]){
     for(int i=1;i<_N;i++){
         extractplanets(&char_val,&a,&rho,&inc,&mp,&rp);
         a *= afac;      //Increase 'a' of outer planets by afac
+        e = pow(mp/Ms, 0.3333333333);
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
-        assignparams(&tau_atemp,&Qp_temp,mp,rp,T,txt_file);
+        assignparams(&Qp_temp,mp,rp,txt_file);
         p.Qp=Qp_temp;
-        tau_a[i+1]=tau_atemp;
-        tau_e[i+1]=tau_atemp/K;
-        
+        double n = sqrt(G*Ms/(a*a*a));
+        double mu43 = pow(mp/Ms,4./3.);
+        double T = 3.75/(n*mu43);  //Goldreich & Schlichting (2014), for 2:1 resonance
+        tau_a[i+1]=T;
+        tau_e[i+1]=T/K;
+        double a_f = pow(4*G*Ms/(n1*n1), 0.33333333333);
+        t_mig[i+1] = T*(a - a_f)/a_f;
+        t_damp[i+1] = t_mig[i+1]/4;
         particles_add(p);
-        printf("Planet %i: a=%f,e=%f,mp=%f,rp=%f,Qp=%f,tau_a=%f,afac=%f, \n",i+1,a,e,mp,rp,Qp_temp,tau_a[i+1],afac);
+        printf("Planet %i: a=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i+1,a,e,mp,rp,Qp_temp,tau_a[i+1],t_mig[i+1],t_damp[i+1],afac);
     }
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
@@ -123,17 +129,18 @@ void problem_init(int argc, char* argv[]){
 
 void problem_migration_forces(){
     if(mig_forces==1){
-        //ramp down the migration force (by increasing the migration timescale)
-        double t_mig2 = t_mig + t_damp; //when migration ends
-        if (t > t_mig && t < t_mig2) {
-            tau_a[2] = T + (t - t_mig)*(3000000.0 - T)/(t_mig2 - t_mig);
-            tau_e[2] = tau_a[2]/K;
-        } else if(t > t_mig2){
-            tau_a[2]=0.;
-            tau_e[2]=0.;
-        }
         struct particle com = particles[0]; // calculate migration forces with respect to center of mass;
         for(int i=1;i<N;i++){ // N = _N + 1 = total number of planets + star
+                //ramp down the migration force (by increasing the migration timescale)
+                double t_mig2 = t_mig[i] + t_damp[i]; //when migration ends
+                if (t > t_mig[i] && t < t_mig2) {
+                    tau_a[i] = tau_a[i] + (t - t_mig[i])*(3000000.0 - tau_a[i])/(t_mig2 - t_mig[i]);
+                    tau_e[i] = tau_a[i]/K;
+                } else if(t > t_mig2){
+                    tau_a[i]=0.;
+                    tau_e[i]=0.;
+                }
+            
             if (tau_e[i]!=0||tau_a[i]!=0){
                 struct particle* p = &(particles[i]);
                 const double dvx = p->vx-com.vx;

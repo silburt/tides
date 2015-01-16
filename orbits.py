@@ -101,5 +101,5 @@ if arg2==12:
 else:
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])
-plt.legend(loc='upper right')
+plt.legend(loc='upper left')
 plt.show()
