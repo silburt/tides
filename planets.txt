@@ -31,8 +31,8 @@
 # COLUMN pl_radserr1:    Planet Radius Upper Unc. [Solar radii]
 # COLUMN pl_radserr2:    Planet Radius Lower Unc. [Solar radii]
 #
-rowid,pl_hostname,pl_letter,pl_discmethod,pl_pnum,pl_orbper,pl_orbpererr1,pl_orbpererr2,pl_orbsmax,pl_orbsmaxerr1,pl_orbsmaxerr2,pl_dens,pl_orbincl,pl_ttvflag,pl_kepflag,st_mass,st_masserr,st_rad,st_raderr,pl_masse,pl_masseerr1,pl_masseerr2,pl_rads,pl_radserr1,pl_radserr2
-1,TESTP3s,b,Transit,2,3.0,,,,,,,,1,1,1.0,0.08,1.0,0.05,2.0,1.90000,-1.90000,0.012,0.001,-0.001
+#rowid,pl_hostname,pl_letter,pl_discmethod,pl_pnum,pl_orbper,pl_orbpererr1,pl_orbpererr2,pl_orbsmax,pl_orbsmaxerr1,pl_orbsmaxerr2,pl_dens,pl_orbincl,pl_ttvflag,pl_kepflag,st_mass,st_masserr,st_rad,st_raderr,pl_masse,pl_masseerr1,pl_masseerr2,pl_rads,pl_radserr1,pl_radserr2
+1,TESTP3s,b,Transit,2,3.0,0,0,0,0,0,0,0,1,1,1.0,0.08,1.0,0.05,2.0,1.90000,-1.90000,0.012,0.001,-0.001
 2,TESTP3s,c,Transit,2,6.0,,,,,,,,1,1,1.0,0.08,1.0,0.05,1.0,0.0000001,-0.0000001,0.01,0.000001,-0.000001
 1,TESTP3,b,Transit,2,3.0,,,,,,,,1,1,1.0,0.08,1.0,0.05,3.0,1.90000,-1.90000,0.012,0.001,-0.001
 2,TESTP3,c,Transit,2,6.0,,,,,,,,1,1,1.0,0.08,1.0,0.05,1.0,0.0000001,-0.0000001,0.01,0.000001,-0.000001

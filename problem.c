@@ -35,15 +35,15 @@ void problem_init(int argc, char* argv[]){
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 2;                // in AU
 	//tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
-    tmax        = 150000.;
+    tmax        = 1500000.;
     
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 0;                //If ==0, then no tidal forces on planets.
     tide_delay  = 0.;               //Lag time after which tidal forces are turned on. Requires tide_forces=1!!
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.04;              //Factor to increase 'a' of OUTER planets by.
-    char c[20]  = "TESTP3";         //System being investigated
-    txt_file    = "runs/orbits_TESTP3.txt";           //Where to store orbit outputs
+    char c[20]  = "TESTP10";         //System being investigated
+    txt_file    = "runs/orbits_TESTP10.txt";           //Where to store orbit outputs
     
 #ifdef OPENGL
 	display_wire 	= 1;			
