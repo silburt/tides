@@ -8,6 +8,7 @@ initial migration to put planets into resonance.
 #include <math.h>
 #include <time.h>
 #include <string.h>
+#include "input.h"
 #include "main.h"
 #include "tools.h"
 #include "problem.h"
@@ -24,6 +25,7 @@ double* omega;  /**<argument of periapsis>**/
 double* t_mig;  /**<Migration timescale calc according to Goldreich & Schlichting (2014)>**/
 double* t_damp;
 int tide_print; /**<print message when tides are turned on>**/
+char txt_file[80];
 void problem_migration_forces();
 
 #ifdef OPENGL
@@ -34,21 +36,25 @@ void problem_init(int argc, char* argv[]){
 	/* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 2;                // in AU
-	//tmax		= 1e7*2.*M_PI;      // in year/(2*pi)
-    tmax        = 1500000.;
-    
+    tmax        = input_get_double(argc,argv,"tmax",200000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 0;                //If ==0, then no tidal forces on planets.
-    tide_delay  = 0.;               //Lag time after which tidal forces are turned on. Requires tide_forces=1!!
+    tide_delay  = input_get_double(argc,argv,"tide_delay",0.);  //Lag time for tides. Requires tide_forces=1!
     mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.04;              //Factor to increase 'a' of OUTER planets by.
-    char c[20]  = "TESTP10";         //System being investigated
-    txt_file    = "runs/orbits_TESTP10.txt";           //Where to store orbit outputs
+    afac        = 1.04;             //Factor to increase 'a' of OUTER planets by.
+    char* c     = argv[1];          //System being investigated, Must be first string after ./nbody!
     
 #ifdef OPENGL
 	display_wire 	= 1;			
 #endif 	// OPENGL
 	init_box();
+    
+    //Orbit outputs in txt_file
+    char* dir = "runs/orbits_";
+    char* ext = ".txt";
+    strcat(txt_file, dir);
+    strcat(txt_file, c);
+    strcat(txt_file, ext);
     
     //Delete previous file if it exists.
     char sys_arg[50] = "rm -v ";
