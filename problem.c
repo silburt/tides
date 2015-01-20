@@ -1,6 +1,6 @@
 /**
 Code developed by Ari Silburt to evolve Kepler planets under the influence of tides, with an 
-initial migration to put planets into resonance.
+initial migration to put planets into resonance
  */
 #include <stdio.h>
 #include <stdlib.h>
