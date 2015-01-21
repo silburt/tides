@@ -36,7 +36,7 @@ void problem_init(int argc, char* argv[]){
 	/* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 2;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",200000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",20000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 0;                //If ==0, then no tidal forces on planets.
     tide_delay  = input_get_double(argc,argv,"tide_delay",0.);  //Lag time for tides. Requires tide_forces=1!
