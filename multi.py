@@ -1,13 +1,19 @@
 import multiprocessing as mp
 import os
+import sys
+import numpy as np
 
-name=['TESTP3','TESTP5','TESTP10','TESTP10J']
+arg0=str(sys.argv[1])
+arg1=str(sys.argv[2])
+
+name=np.genfromtxt('reso/'+str(arg0)+':'+str(arg1)+'_systems.txt', dtype=("|S10"), delimiter=',')
+
 os.system('make')
 
 def execute(sysname):
-    os.system('./nbody '+str(sysname))
+    os.system('./nbody '+str(sysname)+' --tmax=100000 --tide_delay=80000')
 
-#This
+#This is the main multiprocess execution
 if __name__== '__main__':
     pool = mp.Pool(processes=3)
     args=[name[i] for i in xrange(0,3)]

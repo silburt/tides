@@ -6,7 +6,7 @@ arg1=int(sys.argv[1])   #(j+1) resonance
 arg2=int(sys.argv[2])   #j resonance
 
 #File for writing
-output = open('reso/'+str(arg1)+':'+str(arg2)+'_planets.txt','w')
+output = open('reso/'+str(arg1)+':'+str(arg2)+'_systems.txt','w')
 
 data=np.genfromtxt('planets.txt', delimiter=',', dtype=(int,"|S10","|S10","|S10",int,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float), filling_values="0", skip_header=34)
 
@@ -29,13 +29,14 @@ while (count <= nlines - 1):
                 ratio = float(data[j][5])/float(data[i][5])
                 if abs(ratio - float(arg1)/float(arg2)) < thresh: #Is each i,j in res
                     Pratio= np.vstack([Pratio,ratio])
-                    length = len(data[0])
-                    for k in xrange(0,length - 2):
-                        output.write(str(data[i][k])+',')
-                    output.write(str(data[i][length-1])+'\n')
-                    for k in xrange(0,length - 2):
-                        output.write(str(data[j][k])+',')
-                    output.write(str(data[j][length-1])+'\n\n')
+                    output.write(data[i][1]+'\n')
+                    #length = len(data[0])
+                    #for k in xrange(0,length - 2):
+                    #    output.write(str(data[i][k])+',')
+                    #output.write(str(data[i][length-1])+'\n')
+                    #for k in xrange(0,length - 2):
+                    #    output.write(str(data[j][k])+',')
+                    #output.write(str(data[j][length-1])+'\n\n')
     count = Ndsys
 
 output.close()
