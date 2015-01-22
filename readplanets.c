@@ -58,7 +58,7 @@ void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *
     
     if(*mp == 0.){//Weiss & Marcy 2014
         double solar2earthRp = 109.17;
-        *mp = 2.69*pow(*rp*solar2earthRp,0.93);
+        *mp = 2.69*pow(*rp*solar2earthRp,0.93)*3e-6; //Solar mass units
         if(p_suppress == 0) printf("calculated planet mass \n");
     }
     
@@ -116,7 +116,7 @@ void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *
     
     if(*mp == 0.){
         double solar2earthRp = 109.17;
-        *mp = 2.69*pow(*rp*solar2earthRp,0.93);
+        *mp = 2.69*pow(*rp*solar2earthRp,0.93)*3e-6; //Solar mass units
     }
     
     if(*a==0. && array[11] != 0.){

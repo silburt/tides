@@ -63,9 +63,9 @@ elif arg2==12:
 else:
     for i in range(0,N): #range(0,N) only goes to N-1
         p=data[i::N]
-        plt.plot(p[:,arg1], p[:,arg2], 'o'+colors[i], label='m$_{'+str(i+1)+'}$='+str(mp[i]/(3*10**(-6)))+' m$_{earth}$', markeredgecolor='none')
+        plt.plot(p[:,arg1], p[:,arg2], 'o'+colors[i], label='m$_{'+str(i+1)+'}$='+str(round(100*mp[i]/(3*10**(-6)))/100.)+' m$_{earth}$', markeredgecolor='none')
         if mig[i] > 1.:
-            plt.plot([mig[i], mig[i]], [min(data[:,arg2]),max(data[:,arg2])], label='Migration stops!', color='black', linewidth=2, ls='--')
+            plt.plot([mig[i], mig[i]], [min(data[:,arg2]),max(data[:,arg2])], label='Migration stops!', color=''+colors[i], linewidth=2, ls='--')
     if tide_delay > 1.:
         plt.plot([tide_delay, tide_delay], [min(data[:,arg2]),max(data[:,arg2])], label='tides turned on now!', color='black', linewidth=2)
 
@@ -107,5 +107,5 @@ if arg2==12:
 else:
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])
-plt.legend(loc='upper left')
+plt.legend(loc='upper left',prop={'size':10})
 plt.show()

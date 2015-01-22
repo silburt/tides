@@ -35,7 +35,7 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
-	boxsize 	= 2;                // in AU
+	boxsize 	= 3;                // in AU
     tmax        = input_get_double(argc,argv,"tmax",20000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 0;                //If ==0, then no tidal forces on planets.
@@ -43,7 +43,7 @@ void problem_init(int argc, char* argv[]){
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.04;             //Factor to increase 'a' of OUTER planets by.
     char* c     = argv[1];          //System being investigated, Must be first string after ./nbody!
-    p_suppress  = 1;
+    p_suppress  = 0;
     
 #ifdef OPENGL
 	display_wire 	= 1;			
