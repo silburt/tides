@@ -33,7 +33,7 @@ extern int display_wire;
 #endif 	// OPENGL
 
 void problem_init(int argc, char* argv[]){
-	/* Setup constants */
+    /* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 2;                // in AU
     tmax        = input_get_double(argc,argv,"tmax",20000.);  // in year/(2*pi)
@@ -43,6 +43,7 @@ void problem_init(int argc, char* argv[]){
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.04;             //Factor to increase 'a' of OUTER planets by.
     char* c     = argv[1];          //System being investigated, Must be first string after ./nbody!
+    p_suppress  = 1;
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -63,13 +64,13 @@ void problem_init(int argc, char* argv[]){
     tide_print = 0;
     
     // Initial conditions
-    printf("You have chosen: %s \n",c);
+    if(p_suppress == 0) printf("You have chosen: %s \n",c);
     double Ms,Rs,a,rho,inc,mp,rp,Qp_temp;
     int char_val, _N;
     
     //**Initial eccentricity**
     double f=0., w=M_PI/2.;
-    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt);
+    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt,p_suppress);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
 	star.vx = 0; star.vy = 0; star.vz = 0;
@@ -101,9 +102,11 @@ void problem_init(int argc, char* argv[]){
     assignparams(&Qp_temp,mp,rp,&null1,&null2,&n1,a,Ms,txt_file); //Need to make it so that these migration values = 0
     p.Qp=Qp_temp;
     particles_add(p);
-    printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
-    printf("Planet 1: a=%f,e=%f,mp=%f,rp=%f,Qp=%f \n",a,e,mp,rp,Qp_temp);
-    
+    if(p_suppress == 0){
+        printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
+        printf("Planet 1: a=%f,e=%f,mp=%f,rp=%f,Qp=%f \n",a,e,mp,rp,Qp_temp);
+    }
+        
     for(int i=1;i<_N;i++){
         extractplanets(&char_val,&a,&rho,&inc,&mp,&rp);
         a *= afac;      //Increase 'a' of outer planets by afac
@@ -118,7 +121,7 @@ void problem_init(int argc, char* argv[]){
         t_mig[i+1]=t_mig_var;       //length of time migrating for
         t_damp[i+1]=t_mig_var/4.;   //length of time damping migration out for
         particles_add(p);
-        printf("Planet %i: a=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i+1,a,e,mp,rp,Qp_temp,tau_a[i+1],t_mig[i+1],t_damp[i+1],afac);
+        if(p_suppress == 0) printf("Planet %i: a=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i+1,a,e,mp,rp,Qp_temp,tau_a[i+1],t_mig[i+1],t_damp[i+1],afac);
     }
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
@@ -279,7 +282,7 @@ void problem_output(){
             }
             
             //print message
-            if(tide_print == 0){
+            if(tide_print == 0 && p_suppress == 0){
                 printf("\n ***Tides have just been turned on at t=%f years***\n",t);
                 tide_print = 1;
             }
@@ -302,12 +305,6 @@ void problem_output(){
                 E = acos(cosE);
             }
             if(vr < 0.) E = 2.*M_PI - E;
-                /*if(abs(sin(E) - sinE) > 1e-4 || abs(w - omega[i]) > 1e-4){
-                    printf("problem!!!\n");
-                    printf("sin(E)=%f, sinE=%f,dsinE=%f \n", sin(E), sinE, sin(E) - sinE);
-                    printf("omega=%f, w=%f, domega=%f \n",omega[i],w, omega[i]-w);
-                    exit(1);
-                }*/
             double MA = E - e*sin(E);
                 //double MA = E - e*sinE;
             lambda[i] = MA + omega[i];

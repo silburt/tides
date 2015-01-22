@@ -8,7 +8,7 @@
 #include "readplanets.h"
 #include "../../src/main.h"
 
-void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt){
+void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt, int p_suppress){
     FILE *f = fopen("planets.txt", "r");
     char temp[512];
     int line_num = 0, found_result=0, exit=0;
@@ -18,7 +18,7 @@ void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *
         fgets(temp, 512, f);      //get row of data from planets.txt
         if((strstr(temp, sysname)) != NULL){ //see if matches Kepler system name.
             *char_pos=ftell(f);
-            printf("A match found on line: %d, proceed with sim. \n\n", line_num);
+            if(p_suppress == 0) printf("A match found on line: %d, proceed with sim. \n\n", line_num);
             //printf("char_pos=%i",*char_pos);
             //printf("\n%s\n", temp);
             found_result++;
@@ -54,12 +54,12 @@ void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *
     //timestep (P/11.), in year/(2*pi).
     //From Viswanath, Divakar 2002-03, need min. of 6*dt per P
     *dt = 2.*M_PI*array[1]/(365.*11.);
-    printf("The timestep used for this simulation is (years/2pi): %f \n",*dt);
+    if(p_suppress == 0) printf("The timestep used for this simulation is (years/2pi): %f \n",*dt);
     
     if(*mp == 0.){//Weiss & Marcy 2014
         double solar2earthRp = 109.17;
         *mp = 2.69*pow(*rp*solar2earthRp,0.93);
-        printf("calculated planet mass \n");
+        if(p_suppress == 0) printf("calculated planet mass \n");
     }
     
     if(*a==0. && array[11] != 0.){//many semi-major axis fields are empty. Calc
@@ -68,7 +68,7 @@ void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *
         double G_SI = 6.67e-11;
         double calca = P*P*G_SI*mass/(4.*M_PI*M_PI);
         *a = pow(calca,1./3.)/1.496e11;     //in AU
-        printf("calculated semi-major axis \n");
+        if(p_suppress == 0) printf("calculated semi-major axis \n");
     }
     
     //delete previous output file

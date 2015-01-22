@@ -7,6 +7,7 @@ arg0=str(sys.argv[1])
 arg1=str(sys.argv[2])
 
 name=np.genfromtxt('reso/'+str(arg0)+':'+str(arg1)+'_systems.txt', dtype=("|S10"), delimiter=',')
+length=name.shape[0]
 
 os.system('make')
 
@@ -16,6 +17,7 @@ def execute(sysname):
 #This is the main multiprocess execution
 if __name__== '__main__':
     pool = mp.Pool(processes=3)
+    #args=[name[i] for i in xrange(0,length)]    #xrange alreday goes to length-1
     args=[name[i] for i in xrange(0,3)]
     pool.map(execute, args)
     pool.close()
