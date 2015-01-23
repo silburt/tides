@@ -33,7 +33,8 @@ k_2 of Giant planets (Gavrilov & Zharkov, 1977)
  Neptune=   0.127
 */
 
-void assignparams(double* Qp, double mp, double rp, double* T, double* t_mig_var, double* n1, double a, double Ms, char *txt_file){
+void assignparams(double* Qp, double mp, double rp, double* T, double* t_mig_var, double Ms, char* txt_file, double a, double a_f, double P){
+    //Assign k2/Q
     double k2, Q;
     k2 = 0.1;
     //k2 = 1.;
@@ -50,21 +51,18 @@ void assignparams(double* Qp, double mp, double rp, double* T, double* t_mig_var
     }
     *Qp = k2/Q;
     
-    if(*T == -1.){ //skip over closest planet, no migration rates for it.
+    //Assign tau_migration values
+    double n = 365.*2*M_PI/P;  //units = 2Pi/yr
+    double mu43 = pow(mp/Ms,4./3.);
+    *T = 3.75/(n*mu43);    //Goldreich & Schlichting (2014), tau_mig rate for 2:1 resonance, units = yr/2pi
+    *t_mig_var = *T*(a - a_f)/a_f;  //length of time migrate for, units = yr/2pi
+    if(a == a_f){//first planet
         *T = 0.;
         *t_mig_var = 0.;
-    } else {
-        double n = sqrt(G*Ms/(a*a*a));
-        double mu43 = pow(mp/Ms,4./3.);
-        *T = 3.75/(n*mu43);     //Goldreich & Schlichting (2014), tau_mig for 2:1 resonance
-        double a_f = pow(4*G*Ms/(*n1 * *n1), 0.33333333333);
-        *t_mig_var = *T*(a - a_f)/a_f;
-        *n1 = n;
     }
     
     FILE *write;
     write=fopen(txt_file, "a");
-    //if(write == NULL) exit(EXIT_FAILURE);
-    fprintf(write, "%f,%f,%f,%f,%f\n", mp,rp,*Qp,*T,*t_mig_var);
+    fprintf(write, "%f,%f,%f,%f,%f,%f\n", mp,rp,P,*Qp,*T,*t_mig_var);
     fclose(write);
 }

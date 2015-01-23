@@ -8,7 +8,7 @@
 #include "readplanets.h"
 #include "../../src/main.h"
 
-void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *Ms, double *Rs, double *a, double *rho, double *inc, double *mp, double *rp, double *dt, int p_suppress){
+void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* Ms, double* Rs, double* a, double* rho, double* inc, double* mp, double* rp, double* P, double* dt, int p_suppress){
     FILE *f = fopen("planets.txt", "r");
     char temp[512];
     int line_num = 0, found_result=0, exit=0;
@@ -50,11 +50,17 @@ void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *
     *Rs = array[13];                    //Stellar radius
     *mp = array[15]*3e-6;               //planet mass (SOLAR units)
     *rp = array[18];                    //planet radius (SOLAR units)
+    *P = array[1];                      //Period (days)
 
     //timestep (P/11.), in year/(2*pi).
     //From Viswanath, Divakar 2002-03, need min. of 6*dt per P
     *dt = 2.*M_PI*array[1]/(365.*11.);
     if(p_suppress == 0) printf("The timestep used for this simulation is (years/2pi): %f \n",*dt);
+    
+    if(*Ms == 0.){
+        *Ms = *Rs;
+        if(p_suppress == 0) printf("calculated stellar mass \n");
+    }
     
     if(*mp == 0.){//Weiss & Marcy 2014
         double solar2earthRp = 109.17;
@@ -84,7 +90,7 @@ void readplanets(char *sysname, char *txt_file, int *char_pos, int *_N, double *
 
 //*******************************************************************************//
 
-void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *mp, double *rp){
+void extractplanets(int* char_pos, double* a, double* rho, double* inc, double* mp, double* rp, double* P){
     FILE *f = fopen("planets.txt", "r");
     char temp[512];
     fseek(f, *char_pos, SEEK_SET);
@@ -113,6 +119,7 @@ void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *
     *inc = array[8];        //inclination
     *mp = array[15]*3e-6;   //planet mass (SOLAR units)
     *rp = array[18];        //planet radius (SOLAR units)
+    *P = array[1];          //Period (days)
     
     if(*mp == 0.){
         double solar2earthRp = 109.17;
@@ -120,10 +127,10 @@ void extractplanets(int *char_pos, double *a, double *rho, double *inc, double *
     }
     
     if(*a==0. && array[11] != 0.){
-        double P = array[1]*24.*60.*60.; //Period in seconds
+        double P_SI = array[1]*24.*60.*60.; //Period in seconds
         double mass = array[11]*1.989e30;
         double G_SI = 6.67e-11;
-        double calca = P*P*G_SI*mass/(4*M_PI*M_PI);
+        double calca = P_SI*P_SI*G_SI*mass/(4*M_PI*M_PI);
         *a = pow(calca,1./3.)/1.496e11;     //in AU
     }
     

@@ -36,14 +36,16 @@ void problem_init(int argc, char* argv[]){
     /* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",20000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",400000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 0;                //If ==0, then no tidal forces on planets.
     tide_delay  = input_get_double(argc,argv,"tide_delay",0.);  //Lag time for tides. Requires tide_forces=1!
     mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.04;             //Factor to increase 'a' of OUTER planets by.
+    afac        = 1.05;             //Factor to increase 'a' of OUTER planets by.
     char* c     = argv[1];          //System being investigated, Must be first string after ./nbody!
-    p_suppress  = 0;
+    p_suppress  = 0;                //If = 1, suppress all print statements
+    double RT   = 0.05;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
+    double res  = 2.0;              //Resonance of interest: e.g. 2.0 = 2:1, 1.5 = 3:2, etc.
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -65,12 +67,11 @@ void problem_init(int argc, char* argv[]){
     
     // Initial conditions
     if(p_suppress == 0) printf("You have chosen: %s \n",c);
-    double Ms,Rs,a,rho,inc,mp,rp,Qp_temp;
+    double Ms,Rs,a,rho,inc,mp,rp,P,Qp_temp;
     int char_val, _N;
     
-    //**Initial eccentricity**
-    double f=0., w=M_PI/2.;
-    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&dt,p_suppress);
+    //Star
+    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&P,&dt,p_suppress);
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
 	star.vx = 0; star.vy = 0; star.vz = 0;
@@ -94,27 +95,43 @@ void problem_init(int argc, char* argv[]){
     t_mig = calloc(sizeof(double),_N+1);
     t_damp = calloc(sizeof(double),_N+1);
     
+    //Resonance vars
+    double Period[_N],a_f; //a_f = final desired position of planet after mig
+    Period[0] = 2*M_PI*P/365.; //in yr/2pi (i.e. need to multiply by 2pi!!)
+     
+    //**Initial eccentricity**
     double e=pow(mp/Ms, 0.3333333333);  //Goldreich & Schlichting (2014)
+    double f=0., w=M_PI/2.;
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
-    double n1 = sqrt(G*Ms/(a*a*a));
     p.r = rp;
-    double null1=-1.,null2=-1.;
-    assignparams(&Qp_temp,mp,rp,&null1,&null2,&n1,a,Ms,txt_file); //Need to make it so that these migration values = 0
+    double T=0.,t_mig_var=0.;
+    //double null1=-1.,null2=-1.; //Need to make it so that migration values = 0 for planet a
+    a_f = a;
+    assignparams(&Qp_temp,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
     p.Qp=Qp_temp;
     particles_add(p);
     if(p_suppress == 0){
         printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
-        printf("Planet 1: a=%f,e=%f,mp=%f,rp=%f,Qp=%f \n",a,e,mp,rp,Qp_temp);
+        printf("Planet 1: a=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f \n",a,e,mp,rp,Qp_temp,T,t_mig_var);
     }
-        
-    for(int i=1;i<_N;i++){
-        extractplanets(&char_val,&a,&rho,&inc,&mp,&rp);
+    
+    for(int i=1;i<_N;i++){//deal with N>1 planets
+        extractplanets(&char_val,&a,&rho,&inc,&mp,&rp,&P);
+        Period[i] = 2*M_PI*P/365.; //in yr/2pi
+        for(int k=0;k<i;k++){
+            double P_res = res*Period[k]; //calc if any "res" resonances (see var list at top)
+            double delta = fabs(Period[i]/P_res - 1.0);
+            if(delta < RT){
+                double val = G*Ms*P_res*P_res/(4*M_PI*M_PI);
+                a_f = pow(val,1./3.); //a for res*P_inner
+                if(p_suppress == 0)printf("%.0f:%.0f resonance for planets %i and %i, delta = %f \n",res,res-1,k+1,i+1,delta);
+            } else a_f = a; //if no resonance, migrate back to starting position
+        }
         a *= afac;      //Increase 'a' of outer planets by afac
         e = pow(mp/Ms, 0.3333333333);
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
-        double T=0.,t_mig_var=0.;
-        assignparams(&Qp_temp,mp,rp,&T,&t_mig_var,&n1,a,Ms,txt_file);
+        assignparams(&Qp_temp,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
         p.Qp=Qp_temp;
         tau_a[i+1]=T;               //migration rate
         tau_e[i+1]=T/K;             //e_damping rate
