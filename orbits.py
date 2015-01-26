@@ -5,11 +5,19 @@ import math
 pi = math.pi
 G = 1.
 analytics = 0
+arg3=0
+arg4=0
+arg_true=0
 
 #time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
 file_name=str(sys.argv[1])
 arg1=int(sys.argv[2])
 arg2=int(sys.argv[3])
+if len(sys.argv) > 5:
+    arg3=int(sys.argv[4])      #only for choice 11, for checking planets in res.
+    arg4=int(sys.argv[5])
+    arg_true=1
+
 
 #Get basic system params from header of file
 fos = open(''+file_name, 'r')
@@ -39,23 +47,31 @@ names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg
 colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
 if arg2==11:
-    for i in range(0,N-1):
-        p=data[i::N]
-        q=data[i+1::N]
-        plt.plot(p[:,arg1], q[:,3]/p[:,3], 'o'+colors[i], label='P$_{'+str(i+2)+',ini}$ ='+str(round(p[0,3],2))+' d, P$_{'+str(i+1)+',ini}$='+str(round(q[0,3],2))+' d, m$_{'+str(i+2)+'}$/m$_{'+str(i+1)+'}$='+str(round(mp[i+1]/mp[i],3)))
-    if tide_delay > 1.:
-        plt.plot([tide_delay, tide_delay], [1.95,2.05], label='tides turned on now!', color='black', linewidth=2)
-    plt.plot([mig[1], mig[1]], [1.95,2.05], label='Migration stops!', color='black', linewidth=2, ls='--')
-elif arg2==12:
-    for i in range(0,N-1):
-        q=data[i+1::N]
-        length=len(q[:,8])
-        x = np.zeros(length)
-        y = np.zeros(length)
-        for j in xrange(0,length):
-            R=15.874*q[j,2]
-            x[j]=R*math.cos(q[j,8])
-            y[j]=R*math.sin(q[j,8])
+    if arg_true == 1:
+        p=data[arg3::N]
+        q=data[arg4::N]
+        plt.plot(p[:,arg1], p[:,3]/q[:,3], 'o'+colors[0], label='P$_{'+str(arg3+1)+',ini}$ ='+str(round(p[0,3],2))+' d, P$_{'+str(arg4+1)+',ini}$='+str(round(q[0,3],2))+' d, m$_{'+str(arg3+1)+'}$/m$_{'+str(arg4+1)+'}$='+str(round(mp[arg3]/mp[arg4],3)),markeredgecolor='none', markersize=3)
+    else:
+        inc=0
+        for i in xrange(1,N):
+            p=data[i::N]
+            for j in xrange(0,i):
+                q=data[j::N]
+                if(abs(p[-1,3]/(2*q[-1,3]) - 1) < 0.05):
+                    plt.plot(p[:,arg1], p[:,3]/q[:,3], 'o'+colors[inc], label='P$_{'+str(i+1)+',ini}$ ='+str(round(p[0,3],2))+' d, P$_{'+str(j+1)+',ini}$='+str(round(q[0,3],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
+                    inc += 1
+                    if tide_delay > 1.:
+                        plt.plot([tide_delay, tide_delay], [1.95,2.05], label='tides turned on now!', color='black', linewidth=2)
+                        plt.plot([mig[1], mig[1]], [1.95,2.05], label='Migration stops!', color='black', linewidth=2, ls='--')
+elif arg2==12: #use arg1:1=planet-1 & 2, 2=planet-2 & 3, etc. color coded into 4 time snapshots.
+    q=data[arg1::N]
+    length=len(q[:,8])
+    x = np.zeros(length)
+    y = np.zeros(length)
+    for j in xrange(0,length):
+        R=15.874*q[j,2]
+        x[j]=R*math.cos(q[j,8])
+        y[j]=R*math.sin(q[j,8])
     nplots=4
     block=int(length/nplots)
     for i in range(0,nplots):
@@ -104,7 +120,7 @@ if arg2==1 and analytics ==1:
 
 #plt.ylim([0.,0.11])
 #plt.ylim([0.2025,0.2075])
-#plt.xlim([30000,40000])
+#plt.xlim([0,10000])
 plt.title(''+name)
 if arg2==12:
     plt.xlabel('15.874e*cos$\phi$')

@@ -16,8 +16,9 @@ Pratio=np.zeros(1)
 nlines=data.shape[0]
 count=0
 Ndsys=0
-thresh=0.1
+thresh=0.05
 o_index=0
+large_mass=0
 while (count <= nlines - 1):
     name = data[count][1]   #starting place of given system
     Ndsys = count
@@ -25,11 +26,14 @@ while (count <= nlines - 1):
         Ndsys += 1           #eNding place of given system
         if Ndsys > nlines - 1:
             break
-    if not 'TEST' in name:  #look for resonances within system
+    for i in xrange(count,Ndsys-1):
+        if data[i][22] > 0.2 or data[i][19] > 100. :
+            large_mass = 1
+    if not 'TEST' in name and large_mass != 1:  #look for resonances within system if small masses/radii & not a test case
         for i in xrange(count, Ndsys-1):
             for j in xrange(i+1, Ndsys):
-                ratio = float(data[j][5])/float(data[i][5])
-                if abs(ratio - float(arg1)/float(arg2)) < thresh: #Is each i,j in res
+                ratio = float(data[j][5])/float(data[i][5]) #Is each i,j in outer res
+                if ratio - float(arg1)/float(arg2) < thresh and ratio - float(arg1)/float(arg2) > 0.:
                     Pratio= np.vstack([Pratio,ratio])
                     length = len(data[0])                         #Full output for detail
                     for k in xrange(0,length - 2):
@@ -40,6 +44,7 @@ while (count <= nlines - 1):
                     outputfull.write(str(data[j][length-1])+'\n\n')
                     output.write(data[i][1]+'\n')
     count = Ndsys
+    large_mass = 0
 
 output.close()
 Pratio = np.delete(Pratio, 0,0) #delete first row that was created earlier

@@ -38,8 +38,7 @@ void problem_init(int argc, char* argv[]){
 	boxsize 	= 3;                // in AU
     tmax        = input_get_double(argc,argv,"tmax",400000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    tide_forces = 0;                //If ==0, then no tidal forces on planets.
-    tide_delay  = input_get_double(argc,argv,"tide_delay",0.);  //Lag time for tides. Requires tide_forces=1!
+    tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.05;             //Factor to increase 'a' of OUTER planets by.
     char* c     = argv[1];          //System being investigated, Must be first string after ./nbody!
@@ -97,7 +96,7 @@ void problem_init(int argc, char* argv[]){
     
     //Resonance vars
     double Period[_N],a_f; //a_f = final desired position of planet after mig
-    Period[0] = 2*M_PI*P/365.; //in yr/2pi (i.e. need to multiply by 2pi!!)
+    Period[0] = 2.*M_PI*P/365.; //in yr/2pi (i.e. need to multiply by 2pi!!)
      
     //**Initial eccentricity**
     double e=pow(mp/Ms, 0.3333333333);  //Goldreich & Schlichting (2014)
@@ -105,7 +104,6 @@ void problem_init(int argc, char* argv[]){
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
     double T=0.,t_mig_var=0.;
-    //double null1=-1.,null2=-1.; //Need to make it so that migration values = 0 for planet a
     a_f = a;
     assignparams(&Qp_temp,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
     p.Qp=Qp_temp;
@@ -115,9 +113,11 @@ void problem_init(int argc, char* argv[]){
         printf("Planet 1: a=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f \n",a,e,mp,rp,Qp_temp,T,t_mig_var);
     }
     
-    for(int i=1;i<_N;i++){//deal with N>1 planets
-        extractplanets(&char_val,&a,&rho,&inc,&mp,&rp,&P);
-        Period[i] = 2*M_PI*P/365.; //in yr/2pi
+    //deal with N>1 planets
+    double max_t_mig;
+    for(int i=1;i<_N;i++){
+        extractplanets(&char_val,&a,&rho,&inc,&mp,&rp,&P,Ms);
+        Period[i] = 2.*M_PI*P/365.; //in yr/2pi
         for(int k=0;k<i;k++){
             double P_res = res*Period[k]; //calc if any "res" resonances (see var list at top)
             double delta = fabs(Period[i]/P_res - 1.0);
@@ -135,11 +135,15 @@ void problem_init(int argc, char* argv[]){
         p.Qp=Qp_temp;
         tau_a[i+1]=T;               //migration rate
         tau_e[i+1]=T/K;             //e_damping rate
-        t_mig[i+1]=t_mig_var;       //length of time migrating for
+        t_mig[i+1]=1.25*t_mig_var;  //length of time migrating for
         t_damp[i+1]=t_mig_var/4.;   //length of time damping migration out for
+        if(t_mig_var > t_mig[i]) max_t_mig = t_mig_var; //find max t_mig_var for tidal_delay
         particles_add(p);
         if(p_suppress == 0) printf("Planet %i: a=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i+1,a,e,mp,rp,Qp_temp,tau_a[i+1],t_mig[i+1],t_damp[i+1],afac);
     }
+    
+    //tidal delay
+    tide_delay = 2*max_t_mig; //2*max_t_mig < t_mig + t_damp
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
 #ifndef INTEGRATOR_WH			// The WH integrator assumes a heliocentric coordinate system.

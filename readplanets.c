@@ -58,24 +58,22 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
     if(p_suppress == 0) printf("The timestep used for this simulation is (years/2pi): %f \n",*dt);
     
     if(*Ms == 0.){
-        *Ms = *Rs;
-        if(p_suppress == 0) printf("calculated stellar mass \n");
+        *Ms = pow(*Rs,1.25);
+        if(p_suppress == 0) printf("--> calculated stellar mass \n");
     }
     
     if(*mp == 0.){//Weiss & Marcy 2014
         double solar2earthRp = 109.17;
         *mp = 2.69*pow(*rp*solar2earthRp,0.93)*3e-6; //Solar mass units
-        if(p_suppress == 0) printf("calculated planet mass \n");
+        if(p_suppress == 0) printf("--> calculated planet mass \n");
     }
     
-    if(*a==0. && array[11] != 0.){//many semi-major axis fields are empty. Calc
-        double P = array[1]*24.*60.*60.; //Period in seconds
-        double mass = array[11]*1.989e30;
-        double G_SI = 6.67e-11;
-        double calca = P*P*G_SI*mass/(4.*M_PI*M_PI);
-        *a = pow(calca,1./3.)/1.496e11;     //in AU
-        if(p_suppress == 0) printf("calculated semi-major axis \n");
-    }
+    double P_SI = *P*24.*60.*60.; //Period in seconds
+    double mass = *Ms*1.989e30;
+    double G_SI = 6.67e-11;
+    double a3 = P_SI*P_SI*G_SI*mass/(4.*M_PI*M_PI);
+    *a = pow(a3,1./3.)/1.496e11;     //in AU
+    if(p_suppress == 0) printf("--> calculating semi-major axis for all planets.\n");
     
     //delete previous output file
     char sys_arg[50] = "rm -v ";
@@ -90,7 +88,7 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
 
 //*******************************************************************************//
 
-void extractplanets(int* char_pos, double* a, double* rho, double* inc, double* mp, double* rp, double* P){
+void extractplanets(int* char_pos, double* a, double* rho, double* inc, double* mp, double* rp, double* P, double Ms){
     FILE *f = fopen("planets.txt", "r");
     char temp[512];
     fseek(f, *char_pos, SEEK_SET);
@@ -126,12 +124,10 @@ void extractplanets(int* char_pos, double* a, double* rho, double* inc, double* 
         *mp = 2.69*pow(*rp*solar2earthRp,0.93)*3e-6; //Solar mass units
     }
     
-    if(*a==0. && array[11] != 0.){
-        double P_SI = array[1]*24.*60.*60.; //Period in seconds
-        double mass = array[11]*1.989e30;
-        double G_SI = 6.67e-11;
-        double calca = P_SI*P_SI*G_SI*mass/(4*M_PI*M_PI);
-        *a = pow(calca,1./3.)/1.496e11;     //in AU
-    }
+    double P_SI = *P*24.*60.*60.; //Period in seconds
+    double mass = Ms*1.989e30;
+    double G_SI = 6.67e-11;
+    double a3 = P_SI*P_SI*G_SI*mass/(4.*M_PI*M_PI);
+    *a = pow(a3,1./3.)/1.496e11;     //in AU
     
 }
