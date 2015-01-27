@@ -97,6 +97,9 @@ void problem_init(int argc, char* argv[]){
     //Resonance vars
     double Period[_N],a_f; //a_f = final desired position of planet after mig
     Period[0] = 2.*M_PI*P/365.; //in yr/2pi (i.e. need to multiply by 2pi!!)
+    double mig_fac,max_t_mig;
+    //if N>3, planets repel each other and thus need to migrate longer.
+    if(_N > 3) mig_fac = 1.25 + 0.25*(_N - 2); else mig_fac=1.25;
      
     //**Initial eccentricity**
     double e=pow(mp/Ms, 0.3333333333);  //Goldreich & Schlichting (2014)
@@ -114,7 +117,6 @@ void problem_init(int argc, char* argv[]){
     }
     
     //deal with N>1 planets
-    double max_t_mig;
     for(int i=1;i<_N;i++){
         extractplanets(&char_val,&a,&rho,&inc,&mp,&rp,&P,Ms);
         Period[i] = 2.*M_PI*P/365.; //in yr/2pi
@@ -125,25 +127,27 @@ void problem_init(int argc, char* argv[]){
                 double val = G*Ms*P_res*P_res/(4*M_PI*M_PI);
                 a_f = pow(val,1./3.); //a for res*P_inner
                 if(p_suppress == 0)printf("%.0f:%.0f resonance for planets %i and %i, delta = %f \n",res,res-1,k+1,i+1,delta);
+                break;      //can only be in a "res" resonance with one inner planet
             } else a_f = a; //if no resonance, migrate back to starting position
         }
+        printf("!!!a_i=%f,a_f=%f",a,a_f);
         a *= afac;      //Increase 'a' of outer planets by afac
         e = pow(mp/Ms, 0.3333333333);
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
         assignparams(&Qp_temp,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
         p.Qp=Qp_temp;
-        tau_a[i+1]=T;               //migration rate
-        tau_e[i+1]=T/K;             //e_damping rate
-        t_mig[i+1]=1.25*t_mig_var;  //length of time migrating for
-        t_damp[i+1]=t_mig_var/4.;   //length of time damping migration out for
+        tau_a[i+1]=T;                           //migration rate
+        tau_e[i+1]=T/K;                         //e_damping rate
         if(t_mig_var > t_mig[i]) max_t_mig = t_mig_var; //find max t_mig_var for tidal_delay
+        t_mig[i+1]=mig_fac*t_mig_var;    //length of time migrating for
+        t_damp[i+1]=t_mig_var/4.;               //length of time damping migration out for
         particles_add(p);
         if(p_suppress == 0) printf("Planet %i: a=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i+1,a,e,mp,rp,Qp_temp,tau_a[i+1],t_mig[i+1],t_damp[i+1],afac);
     }
     
     //tidal delay
-    tide_delay = 2*max_t_mig; //2*max_t_mig < t_mig + t_damp
+    tide_delay = (mig_fac+1.0)*max_t_mig; //starts just after migration finishes
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
 #ifndef INTEGRATOR_WH			// The WH integrator assumes a heliocentric coordinate system.
@@ -311,14 +315,9 @@ void problem_output(){
         } else { n = sqrt(mu/(a*a*a));}     //Still need to calc this for period. 
         
         if(output_check(tmax/3500.)){
-        //if(output_check(1.)){
             omega[i] = atan2(ey,ex);
             if(ey < 0.) omega[i] += 2*M_PI;
-                //omega[i] = acos(ex/e);    //from tools.c
-                //if(ey < 0.) omega[i] = 2*M_PI - omega[i];
             double cosE = (a - r)/(a*e);
-                //double sinE = sqrt(1. - cosE*cosE);
-                //if(vr < 0.) sinE *= -1;
             double E;
             if(cosf > 1. || cosf < -1.){
                 E = M_PI - M_PI*cosE;
@@ -327,10 +326,9 @@ void problem_output(){
             }
             if(vr < 0.) E = 2.*M_PI - E;
             double MA = E - e*sin(E);
-                //double MA = E - e*sinE;
             lambda[i] = MA + omega[i];
             double phi = 0., phi2 = 0., phi3 = 0.;     //resonant angles
-            if(i>=2){//tailored for 2:1 resonance
+            if(i>=2){//tailored for 2:1 resonance, between inner/outer planet
                 phi = 2.*lambda[i] - lambda[i-1] - omega[i-1];
                 phi2 = 2.*lambda[i] - lambda[i-1] - omega[i];
                 phi3 = omega[i-1] - omega[i];

@@ -63,8 +63,8 @@ if arg2==11:
                     if tide_delay > 1.:
                         plt.plot([tide_delay, tide_delay], [1.95,2.05], label='tides turned on now!', color='black', linewidth=2)
                         plt.plot([mig[1], mig[1]], [1.95,2.05], label='Migration stops!', color='black', linewidth=2, ls='--')
-elif arg2==12: #use arg1:1=planet-1 & 2, 2=planet-2 & 3, etc. color coded into 4 time snapshots.
-    q=data[arg1::N]
+elif arg2==12: #use arg0:1=planet-1 & 2, 1=planet-2 & 3, etc. color coded into 4 time snapshots.
+    q=data[arg1+1::N]
     length=len(q[:,8])
     x = np.zeros(length)
     y = np.zeros(length)
