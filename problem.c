@@ -24,6 +24,7 @@ double* lambda; /**<Resonant angle>**/
 double* omega;  /**<argument of periapsis>**/
 double* t_mig;  /**<Migration timescale calc according to Goldreich & Schlichting (2014)>**/
 double* t_damp;
+int* phi_i;
 int tide_print; /**<print message when tides are turned on>**/
 char txt_file[80];
 void problem_migration_forces();
@@ -40,7 +41,7 @@ void problem_init(int argc, char* argv[]){
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.05;             //Factor to increase 'a' of OUTER planets by.
+    afac        = 1.03;             //Factor to increase 'a' of OUTER planets by.
     char* c     = argv[1];          //System being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.05;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -87,19 +88,20 @@ void problem_init(int argc, char* argv[]){
     fclose(write);
     
     //Arrays, Extra slot for star, calloc sets values to 0 already.
-    tau_a  = calloc(sizeof(double),_N+1);  //migration of semi-major axis
-	tau_e  = calloc(sizeof(double),_N+1);  //migration (damp) of eccentricity
-    lambda = calloc(sizeof(double),_N+1);  //resonant angle for each planet
-    omega = calloc(sizeof(double),_N+1);  //argument of periapsis for each planet
+    tau_a  = calloc(sizeof(double),_N+1);   //migration of semi-major axis
+	tau_e  = calloc(sizeof(double),_N+1);   //migration (damp) of eccentricity
+    lambda = calloc(sizeof(double),_N+1);   //resonant angle for each planet
+    omega = calloc(sizeof(double),_N+1);    //argument of periapsis for each planet
     t_mig = calloc(sizeof(double),_N+1);
     t_damp = calloc(sizeof(double),_N+1);
+    phi_i = calloc(sizeof(int),_N+1);       //phi index (outputting resonance angles)
     
     //Resonance vars
     double Period[_N],a_f; //a_f = final desired position of planet after mig
     Period[0] = 2.*M_PI*P/365.; //in yr/2pi (i.e. need to multiply by 2pi!!)
-    double mig_fac,max_t_mig;
+    double mig_fac,max_t_mig;   //automating length of tidal delay/migration
     //if N>3, planets repel each other and thus need to migrate longer.
-    if(_N > 3) mig_fac = 1.25 + 0.25*(_N - 2); else mig_fac=1.25;
+    if(_N > 2) mig_fac = 1.25 + 0.25*(_N - 2); else mig_fac=1.25;
      
     //**Initial eccentricity**
     double e=pow(mp/Ms, 0.3333333333);  //Goldreich & Schlichting (2014)
@@ -113,7 +115,7 @@ void problem_init(int argc, char* argv[]){
     particles_add(p);
     if(p_suppress == 0){
         printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
-        printf("Planet 1: a=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f \n",a,e,mp,rp,Qp_temp,T,t_mig_var);
+        printf("Planet 1: a=%f,P=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f \n",a,Period[0]*365./2./M_PI,e,mp,rp,Qp_temp,T,t_mig_var);
     }
     
     //deal with N>1 planets
@@ -126,11 +128,13 @@ void problem_init(int argc, char* argv[]){
             if(delta < RT){
                 double val = G*Ms*P_res*P_res/(4*M_PI*M_PI);
                 a_f = pow(val,1./3.); //a for res*P_inner
+                //printf("G=%f,Ms=%f,Pres=%f,a_f=%f",G,Ms,P_res*365./2./M_PI,a_f);
                 if(p_suppress == 0)printf("%.0f:%.0f resonance for planets %i and %i, delta = %f \n",res,res-1,k+1,i+1,delta);
+                phi_i[i] = i-k;   //how far off the resonance is (e.g. two planets away?)
                 break;      //can only be in a "res" resonance with one inner planet
             } else a_f = a; //if no resonance, migrate back to starting position
         }
-        printf("!!!a_i=%f,a_f=%f",a,a_f);
+        printf("a_f=%f \n",a_f);
         a *= afac;      //Increase 'a' of outer planets by afac
         e = pow(mp/Ms, 0.3333333333);
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
@@ -140,10 +144,10 @@ void problem_init(int argc, char* argv[]){
         tau_a[i+1]=T;                           //migration rate
         tau_e[i+1]=T/K;                         //e_damping rate
         if(t_mig_var > t_mig[i]) max_t_mig = t_mig_var; //find max t_mig_var for tidal_delay
-        t_mig[i+1]=mig_fac*t_mig_var;    //length of time migrating for
+        t_mig[i+1]=mig_fac*t_mig_var;           //length of time migrating for
         t_damp[i+1]=t_mig_var/4.;               //length of time damping migration out for
         particles_add(p);
-        if(p_suppress == 0) printf("Planet %i: a=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i+1,a,e,mp,rp,Qp_temp,tau_a[i+1],t_mig[i+1],t_damp[i+1],afac);
+        if(p_suppress == 0) printf("Planet %i: a=%f,P=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i+1,a/afac,Period[i]*365./2./M_PI,e,mp,rp,Qp_temp,tau_a[i+1],t_mig[i+1],t_damp[i+1],afac);
     }
     
     //tidal delay
@@ -329,9 +333,9 @@ void problem_output(){
             lambda[i] = MA + omega[i];
             double phi = 0., phi2 = 0., phi3 = 0.;     //resonant angles
             if(i>=2){//tailored for 2:1 resonance, between inner/outer planet
-                phi = 2.*lambda[i] - lambda[i-1] - omega[i-1];
-                phi2 = 2.*lambda[i] - lambda[i-1] - omega[i];
-                phi3 = omega[i-1] - omega[i];
+                phi = 2.*lambda[i] - lambda[i-phi_i[i-1]] - omega[i-phi_i[i-1]];
+                phi2 = 2.*lambda[i] - lambda[i-phi_i[i-1]] - omega[i];
+                phi3 = omega[i-phi_i[i-1]] - omega[i];
             }
             while(phi >= 2*M_PI) phi -= 2*M_PI;
             while(phi < 0.) phi += 2*M_PI;

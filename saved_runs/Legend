@@ -1,10 +1,9 @@
-format: orbits_Sysname_timelength.txt 
+ orbits_test_tides_wh.txt - first successful run with tides for a test planet with a=0.057217,mp=0.000030,rp=0.018300,Qp=0.010000, star: Rs=1.000000, Ms=1.000000. Completed with no errors, and the tidal forces are pretty close (but not exactly) to the theoretical prediction.
 
-Sysname = Name of the system, e.g. Kepler-92, or TESTP5. 
-	-PX = In the Case of TESTP5, I am indicating that it is a run where the innermost 		planet has a Period of 5 days. 
-	-J  = J is for Jupiter, indicating that this run is for large, Jovian planets.
-	-I = typically the largest planet is closest to the star. “I” means that that the 	     	largest planet is furthest from the star.
-	-s = smaller masses than nominal runs. E.g. planet masses are 2M_E and 1M_E vs. 		4M_E and 2M_E.
-	-QL = 10x Larger Q value.
+orbits_test_tides_noda - the ‘da’ part of the tide is turned off, but still getting the deviation. WHYYYYYY??!!!??!!
 
-timelength = Length of time for the integration. 
+orbits_de_noda - outputting various quantities like de, a, GM5a5, Rp5a5 over time, to track the evolution of these variables over time. ‘a’ has occasional but very chaotic changes. 
+
+orbits_nodeda - no de or da effect of tides, but still doing the cartesian->orbital->cartesian. Had an (a_new - a_old > 6.5e-14) stop condition, but never happened. So the variations are small, but seem to be consistently rising. 
+
+orbits_3test_danode - no de/dt, only da/dt. Checking to see if theory matches observations for the da/dt part of the tides, which it does. 
