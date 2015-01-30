@@ -24,6 +24,7 @@ double* lambda; /**<Resonant angle>**/
 double* omega;  /**<argument of periapsis>**/
 double* t_mig;  /**<Migration timescale calc according to Goldreich & Schlichting (2014)>**/
 double* t_damp;
+char* c;
 int* phi_i;
 int tide_print; /**<print message when tides are turned on>**/
 char txt_file[80];
@@ -37,12 +38,12 @@ void problem_init(int argc, char* argv[]){
     /* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",400000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",10000000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    tide_forces = 1;                //If ==0, then no tidal forces on planets.
-    mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.03;             //Factor to increase 'a' of OUTER planets by.
-    char* c     = argv[1];          //System being investigated, Must be first string after ./nbody!
+    tide_forces = 0;                //If ==0, then no tidal forces on planets.
+    mig_forces  = 0;                //If ==0, no migration.
+    afac        = 1.00;             //Factor to increase 'a' of OUTER planets by.
+    c           = argv[1];          //System being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.05;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double res  = 2.0;              //Resonance of interest: e.g. 2.0 = 2:1, 1.5 = 3:2, etc.
@@ -72,6 +73,8 @@ void problem_init(int argc, char* argv[]){
     
     //Star
     readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&P,&dt,p_suppress);
+    if(mig_forces == 0 && p_suppress == 0) printf("--> Migration is *off* \n");
+    if(tide_forces == 0 && p_suppress == 0) printf("--> Tides are *off* \n");
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
 	star.vx = 0; star.vy = 0; star.vz = 0;
@@ -134,7 +137,6 @@ void problem_init(int argc, char* argv[]){
                 break;      //can only be in a "res" resonance with one inner planet
             } else a_f = a; //if no resonance, migrate back to starting position
         }
-        printf("a_f=%f \n",a_f);
         a *= afac;      //Increase 'a' of outer planets by afac
         e = pow(mp/Ms, 0.3333333333);
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
@@ -295,20 +297,30 @@ void problem_output(){
             const double rfdot = term*(1. + e*cosf);
             const double vx_new = rdot*coswf - rfdot*sinwf + com.vx;
             const double vy_new = rdot*sinwf + rfdot*coswf + com.vy;
+           
+            
+            //if(t > 2172700.){
+            if(t > 5789075.){
+                FILE *tempout;
+                tempout=fopen("Kepler-223output.txt", "a");
+                fprintf(tempout,"%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",t,dx,dy,r,dvx,dvy,v,ex,ey,e,cosf,sinf,sinwf,coswf,term,rdot,rfdot,com.vx);
+                fclose(tempout);
+            }
+            
+            //Stop program if nan values being produced.
+            if(x_new!=x_new || y_new!=y_new || vx_new!=vx_new ||vy_new!=vy_new){
+                printf("\n !!Failed run for: %s \n",c);
+                printf("cartesian before: dx=%f,dy=%f,dz=%f,ex=%f,ey=%f,ez=%f,r=%f,vx=%f,vy=%f,com.vx=%f,com.vy=%f,v=%f \n",dx,dy,dz,ex,ey,ez,r,par->vx,par->vy,com.vx,com.vy,v);
+                printf("Orbital elements: mu=%f,e=%f,a=%f,cosf=%.15f,sinf=%.15f,dt=%f,de=%f,da=%f,GM3a3=%f,R5a5=%f \n",mu,e,a,cosf,sinf,dt,de,da,GM3a3,R5a5);
+                printf("\n cartesian after: x_new=%f,y_new=%f,vx_new=%f,vy_new=%f,term=%f,rdot=%f,rfdot=%f \n",x_new,y_new,vx_new,vy_new,term,rdot,rfdot);
+                exit(0);
+            }
             
             par->x = x_new;
             par->y = y_new;
             par->vx = vx_new;
             par->vy = vy_new;
             com = tools_get_center_of_mass(com,particles[i]);
-            
-            //Stop program if nan values being produced.
-            if(x_new!=x_new || y_new!=y_new || vx_new!=vx_new ||vy_new!=vy_new){
-                printf("\n cartesian before: dx=%f,dy=%f,dz=%f,ex=%f,ey=%f,ex=%f,r=%f,vx=%f,vy=%f,com.vx=%f,com.vy=%f,v=%f \n",dx,dy,dz,ex,ey,ez,r,par->vx,par->vy,com.vx,com.vy,v);
-                printf("Orbital elements: mu=%f,e=%f,a=%f,cosf=%.22f,dt=%f,de=%f,da=%f,GM3a3=%f,R5a5=%f \n",mu,e,a,cosf,dt,de,da,GM3a3,R5a5);
-                printf("\n cartesian after: x_new=%f,y_new=%f,vx_new=%f,vy_new=%f,term=%f,rdot=%f,rfdot=%f \n",x_new,y_new,vx_new,vy_new,term,rdot,rfdot);
-                exit(0);
-            }
             
             //print message
             if(tide_print == 0 && p_suppress == 0){
