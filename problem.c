@@ -38,7 +38,7 @@ void problem_init(int argc, char* argv[]){
     /* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",10000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",1000000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
@@ -132,8 +132,8 @@ void problem_init(int argc, char* argv[]){
             if(delta < RT){ //current planet in res with inner one?
                 double val = G*Ms*P_res*P_res/(4*M_PI*M_PI);
                 a_f = pow(val,1./3.); //a for res*P_inner
-                mig_fac = 1.15; //if supposed to be in res, migrate this planet a bit longer.
                 phi_i[i] = i-k;   //how far off the resonance is (e.g. two planets away?)
+                if(phi_i[i] > 1) mig_fac = 1.75; else mig_fac = 1.15; //if supposed to be in res, migrate this planet a bit longer.
                 if(p_suppress == 0)printf("%.0f:%.0f resonance for planets %i and %i, delta = %f \n",res,res-1,k+1,i+1,delta);
                 break;      //can only be in a "res" resonance with one inner planet
             } else a_f = a; //if no resonance, migrate back to starting position
@@ -146,10 +146,10 @@ void problem_init(int argc, char* argv[]){
         p.Qp=Qp_temp;
         tau_a[i+1]=T;                           //migration rate
         tau_e[i+1]=T/K;                         //e_damping rate
-        if(t_mig_var > t_mig[i]) max_t_mig = t_mig_var; //find max t_mig_var for tidal_delay
         t_mig[i+1]=mig_fac*t_mig_var;           //length of time migrating for
         t_damp[i+1]=t_mig_var/4.;               //length of time damping migration out for
         particles_add(p);
+        if(t_mig_var > t_mig[i]) max_t_mig = t_mig_var; //find max t_mig_var for tidal_delay
         mig_fac = 1.0;                          //reset
         if(p_suppress == 0) printf("Planet %i: a=%f,P=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i+1,a/afac,Period[i]*365./2./M_PI,e,mp,rp,Qp_temp,tau_a[i+1],t_mig[i+1],t_damp[i+1],afac);
     }
@@ -300,19 +300,13 @@ void problem_output(){
             const double vx_new = rdot*coswf - rfdot*sinwf + com.vx;
             const double vy_new = rdot*sinwf + rfdot*coswf + com.vy;
            
-            
-            if(t > 5806000. && t < 5810000.){
+            /*
+            if(t > 340574. && t < 348000.){
                 FILE *tempout;
-                tempout=fopen("xyplotter/Kepler-85bad.txt", "a");
-                fprintf(tempout,"%.8e\t%e\t%e\t%e\t%e \n",t,x_new,y_new,vx_new,vy_new);
+                tempout=fopen("xyplotter/Kepler-85bad_long.txt", "a");
+                fprintf(tempout,"%.8e\t%e\t%e\t%e\t%e\t%e\t%e \n",t,x_new,y_new,vx_new,vy_new,e,a);
                 fclose(tempout);
-            }
-            if(t > 3100000. && t < 3104000.){
-                FILE *tempout2;
-                tempout2=fopen("xyplotter/Kepler-85good.txt", "a");
-                fprintf(tempout2,"%.8e\t%e\t%e\t%e\t%e \n",t,x_new,y_new,vx_new,vy_new);
-                fclose(tempout2);
-            }
+            }*/
 
             //Stop program if nan values being produced.
             if(x_new!=x_new || y_new!=y_new || vx_new!=vx_new ||vy_new!=vy_new){
