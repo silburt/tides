@@ -19,6 +19,7 @@ Ndsys=0
 thresh=0.05
 o_index=0
 large_mass=0
+skip=0
 while (count <= nlines - 1):
     name = data[count][1]   #starting place of given system
     Ndsys = count
@@ -42,9 +43,12 @@ while (count <= nlines - 1):
                     for k in xrange(0,length - 2):
                         outputfull.write(str(data[j][k])+',')
                     outputfull.write(str(data[j][length-1])+'\n\n')
-                    output.write(data[i][1]+'\n')
+                    if skip != 1:
+                        output.write(data[i][1]+'\n')
+                        skip = 1
     count = Ndsys
     large_mass = 0
+    skip=0
 
 output.close()
 Pratio = np.delete(Pratio, 0,0) #delete first row that was created earlier

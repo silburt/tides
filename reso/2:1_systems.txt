@@ -5,7 +5,6 @@ Kepler-176
 Kepler-183
 Kepler-221
 Kepler-223
-Kepler-223
 Kepler-272
 Kepler-305
 Kepler-326
