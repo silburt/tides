@@ -34,22 +34,15 @@ k_2 of Giant planets (Gavrilov & Zharkov, 1977)
 */
 
 void assignparams(double* Qp, double mp, double rp, double* T, double* t_mig_var, double Ms, char* txt_file, double a, double a_f, double P){
-    //Assign k2/Q
-    double k2, Q;
-    k2 = 0.1;
-    //k2 = 1.;
     
-    if(mp > 1e-4 && mp < 1e-3){//Uranus/Neptune Q
-        //Q = (rand() %25 + 60)*1e3;
-        Q = 7.2e4;
-    } else if(mp >= 1e-3){//Saturn/Jupiter Q
-        //Q = (rand() %30 + 5)*1e4;
-        Q = 1e5;
-    } else{//Earth or smaller Q
-        //Q = rand() %80 + 10;
-        Q = 10.;
+    //Assign k2/Q
+    if(rp > 2*0.009156 && mp < 0.1){//Lee/Fabrycky/Lin distringuish Rp > 2R_E as mini-Neptune vs. Super-Earth
+        *Qp = 1./(2.2e4); //Lowest Neptune value (Lee/Fabrycky/Lin 2013)
+    } else if(rp >= 0.1){
+        *Qp = 1./(5.4e4); //Lowest Saturn value (Lee/Fabrycky/Lin 2013)
+    } else{
+        *Qp = 1./40.;   //lowest Earth value (Lee/Fabrycky/Lin 2013)
     }
-    *Qp = k2/Q;
     
     //Assign tau_migration values
     double n = 365.*2*M_PI/P;  //units = 2Pi/yr
