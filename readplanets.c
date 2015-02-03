@@ -64,8 +64,11 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
     
     double solar2earthRp = 109.21;
     double earth2solarMp = 3e-6;
-    if(*mp == 0.){//Weiss & Marcy 2014
+    if(*mp == 0. && *rp < 0.04){//Weiss & Marcy 2014
         *mp = 2.69*pow(*rp*solar2earthRp,0.93)*earth2solarMp; //Solar mass units
+        if(p_suppress == 0) printf("--> calculated planet mass \n");
+    } else if(*mp == 0. && *rp >=0.04){//Jupiter scaling relation
+        *mp = 0.001*(*rp/0.1);
         if(p_suppress == 0) printf("--> calculated planet mass \n");
     }
     
@@ -122,8 +125,10 @@ void extractplanets(int* char_pos, double* a, double* rho, double* inc, double* 
     
     double solar2earthRp = 109.21;
     double earth2solarMp = 3e-6;
-    if(*mp == 0.){//Weiss & Marcy 2014
+    if(*mp == 0. && *rp < 0.04){//Weiss & Marcy 2014, Neptune-sized
         *mp = 2.69*pow(*rp*solar2earthRp,0.93)*earth2solarMp; //Solar mass units
+    } else if(*mp == 0. && *rp >=0.04){//Jupiter scaling relation
+        *mp = 0.001*(*rp/0.1);
     }
     
     double P_SI = *P*24.*60.*60.; //Period in seconds
