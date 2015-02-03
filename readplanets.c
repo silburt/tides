@@ -62,9 +62,10 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
         if(p_suppress == 0) printf("--> calculated stellar mass \n");
     }
     
+    double solar2earthRp = 109.21;
+    double earth2solarMp = 3e-6;
     if(*mp == 0.){//Weiss & Marcy 2014
-        double solar2earthRp = 109.17;
-        *mp = 2.69*pow(*rp*solar2earthRp,0.93)*3e-6; //Solar mass units
+        *mp = 2.69*pow(*rp*solar2earthRp,0.93)*earth2solarMp; //Solar mass units
         if(p_suppress == 0) printf("--> calculated planet mass \n");
     }
     
@@ -119,9 +120,10 @@ void extractplanets(int* char_pos, double* a, double* rho, double* inc, double* 
     *rp = array[18];        //planet radius (SOLAR units)
     *P = array[1];          //Period (days)
     
-    if(*mp == 0.){
-        double solar2earthRp = 109.17;
-        *mp = 2.69*pow(*rp*solar2earthRp,0.93)*3e-6; //Solar mass units
+    double solar2earthRp = 109.21;
+    double earth2solarMp = 3e-6;
+    if(*mp == 0.){//Weiss & Marcy 2014
+        *mp = 2.69*pow(*rp*solar2earthRp,0.93)*earth2solarMp; //Solar mass units
     }
     
     double P_SI = *P*24.*60.*60.; //Period in seconds
