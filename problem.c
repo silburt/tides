@@ -24,6 +24,7 @@ double* lambda; /**<Resonant angle>**/
 double* omega;  /**<argument of periapsis>**/
 double* t_mig;  /**<Migration timescale calc according to Goldreich & Schlichting (2014)>**/
 double* t_damp;
+double* mu_a;
 char* c;
 int* phi_i;
 int tide_print; /**<print message when tides are turned on>**/
@@ -38,7 +39,7 @@ void problem_init(int argc, char* argv[]){
     /* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",1000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",30000000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
@@ -98,6 +99,7 @@ void problem_init(int argc, char* argv[]){
     t_mig = calloc(sizeof(double),_N+1);
     t_damp = calloc(sizeof(double),_N+1);
     phi_i = calloc(sizeof(int),_N+1);       //phi index (for outputting resonance angles)
+    mu_a = calloc(sizeof(int),_N+1);
     
     //Resonance vars
     double Period[_N],a_f; //a_f = final desired position of planet after mig
@@ -133,7 +135,7 @@ void problem_init(int argc, char* argv[]){
                 double val = G*Ms*P_res*P_res/(4*M_PI*M_PI);
                 a_f = pow(val,1./3.); //a for res*P_inner
                 phi_i[i] = i-k;   //how far off the resonance is (e.g. two planets away?)
-                if(phi_i[i] > 1) mig_fac = 1.75; else mig_fac = 1.15; //if supposed to be in res, migrate this planet a bit longer.
+                if(phi_i[i] > 1) mig_fac = 2.0; else mig_fac = 1.15; //if supposed to be in res, migrate this planet a bit longer.
                 if(p_suppress == 0)printf("%.0f:%.0f resonance for planets %i and %i, delta = %f \n",res,res-1,k+1,i+1,delta);
                 break;      //can only be in a "res" resonance with one inner planet
             } else a_f = a; //if no resonance, migrate back to starting position
@@ -231,6 +233,7 @@ void problem_output(){
         struct particle* par = &(particles[i]);
         const double m = par->m;
         const double mu = G*(com.m + m);
+        mu_a[i] = mu;
         //radius of planet must be in AU for units to work out since G=1, [t]=yr/2pi, [m]=m_star
         const double rp = par->r*0.00464913;       //Rp from Solar Radii to AU
         const double Qp = par->Qp;
@@ -329,7 +332,9 @@ void problem_output(){
                 tide_print = 1;
             }
             
-        } else { n = sqrt(mu/(a*a*a));}     //Still need to calc this for period. 
+        } else {
+            n = sqrt(mu/(a*a*a));
+        }     //Still need to calc this for period.
         
         if(output_check(tmax/3500.)){
             omega[i] = atan2(ey,ex);
@@ -361,7 +366,7 @@ void problem_output(){
             FILE *append;
             append=fopen(txt_file, "a");
             //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
-            //               eccentric anomaly, mean longitude, resonant angle
+            //               eccentric anomaly, mean longitude, resonant angle, de/dt, 1.875/(n*mu^4/3*e)
             fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3);
             fclose(append);
             

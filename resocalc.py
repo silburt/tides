@@ -33,8 +33,9 @@ while (count <= nlines - 1):
     if not 'TEST' in name and large_mass != 1:  #look for resonances within system if small masses/radii & not a test case
         for i in xrange(count, Ndsys-1):
             for j in xrange(i+1, Ndsys):
-                ratio = float(data[j][5])/float(data[i][5]) #Is each i,j in outer res
-                if ratio - float(arg1)/float(arg2) < thresh and ratio - float(arg1)/float(arg2) > 0.:
+                ratio = float(data[j][5])/float(data[i][5])
+                arg = ratio - float(arg1)/float(arg2)
+                if abs(arg) < thresh and arg > 0.: #Is each i,j in *outer* res
                     Pratio= np.vstack([Pratio,ratio])
                     length = len(data[0])                         #Full output for detail
                     for k in xrange(0,length - 2):

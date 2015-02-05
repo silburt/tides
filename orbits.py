@@ -4,7 +4,7 @@ import numpy as np
 import math
 pi = math.pi
 G = 1.
-analytics = 0
+analytics = 1
 arg3=0
 arg4=0
 arg_true=0
@@ -38,7 +38,7 @@ for i in range(0,N):
     mig[i] = float(header[5]) + float(header[5])/4. #damping time too
 
 #Load numerical data
-names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Resonant Angle3 (phi3 = w2 - w1)','Period Ratio (P$_{i+1}$/P$_{i}$)','Resonance Plot']
+names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Resonant Angle3 (phi3 = w2 - w1)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot']
 colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
 if arg2==11:
@@ -48,11 +48,14 @@ if arg2==11:
         for j in xrange(0,i):
             q=data[j::N]
             if(abs(p[-1,3]/(2*q[-1,3]) - 1) < 0.05):
-                plt.plot(p[:,arg1], p[:,3]/q[:,3], 'o'+colors[inc], label='P$_{'+str(i+1)+',ctlg}$ ='+str(round(P[i],2))+' d, P$_{'+str(j+1)+',ctlg}$='+str(round(P[j],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
+                plt.plot(p[:,arg1], p[:,3]/q[:,3] - 2., 'o'+colors[inc], label='P$_{'+str(i+1)+',ctlg}$ ='+str(round(P[i],2))+' d, P$_{'+str(j+1)+',ctlg}$='+str(round(P[j],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
                 inc += 1
-                if tide_delay > 1.:
-                    plt.plot([tide_delay, tide_delay], [1.95,2.05], label='tides turned on now!', color='black', linewidth=2)
-                    plt.plot([mig[1], mig[1]], [1.95,2.05], label='Migration stops!', color='black', linewidth=2, ls='--')
+                resbreak = (3.*q[1,2]**2)**1.5 *Ms/(31.353*mp[i])
+                if resbreak > 1:
+                    print 'res_break_cond = '+str(round(resbreak,2))+ '( > 1), planets will leave resonance on timescale tau_e'
+                #if tide_delay > 1.:
+                    #plt.plot([tide_delay, tide_delay], [1.95,2.05], label='tides turned on now!', color='black', linewidth=2)
+                    #plt.plot([mig[1], mig[1]], [1.95,2.05], label='Migration stops!', color='black', linewidth=2, ls='--')
 elif arg2==12: #use arg0:1=planet-1 & 2, 1=planet-2 & 3, etc. color coded into 4 time snapshots.
     q=data[arg1+1::N]
     length=len(q[:,8])
@@ -65,7 +68,7 @@ elif arg2==12: #use arg0:1=planet-1 & 2, 1=planet-2 & 3, etc. color coded into 4
     nplots=4
     block=int(length/nplots)
     for i in range(0,nplots):
-        plt.plot(x[i*block:(i+1)*block],y[i*block:(i+1)*block],'o'+colors[i], label='Resonance Plot block'+str(i+1), markersize=8-i)
+        plt.plot(x[i*block:(i+1)*block],y[i*block:(i+1)*block],'o'+colors[i], label='Resonance Plot '+str(i)+'*t$_{max}$/4< t <'+str(i+1)+'*t$_{max}$/4', markersize=8-i)
     plt.axhline(0, color='black')
     plt.axvline(0, color='black')
 else:
@@ -74,43 +77,54 @@ else:
         plt.plot(p[:,arg1], p[:,arg2], 'o'+colors[i], label='m$_{'+str(i+1)+'}$='+str(round(100*mp[i]/(3*10**(-6)))/100.)+' m$_{earth}$', markeredgecolor='none')
         if arg2==3:
             plt.plot([p[0,0],p[-1,0]], [P[i], P[i]], label='P$_{catalog}$', color='black', linewidth=2)
-        else:
-            if mig[i] > 1.:
-                plt.plot([mig[i], mig[i]], [min(data[:,arg2]),max(data[:,arg2])], label='Migration stops!', color=''+colors[i], linewidth=2, ls='--')
     if tide_delay > 1.:
         plt.plot([tide_delay, tide_delay], [min(data[:,arg2]),max(data[:,arg2])], label='tides turned on now!', color='black', linewidth=2)
 
 
-#Analytics - plot e
+#Analytics - plot tidal e - assumes that 'a' is constant, which to first order is true.
 if arg2==2 and analytics==1:
     time = np.arange(0,p[-1,0],p[-1,0]/200.)
     for i in range(0,N):
-        a=data[i,1]
+        p=data[i::N]
+        a=p[1,1]
         rad = rp[i]*0.00464913 #Solar Radii to AU
         R5a5 = rad*rad*rad*rad*rad/(a*a*a*a*a)
         GM3a3 = (G*Ms*Ms*Ms/(a*a*a))**0.5
         lne = -(9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
-        e_t = math.e**(lne*time)*data[i,2] #p[i,2] is a constant of integration
-        plt.plot(time, e_t, 'k-.', linewidth=3, label='theoretical pl.'+str(i+1))
+        e_t = math.e**(lne*time)*p[1,2] #p[i,2] is a constant of integration, initial e.
+        if i == 1:
+            plt.plot(time, e_t, 'k-.', linewidth=3, label='theoretical e(t)')
+        else:
+            plt.plot(time, e_t, 'k-.', linewidth=3)
+        tau = -1./lne
+        print 'tau_e(planet '+str(i+1)+') = '+str(round(tau/1000000.,0))+' Myr'
+    print 't(simulation)   = '+str(p[-1,0]/1000000.)+' Myr'
 
-#Analytics - plot a
-if arg2==1 and analytics ==1:
+#Analytics - plot tidal a - this assumes though that eccentricity is constant, which is
+#            totally not true. So in the end this plot is false.
+if arg2==1 and analytics ==2:
     time = np.arange(0,p[-1,0],p[-1,0]/200.)
     for i in range(0,N):
-        e   = data[i,2]
+        p=data[i::N]
+        e   = p[1,2]
         rad = rp[i]*0.00464913 #Solar Radii to AU
-        a0  = data[i,1]**(13./2.)
+        a0  = p[1,1]**(13./2.)
         GM3mp = (1/mp[i])*(G*Ms*Ms*Ms)**0.5
         Rp5 = rad**5
         term = -(117.*pi/2.)*Qp[i]*GM3mp*Rp5*e*e
         a_t = (term*time + a0)**(2./13.)
-        plt.plot(time, a_t, 'k-.', linewidth=3, label='theoretical pl.'+str(i+1))
+        if i==1:
+            plt.plot(time, a_t, 'k-.', linewidth=3, label='theoretical a(t)')
+        else:
+            plt.plot(time, a_t, 'k-.', linewidth=3)
 
 #de = -dt*(9.*pi*0.5)*Qp*GM3a3*R5a5*e/mp
 
+#plt.yscale('log')
+#plt.xscale('log')
 #plt.ylim([0.,0.11])
-#plt.ylim([0.2025,0.2075])
-#plt.xlim([0,10000])
+#plt.ylim([-0.12,0.12])
+#plt.xlim([-0.12,0.12])
 plt.title(''+name)
 if arg2==12:
     plt.xlabel('15.874e*cos$\phi$')
