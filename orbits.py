@@ -41,6 +41,26 @@ for i in range(0,N):
 names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Resonant Angle3 (phi3 = w2 - w1)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot']
 colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
+
+#Figure out array index where eccentricity has settled (i.e. post migration)
+ini = np.amax(mig)
+fini = ini + 60000
+i_tide = 0
+f_tide = 0
+var = 0
+p=data[0::N]
+for i in xrange(0,len(p[:,0])):
+    if p[i,0] > ini and var==0:
+        i_tide = i
+        var = 1
+    if p[i,0] > fini:
+        f_tide = i
+        break
+
+if f_tide == i_tide:
+    f_tide += 1
+
+#Choices - main body
 if arg2==11:
     inc=0
     for i in xrange(1,N):
@@ -48,11 +68,22 @@ if arg2==11:
         for j in xrange(0,i):
             q=data[j::N]
             if(abs(p[-1,3]/(2*q[-1,3]) - 1) < 0.05):
-                plt.plot(p[:,arg1], p[:,3]/q[:,3] - 2., 'o'+colors[inc], label='P$_{'+str(i+1)+',ctlg}$ ='+str(round(P[i],2))+' d, P$_{'+str(j+1)+',ctlg}$='+str(round(P[j],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
+                plt.plot(p[1:-1,arg1], p[1:-1,3]/q[1:-1,3] - 2., 'o'+colors[inc], label='P$_{'+str(i+1)+',ctlg}$ ='+str(round(P[i],2))+' d, P$_{'+str(j+1)+',ctlg}$='+str(round(P[j],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
                 inc += 1
-                resbreak = (3.*q[1,2]**2)**1.5 *Ms/(31.353*mp[i])
-                if resbreak > 1:
-                    print 'res_break_cond = '+str(round(resbreak,2))+ '( > 1), planets will leave resonance on timescale tau_e'
+                emax = np.max(q[i_tide:f_tide,2])
+                emin = np.min(q[i_tide:f_tide,2])
+                resbreak_max = (3.*emax**2)**1.5 *Ms/(31.353*mp[i])
+                resbreak_min = (3.*emin**2)**1.5 *Ms/(31.353*mp[i])
+                print 'res_break min, max = '+str(round(resbreak_min,2))+ ', '+str(round(resbreak_max,2))+ ' (requires > 1)'
+                if resbreak_min > 1 or resbreak_max > 1:
+                    a=q[1,1]
+                    rad = rp[j]*0.00464913 #Solar Radii to AU
+                    R5a5 = rad*rad*rad*rad*rad/(a*a*a*a*a)
+                    GM3a3 = (G*Ms*Ms*Ms/(a*a*a))**0.5
+                    lne = (9.*pi/2.)*Qp[j]*GM3a3*R5a5/mp[j]
+                    print 'planets leave resonance in tau_e = '+str(round(1/lne/1000000.,1))+' Myr?'
+                    #plt.plot([1/lne, 1/lne],[-0.01,0.01], 'k--', label=r'$\tau_e$ = '+str(round(1/lne/1000000.,1))+' Myr', linewidth=2)
+
                 #if tide_delay > 1.:
                     #plt.plot([tide_delay, tide_delay], [1.95,2.05], label='tides turned on now!', color='black', linewidth=2)
                     #plt.plot([mig[1], mig[1]], [1.95,2.05], label='Migration stops!', color='black', linewidth=2, ls='--')
@@ -91,7 +122,7 @@ if arg2==2 and analytics==1:
         R5a5 = rad*rad*rad*rad*rad/(a*a*a*a*a)
         GM3a3 = (G*Ms*Ms*Ms/(a*a*a))**0.5
         lne = -(9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
-        e_t = math.e**(lne*time)*p[1,2] #p[i,2] is a constant of integration, initial e.
+        e_t = math.e**(lne*time)*np.mean(p[i_tide:f_tide,2]) #p[i,2] is a constant of integration, initial e.
         if i == 1:
             plt.plot(time, e_t, 'k-.', linewidth=3, label='theoretical e(t)')
         else:
@@ -102,7 +133,7 @@ if arg2==2 and analytics==1:
 
 #Analytics - plot tidal a - this assumes though that eccentricity is constant, which is
 #            totally not true. So in the end this plot is false.
-if arg2==1 and analytics ==2:
+if arg2==1 and analytics == 10000:
     time = np.arange(0,p[-1,0],p[-1,0]/200.)
     for i in range(0,N):
         p=data[i::N]
@@ -123,8 +154,8 @@ if arg2==1 and analytics ==2:
 #plt.yscale('log')
 #plt.xscale('log')
 #plt.ylim([0.,0.11])
-#plt.ylim([-0.12,0.12])
-#plt.xlim([-0.12,0.12])
+#plt.ylim([0,0.08])
+#plt.xlim([-0.2,0.2])
 plt.title(''+name)
 if arg2==12:
     plt.xlabel('15.874e*cos$\phi$')

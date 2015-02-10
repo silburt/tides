@@ -39,15 +39,17 @@ void problem_init(int argc, char* argv[]){
     /* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",30000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",1000000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.04;             //Factor to increase 'a' of OUTER planets by.
+    afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
     c           = argv[1];          //System being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.05;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double res  = 2.0;              //Resonance of interest: e.g. 2.0 = 2:1, 1.5 = 3:2, etc.
+    char* c2    = argv[2];
+    double efac = atof(argv[2]);          //added eccentricity
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -59,6 +61,7 @@ void problem_init(int argc, char* argv[]){
     char* ext = ".txt";
     strcat(txt_file, dir);
     strcat(txt_file, c);
+    strcat(txt_file, c2);
     strcat(txt_file, ext);
     
     //Delete previous file if it exists.
@@ -110,7 +113,7 @@ void problem_init(int argc, char* argv[]){
     mig_fac=1.0;
      
     //**Initial eccentricity**
-    double e=pow(mp/Ms, 0.3333333333);  //Goldreich & Schlichting (2014)
+    double e=pow(mp/Ms, 0.3333333333) + efac;  //Goldreich & Schlichting (2014)
     double f=0., w=M_PI/2.;
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
@@ -141,7 +144,7 @@ void problem_init(int argc, char* argv[]){
             } else a_f = a; //if no resonance, migrate back to starting position
         }
         a *= afac;      //Increase 'a' of outer planets by afac
-        e = pow(mp/Ms, 0.3333333333);
+        e = pow(mp/Ms, 0.3333333333) + efac;
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
         assignparams(&Qp_temp,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
@@ -158,6 +161,7 @@ void problem_init(int argc, char* argv[]){
     
     //tidal delay
     tide_delay = (mig_fac+1.0)*max_t_mig; //starts just after migration finishes
+    if(tide_delay < 50000) tide_delay = 50000.
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
 #ifndef INTEGRATOR_WH			// The WH integrator assumes a heliocentric coordinate system.
