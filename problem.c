@@ -39,7 +39,7 @@ void problem_init(int argc, char* argv[]){
     /* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",1000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",10000000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
@@ -48,8 +48,12 @@ void problem_init(int argc, char* argv[]){
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.05;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double res  = 2.0;              //Resonance of interest: e.g. 2.0 = 2:1, 1.5 = 3:2, etc.
-    char* c2    = argv[2];
-    double efac = atof(argv[2]);          //added eccentricity
+    
+    //char* c2    = argv[2];
+    //double efac = atof(argv[2]);          //added eccentricity
+    double efac = 0;
+    //double timefac = atof(argv[2]);          //timestep factor -> readplanets.c
+    double timefac = 15.;
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -59,9 +63,11 @@ void problem_init(int argc, char* argv[]){
     //Orbit outputs in txt_file
     char* dir = "runs/orbits_";
     char* ext = ".txt";
+    //char* underscore = "_";
     strcat(txt_file, dir);
     strcat(txt_file, c);
-    strcat(txt_file, c2);
+    //strcat(txt_file, underscore);
+    //strcat(txt_file, c2);
     strcat(txt_file, ext);
     
     //Delete previous file if it exists.
@@ -76,7 +82,7 @@ void problem_init(int argc, char* argv[]){
     int char_val, _N;
     
     //Star
-    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&P,&dt,p_suppress);
+    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&P,&dt,timefac,p_suppress);
     if(mig_forces == 0 && p_suppress == 0) printf("--> Migration is *off* \n");
     if(tide_forces == 0 && p_suppress == 0) printf("--> Tides are *off* \n");
     struct particle star; //Star MUST be the first particle added.
@@ -132,13 +138,13 @@ void problem_init(int argc, char* argv[]){
         extractplanets(&char_val,&a,&rho,&inc,&mp,&rp,&P,Ms);
         Period[i] = 2.*M_PI*P/365.; //in yr/2pi
         for(int k=0;k<i;k++){
-            double P_res = res*Period[k]; //calc if any "res" resonances (see var list at top)
-            double delta = fabs(Period[i]/P_res - 1.0);
-            if(delta < RT){ //current planet in res with inner one?
+            double delta = Period[i]/Period[k] - res; //calc if any "res" resonances (see var list at top)
+            if(delta < RT && delta > 0.){ //current planet in res with inner one?
+                double P_res = res*Period[k];
                 double val = G*Ms*P_res*P_res/(4*M_PI*M_PI);
-                a_f = pow(val,1./3.); //a for res*P_inner
+                a_f = pow(val,1./3.); //a_final of outer planet in order to be in resonance with inner
                 phi_i[i] = i-k;   //how far off the resonance is (e.g. two planets away?)
-                if(phi_i[i] > 1) mig_fac = 2.0; else mig_fac = 1.15; //if supposed to be in res, migrate this planet a bit longer.
+                if(phi_i[i] > 1) mig_fac = 2.0; else mig_fac = 1.25; //if planet in between resonance, migrate a bit longer.
                 if(p_suppress == 0)printf("%.0f:%.0f resonance for planets %i and %i, delta = %f \n",res,res-1,k+1,i+1,delta);
                 break;      //can only be in a "res" resonance with one inner planet
             } else a_f = a; //if no resonance, migrate back to starting position
@@ -152,7 +158,7 @@ void problem_init(int argc, char* argv[]){
         tau_a[i+1]=T;                           //migration rate
         tau_e[i+1]=T/K;                         //e_damping rate
         t_mig[i+1]=mig_fac*t_mig_var;           //length of time migrating for
-        t_damp[i+1]=t_mig_var/4.;               //length of time damping migration out for
+        t_damp[i+1]=t_mig_var/3.;               //length of time damping migration out for
         particles_add(p);
         if(t_mig_var > t_mig[i]) max_t_mig = t_mig_var; //find max t_mig_var for tidal_delay
         mig_fac = 1.0;                          //reset
@@ -161,7 +167,7 @@ void problem_init(int argc, char* argv[]){
     
     //tidal delay
     tide_delay = (mig_fac+1.0)*max_t_mig; //starts just after migration finishes
-    if(tide_delay < 50000) tide_delay = 50000.
+    if(tide_delay < 60000) tide_delay = 60000.;
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
 #ifndef INTEGRATOR_WH			// The WH integrator assumes a heliocentric coordinate system.
@@ -340,7 +346,10 @@ void problem_output(){
             n = sqrt(mu/(a*a*a));
         }     //Still need to calc this for period.
         
-        if(output_check(tmax/3500.)){
+        int output_var=0;
+        if(output_check(tmax/100000.)) output_var = 1;
+        else if(t < 80000. && output_check(100.)) output_var = 1;
+        if(output_var == 1){
             omega[i] = atan2(ey,ex);
             if(ey < 0.) omega[i] += 2*M_PI;
             double cosE = (a - r)/(a*e);

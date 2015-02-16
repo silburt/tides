@@ -2,12 +2,50 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import matplotlib.cm as cm
 pi = math.pi
-G = 1.
 analytics = 1
 arg3=0
 arg4=0
 arg_true=0
+
+def resbreak(mp,rp,Qp,a,e,Ms):
+    #arrays
+    Beta = np.zeros(2)
+    mu = np.zeros(2)
+    Lambdahat = np.zeros(2)
+    Ghat = np.zeros(2)
+    Lambda = np.zeros(2)
+    G = np.zeros(2)
+    I = np.zeros(2)
+    gamma = np.zeros(2)
+    T = np.zeros(2)
+    #function
+    for i in xrange(0,2):
+        Beta[i] = Ms*mp[i]/(Ms + mp[i])
+        mu[i] = Ms + mp[i]
+        Lambdahat[i] = Beta[i]*math.sqrt(mu[i]*a[i]) #Circ. Ang. Mom.
+        Ghat[i] = Lambdahat[i]*math.sqrt(1 - e[i]**2) #Ang. Mom
+    Gamma = 2*Lambdahat[0] + Lambdahat[1] #Total Circ. Ang. Mom.
+    for i in xrange(0,2):
+        Lambda[i] = Lambdahat[i]/Gamma #Rescaling to new coords.
+        G[i] = Ghat[i]/Gamma
+        I[i] = Lambda[i] - G[i] #Ang. Mom. Deficit
+    Gtot = G[0] + G[1]    #Tot. Ang. Mom.
+    tanphi = math.sqrt(I[1]/I[0])
+    tan2phi = tanphi**2
+    for i in xrange(0,2):
+        rad = rp[i]*0.00464913 #Solar Radii to AU
+        R5a5 = (rad/a[i])**5
+        GM3a3 = (Ms/a[i])**1.5 #G = 1
+        lne = (9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
+        T[i] = 2/lne
+    tau = T[0]/T[1]
+    gamma[0] = 4*Gtot
+    gamma[1] = 2*Gtot
+    denom = 1 + tau*tan2phi
+    condition = gamma[0]/denom + gamma[1]*tau*tan2phi/denom
+    return condition
 
 #time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
 file_name=str(sys.argv[1])
@@ -44,7 +82,7 @@ data = np.loadtxt(fos, delimiter="	")
 
 #Figure out array index where eccentricity has settled (i.e. post migration)
 ini = np.amax(mig)
-fini = ini + 60000
+fini = ini + 20000
 i_tide = 0
 f_tide = 0
 var = 0
@@ -56,7 +94,6 @@ for i in xrange(0,len(p[:,0])):
     if p[i,0] > fini:
         f_tide = i
         break
-
 if f_tide == i_tide:
     f_tide += 1
 
@@ -68,25 +105,21 @@ if arg2==11:
         for j in xrange(0,i):
             q=data[j::N]
             if(abs(p[-1,3]/(2*q[-1,3]) - 1) < 0.05):
-                plt.plot(p[1:-1,arg1], p[1:-1,3]/q[1:-1,3] - 2., 'o'+colors[inc], label='P$_{'+str(i+1)+',ctlg}$ ='+str(round(P[i],2))+' d, P$_{'+str(j+1)+',ctlg}$='+str(round(P[j],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
+                plt.plot(p[i_tide:-1,arg1], p[i_tide:-1,3]/q[i_tide:-1,3] - 2., 'o'+colors[inc], label='P$_{'+str(i+1)+',ctlg}$ ='+str(round(P[i],2))+' d, P$_{'+str(j+1)+',ctlg}$='+str(round(P[j],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
                 inc += 1
-                emax = np.max(q[i_tide:f_tide,2])
-                emin = np.min(q[i_tide:f_tide,2])
-                resbreak_max = (3.*emax**2)**1.5 *Ms/(31.353*mp[i])
-                resbreak_min = (3.*emin**2)**1.5 *Ms/(31.353*mp[i])
-                print 'res_break min, max = '+str(round(resbreak_min,2))+ ', '+str(round(resbreak_max,2))+ ' (requires > 1)'
-                if resbreak_min > 1 or resbreak_max > 1:
-                    a=q[1,1]
-                    rad = rp[j]*0.00464913 #Solar Radii to AU
-                    R5a5 = rad*rad*rad*rad*rad/(a*a*a*a*a)
-                    GM3a3 = (G*Ms*Ms*Ms/(a*a*a))**0.5
-                    lne = (9.*pi/2.)*Qp[j]*GM3a3*R5a5/mp[j]
-                    print 'planets leave resonance in tau_e = '+str(round(1/lne/1000000.,1))+' Myr?'
+                mp_array = np.array([mp[j], mp[i]])
+                rp_array = np.array([rp[j], rp[i]])
+                Qp_array = np.array([Qp[j], Qp[i]])
+                a_array = np.array([np.mean(q[i_tide:f_tide,1]), np.mean(p[i_tide:f_tide,1])])
+                e_array = np.array([np.mean(q[i_tide:f_tide,2]), np.mean(p[i_tide:f_tide,2])])
+                cond = resbreak(mp_array,rp_array,Qp_array,a_array,e_array,Ms)
+                print 'gamma = '+str(cond)+', gamma_c = 1.6'
+                #emean = np.mean(q[i_tide:f_tide,2])
+                #resbreak_mean = (3.*emean**2)**1.5 *Ms/(31.353*mp[i])
+                #print 'res_break min, mean, max = '+str(round(resbreak_min,2))+ ', '+str(round(resbreak_mean,2))+ ', '+str(round(resbreak_max,2))+ ' (requires > 1)'
+                #if resbreak_min > 1 or resbreak_max > 1:
                     #plt.plot([1/lne, 1/lne],[-0.01,0.01], 'k--', label=r'$\tau_e$ = '+str(round(1/lne/1000000.,1))+' Myr', linewidth=2)
 
-                #if tide_delay > 1.:
-                    #plt.plot([tide_delay, tide_delay], [1.95,2.05], label='tides turned on now!', color='black', linewidth=2)
-                    #plt.plot([mig[1], mig[1]], [1.95,2.05], label='Migration stops!', color='black', linewidth=2, ls='--')
 elif arg2==12: #use arg0:1=planet-1 & 2, 1=planet-2 & 3, etc. color coded into 4 time snapshots.
     q=data[arg1+1::N]
     length=len(q[:,8])
@@ -96,10 +129,12 @@ elif arg2==12: #use arg0:1=planet-1 & 2, 1=planet-2 & 3, etc. color coded into 4
         R=15.874*q[j,2]
         x[j]=R*math.cos(q[j,8])
         y[j]=R*math.sin(q[j,8])
-    nplots=4
-    block=int(length/nplots)
-    for i in range(0,nplots):
-        plt.plot(x[i*block:(i+1)*block],y[i*block:(i+1)*block],'o'+colors[i], label='Resonance Plot '+str(i)+'*t$_{max}$/4< t <'+str(i+1)+'*t$_{max}$/4', markersize=8-i)
+    gradient = q[:,0]/q[-1,0] #normalize time between 0 and 1
+    plt.scatter(x[10:-1], y[10:-1], c=gradient[10:-1], cmap=cm.rainbow, lw=0, label='Resonance over time', alpha = 0.7)
+    #nplots=4
+    #block=int(length/nplots)
+    #for i in range(0,nplots):
+        #plt.plot(x[i*block:(i+1)*block],y[i*block:(i+1)*block],'o'+colors[i], label='Resonance Plot '+str(i)+'*t$_{max}$/4< t <'+str(i+1)+'*t$_{max}$/4', markersize=8-i)
     plt.axhline(0, color='black')
     plt.axvline(0, color='black')
 else:
@@ -120,7 +155,7 @@ if arg2==2 and analytics==1:
         a=p[1,1]
         rad = rp[i]*0.00464913 #Solar Radii to AU
         R5a5 = rad*rad*rad*rad*rad/(a*a*a*a*a)
-        GM3a3 = (G*Ms*Ms*Ms/(a*a*a))**0.5
+        GM3a3 = (Ms*Ms*Ms/(a*a*a))**0.5
         lne = -(9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
         e_t = math.e**(lne*time)*np.mean(p[i_tide:f_tide,2]) #p[i,2] is a constant of integration, initial e.
         if i == 1:
@@ -128,6 +163,10 @@ if arg2==2 and analytics==1:
         else:
             plt.plot(time, e_t, 'k-.', linewidth=3)
         tau = -1./lne
+        emean = np.mean(p[i_tide:f_tide,2])
+        e_eq = np.zeros(len(time))
+        e_eq.fill((3*emean*emean/6.)**0.5)
+        plt.plot(time, e_eq, 'k--', linewidth = 3)
         print 'tau_e(planet '+str(i+1)+') = '+str(round(tau/1000000.,0))+' Myr'
     print 't(simulation)   = '+str(p[-1,0]/1000000.)+' Myr'
 
@@ -140,7 +179,7 @@ if arg2==1 and analytics == 10000:
         e   = p[1,2]
         rad = rp[i]*0.00464913 #Solar Radii to AU
         a0  = p[1,1]**(13./2.)
-        GM3mp = (1/mp[i])*(G*Ms*Ms*Ms)**0.5
+        GM3mp = (1/mp[i])*(Ms*Ms*Ms)**0.5
         Rp5 = rad**5
         term = -(117.*pi/2.)*Qp[i]*GM3mp*Rp5*e*e
         a_t = (term*time + a0)**(2./13.)
@@ -154,12 +193,15 @@ if arg2==1 and analytics == 10000:
 #plt.yscale('log')
 #plt.xscale('log')
 #plt.ylim([0.,0.11])
-#plt.ylim([0,0.08])
-#plt.xlim([-0.2,0.2])
+#range=0.05
+#plt.ylim([-range,range])
+#plt.xlim([-range,range])
 plt.title(''+name)
 if arg2==12:
     plt.xlabel('15.874e*cos$\phi$')
     plt.ylabel('15.874e*sin$\phi$')
+    cbar = plt.colorbar()
+    cbar.set_label('t/t$_{max}$')
 else:
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])

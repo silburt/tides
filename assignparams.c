@@ -47,9 +47,11 @@ void assignparams(double* Qp, double mp, double rp, double* T, double* t_mig_var
     //Assign tau_migration values
     double n = 365.*2*M_PI/P;  //units = 2Pi/yr
     double mu43 = pow(mp/Ms,4./3.);
-    //Goldreich & Schlichting (2014), tau_mig rate for 2:1 resonance, units = yr/2pi. Min is 3.75, but use 4.0 to be safe
-    //*T = 4.00/(n*mu43);
-    *T = 10.00/(n*mu43);
+    /*Goldreich & Schlichting (2014), tau_mig rate for 2:1 resonance, units = yr/2pi. Min is 3.75, but use 5.0 to be safe.
+    This number *does* matter. The more gentle the migration, the "deeper" into resonance the planets will be become,
+    and thus the harder it is to tidally tug out of resonance. */
+    *T = 5.00/(n*mu43);
+    //*T = 10.00/(n*mu43);
     *t_mig_var = *T*(a - a_f)/a_f;  //length of time migrate for, units = yr/2pi
     if(a == a_f){//first planet
         *T = 0.;

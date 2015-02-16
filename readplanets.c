@@ -8,7 +8,7 @@
 #include "readplanets.h"
 #include "../../src/main.h"
 
-void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* Ms, double* Rs, double* a, double* rho, double* inc, double* mp, double* rp, double* P, double* dt, int p_suppress){
+void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* Ms, double* Rs, double* a, double* rho, double* inc, double* mp, double* rp, double* P, double* dt, double timefac, int p_suppress){
     FILE *f = fopen("planets.txt", "r");
     char temp[512];
     int line_num = 0, found_result=0, exit=0;
@@ -54,7 +54,8 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
 
     //timestep (P/11.), in year/(2*pi).
     //From Viswanath, Divakar 2002-03, need min. of 6*dt per P
-    *dt = 2.*M_PI*array[1]/(365.*11.);
+    //*dt = 2.*M_PI*array[1]/(365.*11.);
+    *dt = 2.*M_PI*array[1]/(365.*timefac);
     if(p_suppress == 0) printf("The timestep used for this simulation is (years/2pi): %f \n",*dt);
     
     if(*Ms == 0.){
