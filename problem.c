@@ -108,7 +108,7 @@ void problem_init(int argc, char* argv[]){
     t_mig = calloc(sizeof(double),_N+1);
     t_damp = calloc(sizeof(double),_N+1);
     phi_i = calloc(sizeof(int),_N+1);       //phi index (for outputting resonance angles)
-    mu_a = calloc(sizeof(int),_N+1);
+    mu_a = calloc(sizeof(double),_N+1);
     
     //Resonance vars
     double Period[_N],a_f; //a_f = final desired position of planet after mig
@@ -395,4 +395,12 @@ void problem_output(){
 }
 
 void problem_finish(){
+    free(tau_a);
+    free(tau_e);
+    free(lambda);
+    free(omega);
+    free(t_mig);
+    free(t_damp);
+    free(phi_i);
+    free(mu_a);
 }
