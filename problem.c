@@ -49,11 +49,10 @@ void problem_init(int argc, char* argv[]){
     double RT   = 0.05;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double res  = 2.0;              //Resonance of interest: e.g. 2.0 = 2:1, 1.5 = 3:2, etc.
     
-    //char* c2    = argv[2];
     //double efac = atof(argv[2]);          //added eccentricity
-    double efac = 0;
+    double efac = 0.0;
     //double timefac = atof(argv[2]);          //timestep factor -> readplanets.c
-    double timefac = 15.;
+    double timefac = 15.0;
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -63,10 +62,11 @@ void problem_init(int argc, char* argv[]){
     //Orbit outputs in txt_file
     char* dir = "runs/orbits_";
     char* ext = ".txt";
-    //char* underscore = "_";
     strcat(txt_file, dir);
     strcat(txt_file, c);
+    //char* underscore = "_";
     //strcat(txt_file, underscore);
+    //char* c2    = argv[2];
     //strcat(txt_file, c2);
     strcat(txt_file, ext);
     
