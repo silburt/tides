@@ -5,8 +5,6 @@ import math
 import matplotlib.cm as cm
 pi = math.pi
 analytics = 1
-arg3=0
-arg4=0
 arg_true=0
 
 def resbreak(mp,rp,Qp,a,e,Ms):
@@ -51,6 +49,10 @@ def resbreak(mp,rp,Qp,a,e,Ms):
 file_name=str(sys.argv[1])
 arg1=int(sys.argv[2])
 arg2=int(sys.argv[3])
+if len(sys.argv) > 4:
+    arg3 = int(sys.argv[4])
+else:
+    arg3 = -1
 
 #Get basic system params from header of file
 fos = open(''+file_name, 'r')
@@ -126,11 +128,12 @@ elif arg2==12: #use arg0:1=planet-1 & 2, 1=planet-2 & 3, etc. color coded into 4
     x = np.zeros(length)
     y = np.zeros(length)
     for j in xrange(0,length):
-        R=15.874*q[j,2]
+        #R=15.874*q[j,2]
+        R = q[j,2]
         x[j]=R*math.cos(q[j,8])
         y[j]=R*math.sin(q[j,8])
     gradient = q[:,0]/q[-1,0] #normalize time between 0 and 1
-    plt.scatter(x[10:-1], y[10:-1], c=gradient[10:-1], cmap=cm.rainbow, lw=0, label='Resonance over time', alpha = 0.7)
+    plt.scatter(x[10:arg3], y[10:arg3], c=gradient[10:arg3], cmap=cm.rainbow, lw=0, label='t$_{max}$ = '+str(round(q[-1,0]/1000000.))+' Myr', alpha = 0.7)
     #nplots=4
     #block=int(length/nplots)
     #for i in range(0,nplots):
@@ -198,8 +201,8 @@ if arg2==1 and analytics == 10000:
 #plt.xlim([-range,range])
 plt.title(''+name)
 if arg2==12:
-    plt.xlabel('15.874e*cos$\phi$')
-    plt.ylabel('15.874e*sin$\phi$')
+    plt.xlabel('e*cos$\phi$')
+    plt.ylabel('e*sin$\phi$')
     cbar = plt.colorbar()
     cbar.set_label('t/t$_{max}$')
 else:

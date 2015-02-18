@@ -18,6 +18,14 @@ initial migration to put planets into resonance
 #include "../examples/tides/readplanets.h"
 #include "../examples/tides/assignparams.h"
 
+// A.S. variables added
+double   K;           /**<tau_a/tau_e>*/
+int      _N;          /**<# of planets>*/
+int      tide_forces; /**<Parameter to control if tides on/off>**/
+double   tide_delay;  /**<Lag time (in years) to turn on tides after**/
+int      mig_forces;  /**<Parameter to control if migration on/off>**/
+double   afac;        /**<Factor to increase a by of all planets>**/
+int      p_suppress;  /**<If = 1, then suppress all printing>**/
 double* tau_a; 	/**< Migration timescale in years for all particles */
 double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
 double* lambda; /**<Resonant angle>**/
@@ -29,6 +37,8 @@ char* c;
 int* phi_i;
 int tide_print; /**<print message when tides are turned on>**/
 char txt_file[80];
+//
+
 void problem_migration_forces();
 
 #ifdef OPENGL
@@ -312,14 +322,6 @@ void problem_output(){
             const double rfdot = term*(1. + e*cosf);
             const double vx_new = rdot*coswf - rfdot*sinwf + com.vx;
             const double vy_new = rdot*sinwf + rfdot*coswf + com.vy;
-           
-            /*
-            if(t > 340574. && t < 348000.){
-                FILE *tempout;
-                tempout=fopen("xyplotter/Kepler-85bad_long.txt", "a");
-                fprintf(tempout,"%.8e\t%e\t%e\t%e\t%e\t%e\t%e \n",t,x_new,y_new,vx_new,vy_new,e,a);
-                fclose(tempout);
-            }*/
 
             //Stop program if nan values being produced.
             if(x_new!=x_new || y_new!=y_new || vx_new!=vx_new ||vy_new!=vy_new){
