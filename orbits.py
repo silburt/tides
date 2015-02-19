@@ -7,43 +7,25 @@ pi = math.pi
 analytics = 1
 arg_true=0
 
-def resbreak(mp,rp,Qp,a,e,Ms):
-    #arrays
-    Beta = np.zeros(2)
-    mu = np.zeros(2)
-    Lambdahat = np.zeros(2)
-    Ghat = np.zeros(2)
-    Lambda = np.zeros(2)
-    G = np.zeros(2)
-    I = np.zeros(2)
-    gamma = np.zeros(2)
+#Concerns:  1) The eccentricity I'm supposed to use is at the libration center. How do I get that?
+#           2) Looks like tau is only > 1 if I do T[1]/T[0], but it's quoted to be the other way around in Delisle (2014). But, since T[i] = tau_e for all intensive purposes = e/(de/dt), and de/dt will be larger for the closer in planet, that means that T[0] < T[1], and therefore tau = T[0]/T[1] < 1. 
+def resbreak2(mp,rp,Qp,a,e,Ms):
+    p=1.0 #For 2:1 res, p = q = 1
+    q=1.0
+    L = (p/(p+q))**(1./3.)*mp[0]/mp[1]
+    tau_a = (e[0]/e[1])**2
+    term = (4 + (p+q)*(1+L))/(4*L - p*(1+L))
+    tau_c = L*tau_a*term
     T = np.zeros(2)
-    #function
-    for i in xrange(0,2):
-        Beta[i] = Ms*mp[i]/(Ms + mp[i])
-        mu[i] = Ms + mp[i]
-        Lambdahat[i] = Beta[i]*math.sqrt(mu[i]*a[i]) #Circ. Ang. Mom.
-        Ghat[i] = Lambdahat[i]*math.sqrt(1 - e[i]**2) #Ang. Mom
-    Gamma = 2*Lambdahat[0] + Lambdahat[1] #Total Circ. Ang. Mom.
-    for i in xrange(0,2):
-        Lambda[i] = Lambdahat[i]/Gamma #Rescaling to new coords.
-        G[i] = Ghat[i]/Gamma
-        I[i] = Lambda[i] - G[i] #Ang. Mom. Deficit
-    Gtot = G[0] + G[1]    #Tot. Ang. Mom.
-    tanphi = math.sqrt(I[1]/I[0])
-    tan2phi = tanphi**2
     for i in xrange(0,2):
         rad = rp[i]*0.00464913 #Solar Radii to AU
-        R5a5 = (rad/a[i])**5
-        GM3a3 = (Ms/a[i])**1.5 #G = 1
-        lne = (9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
-        T[i] = 2/lne
-    tau = T[0]/T[1]
-    gamma[0] = 4*Gtot
-    gamma[1] = 2*Gtot
-    denom = 1 + tau*tan2phi
-    condition = gamma[0]/denom + gamma[1]*tau*tan2phi/denom
-    return condition
+        a5R5 = (a[i]/rad)**5
+        a3GM3 = (a[i]/Ms)**1.5 #G = 1
+        T[i] = 2./(9.*pi)*a3GM3*a5R5*mp[i]/Qp[i] #tau_e = e/(de/dt)
+        tau = T[1]/T[0] #This is supposed to be 0/1?? Not 1/0
+    print 'tau values: tau_a=',tau_a,'tau=',tau,'tau_c=',tau_c
+    if tau > tau_a and tau < tau_c:
+        print 'Planets will leave resonance'
 
 #time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
 file_name=str(sys.argv[1])
@@ -114,8 +96,9 @@ if arg2==11:
                 Qp_array = np.array([Qp[j], Qp[i]])
                 a_array = np.array([np.mean(q[i_tide:f_tide,1]), np.mean(p[i_tide:f_tide,1])])
                 e_array = np.array([np.mean(q[i_tide:f_tide,2]), np.mean(p[i_tide:f_tide,2])])
-                cond = resbreak(mp_array,rp_array,Qp_array,a_array,e_array,Ms)
-                print 'gamma = '+str(cond)+', gamma_c = 1.6'
+                resbreak2(mp_array,rp_array,Qp_array,a_array,e_array,Ms)
+                #cond = resbreak2(mp_array,rp_array,Qp_array,a_array,e_array,Ms)
+                #print 'gamma = '+str(cond)+', gamma_c = 1.6'
                 #emean = np.mean(q[i_tide:f_tide,2])
                 #resbreak_mean = (3.*emean**2)**1.5 *Ms/(31.353*mp[i])
                 #print 'res_break min, mean, max = '+str(round(resbreak_min,2))+ ', '+str(round(resbreak_mean,2))+ ', '+str(round(resbreak_max,2))+ ' (requires > 1)'
@@ -155,21 +138,24 @@ if arg2==2 and analytics==1:
     time = np.arange(0,p[-1,0],p[-1,0]/200.)
     for i in range(0,N):
         p=data[i::N]
-        a=p[1,1]
+        a=np.mean(p[i_tide:f_tide,1])
         rad = rp[i]*0.00464913 #Solar Radii to AU
-        R5a5 = rad*rad*rad*rad*rad/(a*a*a*a*a)
-        GM3a3 = (Ms*Ms*Ms/(a*a*a))**0.5
-        lne = -(9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
-        e_t = math.e**(lne*time)*np.mean(p[i_tide:f_tide,2]) #p[i,2] is a constant of integration, initial e.
+        R5a5 = (rad/a)**5
+        GM3a3 = (Ms/a)**1.5
+        edot_e = -(9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
+        e_t = math.e**(edot_e*time)*np.mean(p[i_tide:f_tide,2]) #p[i,2] is a constant of integration, initial e.
         if i == 1:
             plt.plot(time, e_t, 'k-.', linewidth=3, label='theoretical e(t)')
         else:
             plt.plot(time, e_t, 'k-.', linewidth=3)
-        tau = -1./lne
+        tau = -1./edot_e
         emean = np.mean(p[i_tide:f_tide,2])
         e_eq = np.zeros(len(time))
         e_eq.fill((3*emean*emean/6.)**0.5)
-        plt.plot(time, e_eq, 'k--', linewidth = 3)
+        if i == 0:
+            plt.plot(time, e_eq, 'k', linewidth = 3, label='e$_{eq}$')
+        else:
+            plt.plot(time, e_eq, 'k', linewidth = 3)
         print 'tau_e(planet '+str(i+1)+') = '+str(round(tau/1000000.,0))+' Myr'
     print 't(simulation)   = '+str(p[-1,0]/1000000.)+' Myr'
 
@@ -210,3 +196,43 @@ else:
     plt.ylabel('' + names[arg2])
 plt.legend(loc='upper left',prop={'size':10})
 plt.show()
+
+#old
+#def resbreak(mp,rp,Qp,a,e,Ms):
+#    #arrays
+#    Beta = np.zeros(2)
+#    mu = np.zeros(2)
+#    Lambdahat = np.zeros(2)
+#    Ghat = np.zeros(2)
+#    Lambda = np.zeros(2)
+#   G = np.zeros(2)
+#    I = np.zeros(2)
+#    gamma = np.zeros(2)
+#    T = np.zeros(2)
+#    #function
+#    for i in xrange(0,2):
+#        Beta[i] = Ms*mp[i]/(Ms + mp[i])
+#        mu[i] = Ms + mp[i]
+#       Lambdahat[i] = Beta[i]*math.sqrt(mu[i]*a[i]) #Circ. Ang. Mom.
+#       Ghat[i] = Lambdahat[i]*math.sqrt(1 - e[i]**2) #Ang. Mom
+#    Gamma = 2*Lambdahat[0] + Lambdahat[1] #Total Circ. Ang. Mom.
+#    for i in xrange(0,2):
+#        Lambda[i] = Lambdahat[i]/Gamma #Rescaling to new coords.
+#        G[i] = Ghat[i]/Gamma
+#        I[i] = Lambda[i] - G[i] #Ang. Mom. Deficit
+#    Gtot = G[0] + G[1]    #Tot. Ang. Mom.
+#    tanphi = math.sqrt(I[1]/I[0])
+#    tan2phi = tanphi**2
+#    for i in xrange(0,2):
+#        rad = rp[i]*0.00464913 #Solar Radii to AU
+#        R5a5 = (rad/a[i])**5
+#        GM3a3 = (Ms/a[i])**1.5 #G = 1
+#        lne = (9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
+#        T[i] = 2/lne
+#    tau = T[0]/T[1]
+#    gamma[0] = 4*Gtot
+#    gamma[1] = 2*Gtot
+#    print 'gamma 1,2=', gamma[0], gamma[1]
+#    denom = 1 + tau*tan2phi
+#    condition = gamma[0]/denom + gamma[1]*tau*tan2phi/denom
+#    return condition
