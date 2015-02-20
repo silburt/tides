@@ -31,10 +31,14 @@ def resbreak2(mp,rp,Qp,a,e,Ms):
 file_name=str(sys.argv[1])
 arg1=int(sys.argv[2])
 arg2=int(sys.argv[3])
-if len(sys.argv) > 4:
+if len(sys.argv) == 5:
     arg3 = int(sys.argv[4])
+elif len(sys.argv) == 6:
+    arg3 = int(sys.argv[4])
+    arg4 = int(sys.argv[5])
 else:
     arg3 = -1
+    arg4 = 0
 
 #Get basic system params from header of file
 fos = open(''+file_name, 'r')
@@ -57,7 +61,7 @@ for i in range(0,N):
     rp[i] = float(header[1])
     P[i] = float(header[2])
     Qp[i] = float(header[3])
-    mig[i] = float(header[5]) + float(header[5])/4. #damping time too
+    mig[i] = float(header[5]) + float(header[5])/3. #damping time too
 
 #Load numerical data
 names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Resonant Angle3 (phi3 = w2 - w1)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot']
@@ -116,13 +120,16 @@ elif arg2==12: #use arg0:1=planet-1 & 2, 1=planet-2 & 3, etc. color coded into 4
         x[j]=R*math.cos(q[j,8])
         y[j]=R*math.sin(q[j,8])
     gradient = q[:,0]/q[-1,0] #normalize time between 0 and 1
-    plt.scatter(x[10:arg3], y[10:arg3], c=gradient[10:arg3], cmap=cm.rainbow, lw=0, label='t$_{max}$ = '+str(round(q[-1,0]/1000000.))+' Myr', alpha = 0.7)
+    plt.scatter(x[arg4:arg3], y[arg4:arg3], c=gradient[arg4:arg3], cmap=cm.rainbow, lw=0, label='t$_{max}$ = '+str(round(q[-1,0]/1000000.))+' Myr', alpha = 0.7)
     #nplots=4
     #block=int(length/nplots)
     #for i in range(0,nplots):
         #plt.plot(x[i*block:(i+1)*block],y[i*block:(i+1)*block],'o'+colors[i], label='Resonance Plot '+str(i)+'*t$_{max}$/4< t <'+str(i+1)+'*t$_{max}$/4', markersize=8-i)
     plt.axhline(0, color='black')
     plt.axvline(0, color='black')
+elif arg2==8:
+    p=data[arg3::N]
+    plt.plot(p[:,arg1], p[:,arg2], 'o'+colors[arg3], label='m$_{'+str(arg3+1)+'}$='+str(round(100*mp[arg3]/(3*10**(-6)))/100.)+' m$_{earth}$', markeredgecolor='none')
 else:
     for i in range(0,N): #range(0,N) only goes to N-1
         p=data[i::N]
