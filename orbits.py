@@ -31,14 +31,13 @@ def resbreak2(mp,rp,Qp,a,e,Ms):
 file_name=str(sys.argv[1])
 arg1=int(sys.argv[2])
 arg2=int(sys.argv[3])
+arg3 = -1
+arg4 = 0
 if len(sys.argv) == 5:
     arg3 = int(sys.argv[4])
 elif len(sys.argv) == 6:
     arg3 = int(sys.argv[4])
     arg4 = int(sys.argv[5])
-else:
-    arg3 = -1
-    arg4 = 0
 
 #Get basic system params from header of file
 fos = open(''+file_name, 'r')
@@ -61,10 +60,10 @@ for i in range(0,N):
     rp[i] = float(header[1])
     P[i] = float(header[2])
     Qp[i] = float(header[3])
-    mig[i] = float(header[5]) + float(header[5])/3. #damping time too
+    mig[i] = float(header[5])
 
 #Load numerical data
-names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Resonant Angle3 (phi3 = w2 - w1)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot']
+names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Pendulum Energy (Eq. 8.48 S.S.D.)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot']
 colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
 
@@ -109,22 +108,17 @@ if arg2==11:
                 #if resbreak_min > 1 or resbreak_max > 1:
                     #plt.plot([1/lne, 1/lne],[-0.01,0.01], 'k--', label=r'$\tau_e$ = '+str(round(1/lne/1000000.,1))+' Myr', linewidth=2)
 
-elif arg2==12: #use arg0:1=planet-1 & 2, 1=planet-2 & 3, etc. color coded into 4 time snapshots.
+elif arg2==12:
     q=data[arg1+1::N]
     length=len(q[:,8])
     x = np.zeros(length)
     y = np.zeros(length)
     for j in xrange(0,length):
-        #R=15.874*q[j,2]
         R = q[j,2]
         x[j]=R*math.cos(q[j,8])
         y[j]=R*math.sin(q[j,8])
     gradient = q[:,0]/q[-1,0] #normalize time between 0 and 1
     plt.scatter(x[arg4:arg3], y[arg4:arg3], c=gradient[arg4:arg3], cmap=cm.rainbow, lw=0, label='t$_{max}$ = '+str(round(q[-1,0]/1000000.))+' Myr', alpha = 0.7)
-    #nplots=4
-    #block=int(length/nplots)
-    #for i in range(0,nplots):
-        #plt.plot(x[i*block:(i+1)*block],y[i*block:(i+1)*block],'o'+colors[i], label='Resonance Plot '+str(i)+'*t$_{max}$/4< t <'+str(i+1)+'*t$_{max}$/4', markersize=8-i)
     plt.axhline(0, color='black')
     plt.axvline(0, color='black')
 elif arg2==8:
@@ -133,11 +127,16 @@ elif arg2==8:
 else:
     for i in range(0,N): #range(0,N) only goes to N-1
         p=data[i::N]
-        plt.plot(p[:,arg1], p[:,arg2], 'o'+colors[i], label='m$_{'+str(i+1)+'}$='+str(round(100*mp[i]/(3*10**(-6)))/100.)+' m$_{earth}$', markeredgecolor='none')
+        plt.plot(p[arg4:arg3,arg1], p[arg4:arg3,arg2], 'o'+colors[i], label='m$_{'+str(i+1)+'}$='+str(round(100*mp[i]/(3*10**(-6)))/100.)+' m$_{earth}$', markeredgecolor='none')
         if arg2==3:
             plt.plot([p[0,0],p[-1,0]], [P[i], P[i]], label='P$_{catalog}$', color='black', linewidth=2)
-    if tide_delay > 1.:
-        plt.plot([tide_delay, tide_delay], [min(data[:,arg2]),max(data[:,arg2])], label='tides turned on now!', color='black', linewidth=2)
+    mig_fac = 1.25
+    max_mig = mig_fac*max(mig) + mig_fac*max(mig)/3.
+    max_tide = (mig_fac+1.0)*max_mig
+    if max_tide < 60000.:
+        max_tide = 60000.
+    plt.plot([max_mig, max_mig], [min(data[arg4:arg3,arg2]),max(data[arg4:arg3,arg2])], label='migration ends now!', color='red', linewidth=2)
+    plt.plot([max_tide, max_tide], [min(data[:,arg2]),max(data[:,arg2])], label='tides turned on now!', color='red', linestyle='dashed', linewidth=2)
 
 
 #Analytics - plot tidal e - assumes that 'a' is constant, which to first order is true.
@@ -152,17 +151,17 @@ if arg2==2 and analytics==1:
         edot_e = -(9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
         e_t = math.e**(edot_e*time)*np.mean(p[i_tide:f_tide,2]) #p[i,2] is a constant of integration, initial e.
         if i == 1:
-            plt.plot(time, e_t, 'k-.', linewidth=3, label='theoretical e(t)')
+            plt.plot(time[arg4:arg3], e_t[arg4:arg3], 'k-.', linewidth=3, label='theoretical e(t)')
         else:
-            plt.plot(time, e_t, 'k-.', linewidth=3)
+            plt.plot(time[arg4:arg3], e_t[arg4:arg3], 'k-.', linewidth=3)
         tau = -1./edot_e
         emean = np.mean(p[i_tide:f_tide,2])
         e_eq = np.zeros(len(time))
         e_eq.fill((3*emean*emean/6.)**0.5)
         if i == 0:
-            plt.plot(time, e_eq, 'k', linewidth = 3, label='e$_{eq}$')
+            plt.plot(time[arg4:arg3], e_eq[arg4:arg3], 'k', linewidth = 3, label='e$_{eq}$')
         else:
-            plt.plot(time, e_eq, 'k', linewidth = 3)
+            plt.plot(time[arg4:arg3], e_eq[arg4:arg3], 'k', linewidth = 3)
         print 'tau_e(planet '+str(i+1)+') = '+str(round(tau/1000000.,0))+' Myr'
     print 't(simulation)   = '+str(p[-1,0]/1000000.)+' Myr'
 
@@ -185,7 +184,6 @@ if arg2==1 and analytics == 10000:
             plt.plot(time, a_t, 'k-.', linewidth=3)
 
 #de = -dt*(9.*pi*0.5)*Qp*GM3a3*R5a5*e/mp
-
 #plt.yscale('log')
 #plt.xscale('log')
 #plt.ylim([0.,0.11])
@@ -201,7 +199,7 @@ if arg2==12:
 else:
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])
-plt.legend(loc='upper left',prop={'size':10})
+plt.legend(loc='upper right',prop={'size':10})
 plt.show()
 
 #old

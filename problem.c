@@ -33,6 +33,7 @@ double* omega;  /**<argument of periapsis>**/
 double* t_mig;  /**<Migration timescale calc according to Goldreich & Schlichting (2014)>**/
 double* t_damp;
 double* mu_a;
+double* en;     /**<mean motion array - for pendulum energy>**/
 char* c;
 int* phi_i;
 int tide_print; /**<print message when tides are turned on>**/
@@ -49,7 +50,7 @@ void problem_init(int argc, char* argv[]){
     /* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",10000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",1000000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
@@ -59,9 +60,6 @@ void problem_init(int argc, char* argv[]){
     double RT   = 0.05;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double res  = 2.0;              //Resonance of interest: e.g. 2.0 = 2:1, 1.5 = 3:2, etc.
     
-    //double efac = atof(argv[2]);          //added eccentricity
-    double efac = 0.0;
-    //double timefac = atof(argv[2]);          //timestep factor -> readplanets.c
     double timefac = 15.0;
     
 #ifdef OPENGL
@@ -119,6 +117,7 @@ void problem_init(int argc, char* argv[]){
     t_damp = calloc(sizeof(double),_N+1);
     phi_i = calloc(sizeof(int),_N+1);       //phi index (for outputting resonance angles)
     mu_a = calloc(sizeof(double),_N+1);
+    en = calloc(sizeof(double),_N+1);
     
     //Resonance vars
     double Period[_N],a_f; //a_f = final desired position of planet after mig
@@ -129,7 +128,8 @@ void problem_init(int argc, char* argv[]){
     mig_fac=1.0;
      
     //**Initial eccentricity**
-    double e=pow(mp/Ms, 0.3333333333) + efac;  //Goldreich & Schlichting (2014)
+    //double e=pow(mp/Ms, 0.3333333333);  //Goldreich & Schlichting (2014)
+    double e = 0.01;
     double f=0., w=M_PI/2.;
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
@@ -160,7 +160,8 @@ void problem_init(int argc, char* argv[]){
             } else a_f = a; //if no resonance, migrate back to starting position
         }
         a *= afac;      //Increase 'a' of outer planets by afac
-        e = pow(mp/Ms, 0.3333333333) + efac;
+        //e = pow(mp/Ms, 0.3333333333) + efac;
+        e = 0.01;
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
         assignparams(&Qp_temp,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
@@ -331,7 +332,7 @@ void problem_output(){
                 printf("\n cartesian after: x_new=%f,y_new=%f,vx_new=%f,vy_new=%f,term=%f,rdot=%f,rfdot=%f \n",x_new,y_new,vx_new,vy_new,term,rdot,rfdot);
                 exit(0);
             }
-            
+        
             par->x = x_new;
             par->y = y_new;
             par->vx = vx_new;
@@ -347,6 +348,7 @@ void problem_output(){
         } else {
             n = sqrt(mu/(a*a*a));
         }     //Still need to calc this for period.
+        en[i] = n;
         
         int output_var=0;
         if(output_check(tmax/100000.)) output_var = 1;
@@ -377,12 +379,27 @@ void problem_output(){
             while(phi3 >= 2*M_PI) phi3 -= 2*M_PI;
             while(phi3 < 0.) phi3 += 2*M_PI;
             
+            //calculating Energy in pendulum model, j1=2,j2=-1,j4=-1 (8.6 in S.S.D.)
+            double EN = 0;
+            if(i>=2){
+                double afs1 = 0.244190; //Table 8.5 S.S.D.
+                double afd = -0.749964;
+                double Cr = (m/com.m)*en[i-phi_i[i-1]]*afd;             //Eq. 8.32
+                double Cs = (m/com.m)*en[i-phi_i[i-1]]*afs1;
+                double cosphi = cos(phi);
+                double wdot = 2*Cs + Cr*cosphi/e;                       //Eq. 8.30
+                double epsdot = Cs*e*e + 0.5*Cr*e*cosphi;               //Eq. 8.31
+                double phidot = 2*en[i] - (en[i-phi_i[i-1]] + epsdot) - wdot;
+                double w02 = -3*Cr*en[i-phi_i[i-1]]*e;                  //Eq. 8.47
+                double sinhphi = sin(0.5*phi);
+                EN = 0.5*phidot*phidot + 2*w02*sinhphi*sinhphi;  //Eq.8.48
+            }
             //output orbits in txt_file.
             FILE *append;
             append=fopen(txt_file, "a");
             //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
             //               eccentric anomaly, mean longitude, resonant angle, de/dt, 1.875/(n*mu^4/3*e)
-            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3);
+            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,EN);
             fclose(append);
             
             #ifndef INTEGRATOR_WH
@@ -405,4 +422,5 @@ void problem_finish(){
     free(t_damp);
     free(phi_i);
     free(mu_a);
+    free(en);
 }
