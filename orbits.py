@@ -186,7 +186,7 @@ if arg2==1 and analytics == 10000:
 #de = -dt*(9.*pi*0.5)*Qp*GM3a3*R5a5*e/mp
 #plt.yscale('log')
 #plt.xscale('log')
-#plt.ylim([0.,0.11])
+#plt.ylim([0.,2000])
 #range=0.05
 #plt.ylim([-range,range])
 #plt.xlim([-range,range])
