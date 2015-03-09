@@ -27,6 +27,7 @@ def resbreak2(mp,rp,Qp,a,e,Ms):
     if tau > tau_a and tau < tau_c:
         print 'Planets will leave resonance'
 
+
 #time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
 file_name=str(sys.argv[1])
 arg1=int(sys.argv[2])
@@ -63,7 +64,7 @@ for i in range(0,N):
     mig[i] = float(header[5])
 
 #Load numerical data
-names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Pendulum Energy (Eq. 8.48 S.S.D.)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot']
+names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Pendulum Energy (Eq. 8.48 S.S.D.)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','G/G0 - 1']
 colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
 
@@ -122,8 +123,9 @@ elif arg2==12:
     plt.axhline(0, color='black')
     plt.axvline(0, color='black')
 elif arg2==8:
-    p=data[arg3::N]
-    plt.plot(p[:,arg1], p[:,arg2], 'o'+colors[arg3], label='m$_{'+str(arg3+1)+'}$='+str(round(100*mp[arg3]/(3*10**(-6)))/100.)+' m$_{earth}$', markeredgecolor='none')
+    planet = 1
+    p=data[planet::N]
+    plt.plot(p[arg4:arg3,arg1], p[arg4:arg3,arg2], 'o'+colors[planet], label='m$_{'+str(planet+1)+'}$='+str(round(100*mp[planet]/(3*10**(-6)))/100.)+' m$_{earth}$', markeredgecolor='none')
 else:
     for i in range(0,N): #range(0,N) only goes to N-1
         p=data[i::N]
@@ -135,8 +137,9 @@ else:
     max_tide = (mig_fac+1.0)*max_mig
     if max_tide < 60000.:
         max_tide = 60000.
-    plt.plot([max_mig, max_mig], [min(data[arg4:arg3,arg2]),max(data[arg4:arg3,arg2])], label='migration ends now!', color='red', linewidth=2)
-    plt.plot([max_tide, max_tide], [min(data[:,arg2]),max(data[:,arg2])], label='tides turned on now!', color='red', linestyle='dashed', linewidth=2)
+    if analytics == 1:
+        plt.plot([max_mig, max_mig], [min(data[arg4:arg3,arg2]),max(data[arg4:arg3,arg2])], label='migration ends now!', color='red', linewidth=2)
+        plt.plot([max_tide, max_tide], [min(data[:,arg2]),max(data[:,arg2])], label='tides turned on now!', color='red', linestyle='dashed', linewidth=2)
 
 
 #Analytics - plot tidal e - assumes that 'a' is constant, which to first order is true.
@@ -157,7 +160,7 @@ if arg2==2 and analytics==1:
         tau = -1./edot_e
         emean = np.mean(p[i_tide:f_tide,2])
         e_eq = np.zeros(len(time))
-        e_eq.fill((3*emean*emean/6.)**0.5)
+        e_eq.fill((emean*emean/6.)**0.5)
         if i == 0:
             plt.plot(time[arg4:arg3], e_eq[arg4:arg3], 'k', linewidth = 3, label='e$_{eq}$')
         else:
@@ -186,7 +189,7 @@ if arg2==1 and analytics == 10000:
 #de = -dt*(9.*pi*0.5)*Qp*GM3a3*R5a5*e/mp
 #plt.yscale('log')
 #plt.xscale('log')
-#plt.ylim([0.,2000])
+#plt.ylim([0,0.1])
 #range=0.05
 #plt.ylim([-range,range])
 #plt.xlim([-range,range])
@@ -199,7 +202,7 @@ if arg2==12:
 else:
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])
-plt.legend(loc='upper right',prop={'size':10})
+plt.legend(loc='upper left',prop={'size':10})
 plt.show()
 
 #old

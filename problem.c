@@ -89,7 +89,7 @@ void problem_init(int argc, char* argv[]){
     double Ms,Rs,a,rho,inc,mp,rp,P,Qp_temp;
     int char_val, _N;
     
-    //Star
+    //Star & Planet 1
     readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&P,&dt,timefac,p_suppress);
     if(mig_forces == 0 && p_suppress == 0) printf("--> Migration is *off* \n");
     if(tide_forces == 0 && p_suppress == 0) printf("--> Tides are *off* \n");
@@ -380,8 +380,9 @@ void problem_output(){
             while(phi3 < 0.) phi3 += 2*M_PI;
             
             //calculating Energy in pendulum model, j1=2,j2=-1,j4=-1 (8.6 in S.S.D.)
+            int ENcalc = 0;
             double EN = 0;
-            if(i>=2){
+            if(i>=2 && ENcalc == 1){
                 double afs1 = 0.244190; //Table 8.5 S.S.D.
                 double afd = -0.749964;
                 double Cr = (m/com.m)*en[i-phi_i[i-1]]*afd;             //Eq. 8.32
@@ -399,7 +400,7 @@ void problem_output(){
             append=fopen(txt_file, "a");
             //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
             //               eccentric anomaly, mean longitude, resonant angle, de/dt, 1.875/(n*mu^4/3*e)
-            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,EN);
+            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3);
             fclose(append);
             
             #ifndef INTEGRATOR_WH

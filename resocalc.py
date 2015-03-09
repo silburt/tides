@@ -16,7 +16,7 @@ Pratio=np.zeros(1)
 nlines=data.shape[0]
 count=0
 Ndsys=0
-thresh=0.05
+thresh=0.06
 o_index=0
 large_mass=0
 skip=0
@@ -27,9 +27,9 @@ while (count <= nlines - 1):
         Ndsys += 1           #eNding place of given system
         if Ndsys > nlines - 1:
             break
-    for i in xrange(count,Ndsys-1):
-        if data[i][22] > 0.2 or data[i][19] > 100. :
-            large_mass = 1
+    #for i in xrange(count,Ndsys-1):
+        #if data[i][22] > 0.2 or data[i][19] > 100. :   #comment out small mass requirement??
+            #large_mass = 1
     if not 'TEST' in name and large_mass != 1:  #look for resonances within system if small masses/radii & not a test case
         for i in xrange(count, Ndsys-1):
             for j in xrange(i+1, Ndsys):
