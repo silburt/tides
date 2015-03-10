@@ -8,7 +8,7 @@
 #include "readplanets.h"
 #include "../../src/main.h"
 
-void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* Ms, double* Rs, double* a, double* rho, double* inc, double* mp, double* rp, double* P, double* dt, double timefac, int p_suppress){
+void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* Ms, double* Rs, double* rho, double* inc, double* mp, double* rp, double* P, double* dt, double timefac, int p_suppress){
     FILE *f = fopen("planets.txt", "r");
     char temp[512];
     int line_num = 0, found_result=0, exit=0;
@@ -43,7 +43,7 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
     }
     
     *_N = array[0];                     //number of planets in system
-    *a = array[4];                      //semi-major axis (AU)
+    //*a = array[4];                      //semi-major axis (AU)
     *rho = array[7];                    //density (g/cm**3)
     *inc = array[8];                    //inclination
     *Ms = array[11];                    //Stellar mass
@@ -67,18 +67,11 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
     double earth2solarMp = 3e-6;
     if(*mp == 0. && *rp < 0.04){//Weiss & Marcy 2014
         *mp = 2.69*pow(*rp*solar2earthRp,0.93)*earth2solarMp; //Solar mass units
-        if(p_suppress == 0) printf("--> calculated planet mass \n");
+        if(p_suppress == 0) printf("--> Planet 1 - Calculated planet mass (Earth-realm) \n");
     } else if(*mp == 0. && *rp >=0.04){//Jupiter scaling relation
         *mp = 0.001*(*rp/0.1);
-        if(p_suppress == 0) printf("--> calculated planet mass \n");
+        if(p_suppress == 0) printf("--> Planet 1 - Calculated planet mass (Jovian-realm) \n");
     }
-    
-    double P_SI = *P*24.*60.*60.; //Period in seconds
-    double mass = *Ms*1.989e30;
-    double G_SI = 6.67e-11;
-    double a3 = P_SI*P_SI*G_SI*mass/(4.*M_PI*M_PI);
-    *a = pow(a3,1./3.)/1.496e11;     //in AU
-    if(p_suppress == 0) printf("--> calculating semi-major axis for all planets.\n");
     
     //delete previous output file
     char sys_arg[50] = "rm -v ";
@@ -93,7 +86,7 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
 
 //*******************************************************************************//
 
-void extractplanets(int* char_pos, double* a, double* rho, double* inc, double* mp, double* rp, double* P, double Ms){
+void extractplanets(int* char_pos, double* rho, double* inc, double* mp, double* rp, double* P, int p_suppress){
     FILE *f = fopen("planets.txt", "r");
     char temp[512];
     fseek(f, *char_pos, SEEK_SET);
@@ -117,7 +110,7 @@ void extractplanets(int* char_pos, double* a, double* rho, double* inc, double* 
         }
         i++;
     }
-    *a = array[4];          //semi-major axis (AU)
+    //*a = array[4];          //semi-major axis (AU)
     *rho = array[7];        //density (g/cm**3)
     *inc = array[8];        //inclination
     *mp = array[15]*3e-6;   //planet mass (SOLAR units)
@@ -128,14 +121,18 @@ void extractplanets(int* char_pos, double* a, double* rho, double* inc, double* 
     double earth2solarMp = 3e-6;
     if(*mp == 0. && *rp < 0.04){//Weiss & Marcy 2014, Neptune-sized
         *mp = 2.69*pow(*rp*solar2earthRp,0.93)*earth2solarMp; //Solar mass units
+        if(p_suppress == 0) printf("--> Calculated planet mass (Earth-realm) \n");
     } else if(*mp == 0. && *rp >=0.04){//Jupiter scaling relation
         *mp = 0.001*(*rp/0.1);
+        if(p_suppress == 0) printf("--> Calculated planet mass (Jovian-realm) \n");
     }
     
-    double P_SI = *P*24.*60.*60.; //Period in seconds
+}
+
+void calcsemi(double* a, double Ms, double P){
+    double P_SI = P*24.*60.*60.; //Period in seconds
     double mass = Ms*1.989e30;
     double G_SI = 6.67e-11;
     double a3 = P_SI*P_SI*G_SI*mass/(4.*M_PI*M_PI);
     *a = pow(a3,1./3.)/1.496e11;     //in AU
-    
 }

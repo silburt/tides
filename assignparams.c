@@ -33,15 +33,15 @@ k_2 of Giant planets (Gavrilov & Zharkov, 1977)
  Neptune=   0.127
 */
 
-void assignparams(double* Qp, double mp, double rp, double* T, double* t_mig_var, double Ms, char* txt_file, double a, double a_f, double P){
+void assignparams(double* Qp, double Qpfac, double mp, double rp, double* T, double* t_mig_var, double Ms, char* txt_file, double a, double a_f, double P){
     
     //Assign Qp = k2/Q
     if(rp > 2*0.009156 && rp < 0.1){//Lee/Fabrycky/Lin distringuish Rp > 2R_E as mini-Neptune vs. Super-Earth
-        *Qp = 1./(2.2e4); //Lowest Neptune value (Lee/Fabrycky/Lin 2013)
+        *Qp = Qpfac*1./(2.2e4); //Lowest Neptune value (Lee/Fabrycky/Lin 2013)
     } else if(rp >= 0.1){
-        *Qp = 1./(5.4e4); //Lowest Saturn value (Lee/Fabrycky/Lin 2013)
+        *Qp = Qpfac*1./(5.4e4); //Lowest Saturn value (Lee/Fabrycky/Lin 2013)
     } else{
-        *Qp = 1./40.;   //lowest Earth value (Lee/Fabrycky/Lin 2013)
+        *Qp = Qpfac*1./40.;   //lowest Earth value (Lee/Fabrycky/Lin 2013)
     }
     
     //Assign tau_migration values

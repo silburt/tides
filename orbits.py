@@ -4,7 +4,7 @@ import numpy as np
 import math
 import matplotlib.cm as cm
 pi = math.pi
-analytics = 1
+analytics = 0
 arg_true=0
 
 #Concerns:  1) The eccentricity I'm supposed to use is at the libration center. How do I get that?
@@ -92,7 +92,7 @@ if arg2==11:
         p=data[i::N]
         for j in xrange(0,i):
             q=data[j::N]
-            if(abs(p[-1,3]/(2*q[-1,3]) - 1) < 0.05):
+            if(abs(p[-1,3]/(2*q[-1,3]) - 1) < 0.06):
                 plt.plot(p[i_tide:-1,arg1], p[i_tide:-1,3]/q[i_tide:-1,3] - 2., 'o'+colors[inc], label='P$_{'+str(i+1)+',ctlg}$ ='+str(round(P[i],2))+' d, P$_{'+str(j+1)+',ctlg}$='+str(round(P[j],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
                 inc += 1
                 mp_array = np.array([mp[j], mp[i]])
@@ -131,7 +131,7 @@ else:
         p=data[i::N]
         plt.plot(p[arg4:arg3,arg1], p[arg4:arg3,arg2], 'o'+colors[i], label='m$_{'+str(i+1)+'}$='+str(round(100*mp[i]/(3*10**(-6)))/100.)+' m$_{earth}$', markeredgecolor='none')
         if arg2==3:
-            plt.plot([p[0,0],p[-1,0]], [P[i], P[i]], label='P$_{catalog}$', color='black', linewidth=2)
+            plt.plot([p[arg4,0],p[arg3,0]], [P[i], P[i]], label='P$_{catalog}$', color='black', linewidth=2)
     mig_fac = 1.25
     max_mig = mig_fac*max(mig) + mig_fac*max(mig)/3.
     max_tide = (mig_fac+1.0)*max_mig

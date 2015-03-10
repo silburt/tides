@@ -50,17 +50,18 @@ void problem_init(int argc, char* argv[]){
     /* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",1000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",100000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
     c           = argv[1];          //System being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
-    double RT   = 0.05;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
+    double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double res  = 2.0;              //Resonance of interest: e.g. 2.0 = 2:1, 1.5 = 3:2, etc.
     
     double timefac = 15.0;
+    double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -72,10 +73,10 @@ void problem_init(int argc, char* argv[]){
     char* ext = ".txt";
     strcat(txt_file, dir);
     strcat(txt_file, c);
-    //char* underscore = "_";
-    //strcat(txt_file, underscore);
-    //char* c2    = argv[2];
-    //strcat(txt_file, c2);
+    char* str = "_Qpfac";
+    strcat(txt_file, str);
+    char* c2 = argv[2];
+    strcat(txt_file, c2);
     strcat(txt_file, ext);
     
     //Delete previous file if it exists.
@@ -90,7 +91,7 @@ void problem_init(int argc, char* argv[]){
     int char_val, _N;
     
     //Star & Planet 1
-    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&a,&rho,&inc,&mp,&rp,&P,&dt,timefac,p_suppress);
+    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&rho,&inc,&mp,&rp,&P,&dt,timefac,p_suppress);
     if(mig_forces == 0 && p_suppress == 0) printf("--> Migration is *off* \n");
     if(tide_forces == 0 && p_suppress == 0) printf("--> Tides are *off* \n");
     struct particle star; //Star MUST be the first particle added.
@@ -120,11 +121,11 @@ void problem_init(int argc, char* argv[]){
     en = calloc(sizeof(double),_N+1);
     
     //Resonance vars
-    double Period[_N],a_f; //a_f = final desired position of planet after mig
-    Period[0] = 2.*M_PI*P/365.; //in yr/2pi (i.e. need to multiply by 2pi!!)
+    double Period[_N],a_f; //a_f = final desired position of planet after mig, a_i = initial migration spot
+    Period[0] = 2.*M_PI*P/365.; //obs period - put in yr/2pi (i.e. need to multiply by 2pi!!)
+    calcsemi(&a,Ms,P);
+    a_f = a;
     double mig_fac,max_t_mig;   //automating length of tidal delay/migration
-    //if N>3, planets repel each other and thus need to migrate longer.
-    //if(_N > 2) mig_fac = 1.25 + 0.25*(_N - 2); else mig_fac=1.25;
     mig_fac=1.0;
      
     //**Initial eccentricity**
@@ -134,8 +135,7 @@ void problem_init(int argc, char* argv[]){
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
     double T=0.,t_mig_var=0.;
-    a_f = a;
-    assignparams(&Qp_temp,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
+    assignparams(&Qp_temp,Qpfac,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
     p.Qp=Qp_temp;
     particles_add(p);
     if(p_suppress == 0){
@@ -145,12 +145,14 @@ void problem_init(int argc, char* argv[]){
     
     //deal with N>1 planets
     for(int i=1;i<_N;i++){
-        extractplanets(&char_val,&a,&rho,&inc,&mp,&rp,&P,Ms);
-        Period[i] = 2.*M_PI*P/365.; //in yr/2pi
+        extractplanets(&char_val,&rho,&inc,&mp,&rp,&P,p_suppress);
+        Period[i] = 2.*M_PI*P/365.; //obs period in yr/2pi
+        calcsemi(&a,Ms,P);
         for(int k=0;k<i;k++){
             double delta = Period[i]/Period[k] - res; //calc if any "res" resonances (see var list at top)
-            if(delta < RT && delta > 0.){ //current planet in res with inner one?
-                double P_res = res*Period[k];
+            if(delta < RT && delta > 0.){ //check for res with inner plannet
+                double P_res;
+                P_res = res*Period[k];    //2*period of inner planet post mig.
                 double val = G*Ms*P_res*P_res/(4*M_PI*M_PI);
                 a_f = pow(val,1./3.); //a_final of outer planet in order to be in resonance with inner
                 phi_i[i] = i-k;   //how far off the resonance is (e.g. two planets away?)
@@ -159,12 +161,13 @@ void problem_init(int argc, char* argv[]){
                 break;      //can only be in a "res" resonance with one inner planet
             } else a_f = a; //if no resonance, migrate back to starting position
         }
-        a *= afac;      //Increase 'a' of outer planets by afac
-        //e = pow(mp/Ms, 0.3333333333) + efac;
+        a *= afac;
+        //e = pow(mp/Ms, 0.3333333333);
         e = 0.01;
+        f = i*M_PI/4.;
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
-        assignparams(&Qp_temp,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
+        assignparams(&Qp_temp,Qpfac,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
         p.Qp=Qp_temp;
         tau_a[i+1]=T;                           //migration rate
         tau_e[i+1]=T/K;                         //e_damping rate
@@ -351,8 +354,8 @@ void problem_output(){
         en[i] = n;
         
         int output_var=0;
-        if(output_check(tmax/100000.)) output_var = 1;
-        else if(t < 80000. && output_check(100.)) output_var = 1;
+        if(output_check(tmax/5000.)) output_var = 1; //Used to be 100,000
+        else if(t < 80000. && output_check(150.)) output_var = 1; //used to be 100
         if(output_var == 1){
             omega[i] = atan2(ey,ex);
             if(ey < 0.) omega[i] += 2*M_PI;
