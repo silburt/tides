@@ -56,7 +56,7 @@ void problem_init(int argc, char* argv[]){
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
     c           = argv[1];          //System being investigated, Must be first string after ./nbody!
-    p_suppress  = 0;                //If = 1, suppress all print statements
+    p_suppress  = 1;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double res  = 2.0;              //Resonance of interest: e.g. 2.0 = 2:1, 1.5 = 3:2, etc.
     
@@ -77,6 +77,8 @@ void problem_init(int argc, char* argv[]){
     strcat(txt_file, str);
     char* c2 = argv[2];
     strcat(txt_file, c2);
+    strcat(txt_file, "_");          //Mar13th - Temporary for labelling
+    strcat(txt_file, argv[3]);      //Mar13th - Temporary for labelling
     strcat(txt_file, ext);
     
     //Delete previous file if it exists.
@@ -180,8 +182,9 @@ void problem_init(int argc, char* argv[]){
     }
     
     //tidal delay
-    tide_delay = (mig_fac+1.0)*max_t_mig; //starts just after migration finishes
-    if(tide_delay < 60000) tide_delay = 60000.;
+    tide_delay = 2*mig_fac*max_t_mig; //starts 2x after migration finishes
+    if(tide_delay < 5000.) tide_delay = 5000.;
+    
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
 #ifndef INTEGRATOR_WH			// The WH integrator assumes a heliocentric coordinate system.
@@ -354,8 +357,8 @@ void problem_output(){
         en[i] = n;
         
         int output_var=0;
-        if(output_check(tmax/5000.)) output_var = 1; //Used to be 100,000
-        else if(t < 80000. && output_check(150.)) output_var = 1; //used to be 100
+        if(output_check(tmax/100000.)) output_var = 1; //Used to be 100,000
+        else if(t < 80000. && output_check(100.)) output_var = 1; //used to be 100
         if(output_var == 1){
             omega[i] = atan2(ey,ex);
             if(ey < 0.) omega[i] += 2*M_PI;
@@ -383,8 +386,8 @@ void problem_output(){
             while(phi3 < 0.) phi3 += 2*M_PI;
             
             //calculating Energy in pendulum model, j1=2,j2=-1,j4=-1 (8.6 in S.S.D.)
-            int ENcalc = 0;
-            double EN = 0;
+            int ENcalc = 1;
+            double EN = 0,w02 = 0;
             if(i>=2 && ENcalc == 1){
                 double afs1 = 0.244190; //Table 8.5 S.S.D.
                 double afd = -0.749964;
@@ -394,7 +397,7 @@ void problem_output(){
                 double wdot = 2*Cs + Cr*cosphi/e;                       //Eq. 8.30
                 double epsdot = Cs*e*e + 0.5*Cr*e*cosphi;               //Eq. 8.31
                 double phidot = 2*en[i] - (en[i-phi_i[i-1]] + epsdot) - wdot;
-                double w02 = -3*Cr*en[i-phi_i[i-1]]*e;                  //Eq. 8.47
+                w02 = -3*Cr*en[i-phi_i[i-1]]*e;                  //Eq. 8.47
                 double sinhphi = sin(0.5*phi);
                 EN = 0.5*phidot*phidot + 2*w02*sinhphi*sinhphi;  //Eq.8.48
             }
@@ -403,7 +406,7 @@ void problem_output(){
             append=fopen(txt_file, "a");
             //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
             //               eccentric anomaly, mean longitude, resonant angle, de/dt, 1.875/(n*mu^4/3*e)
-            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3);
+            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,1./pow(w02,0.5));
             fclose(append);
             
             #ifndef INTEGRATOR_WH

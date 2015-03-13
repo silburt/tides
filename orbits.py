@@ -64,7 +64,7 @@ for i in range(0,N):
     mig[i] = float(header[5])
 
 #Load numerical data
-names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Pendulum Energy (Eq. 8.48 S.S.D.)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','G/G0 - 1']
+names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Libration Timescale (order of mag.)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','G/G0 - 1']
 colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
 
@@ -134,12 +134,12 @@ else:
             plt.plot([p[arg4,0],p[arg3,0]], [P[i], P[i]], label='P$_{catalog}$', color='black', linewidth=2)
     mig_fac = 1.25
     max_mig = mig_fac*max(mig) + mig_fac*max(mig)/3.
-    max_tide = (mig_fac+1.0)*max_mig
-    if max_tide < 60000.:
-        max_tide = 60000.
+    max_tide = 3*max_mig
+    if max_tide < 5000.:
+        max_tide = 5000.
     if analytics == 1:
         plt.plot([max_mig, max_mig], [min(data[arg4:arg3,arg2]),max(data[arg4:arg3,arg2])], label='migration ends now!', color='red', linewidth=2)
-        plt.plot([max_tide, max_tide], [min(data[:,arg2]),max(data[:,arg2])], label='tides turned on now!', color='red', linestyle='dashed', linewidth=2)
+        plt.plot([2*max_mig, 2*max_mig], [min(data[:,arg2]),max(data[:,arg2])], label='tides turned on now!', color='red', linestyle='dashed', linewidth=2)
 
 
 #Analytics - plot tidal e - assumes that 'a' is constant, which to first order is true.
@@ -165,7 +165,8 @@ if arg2==2 and analytics==1:
             plt.plot(time[arg4:arg3], e_eq[arg4:arg3], 'k', linewidth = 3, label='e$_{eq}$')
         else:
             plt.plot(time[arg4:arg3], e_eq[arg4:arg3], 'k', linewidth = 3)
-        print 'tau_e(planet '+str(i+1)+') = '+str(round(tau/1000000.,0))+' Myr'
+        #print 'tau_e(planet '+str(i+1)+') = '+str(round(tau/1000000.,0))+' Myr'
+        print 'tau_e(planet '+str(i+1)+') = '+str(round(tau,0))+' Years'
     print 't(simulation)   = '+str(p[-1,0]/1000000.)+' Myr'
 
 #Analytics - plot tidal a - this assumes though that eccentricity is constant, which is
