@@ -11,4 +11,6 @@
 
 void assignparams(double *Qp, double Qpfac, double mp, double rp, double* T,double* t_mig_var, double Ms,char *txt_file, double a, double a_f, double P);
 
+void special_cases(char* sysname, int i, double* mig_fac);
+
 #endif

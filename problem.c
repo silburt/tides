@@ -50,13 +50,13 @@ void problem_init(int argc, char* argv[]){
     /* Setup constants */
     //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",100000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",200000.);  // in year/(2*pi)
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     tide_forces = 1;                //If ==0, then no tidal forces on planets.
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
     c           = argv[1];          //System being investigated, Must be first string after ./nbody!
-    p_suppress  = 1;                //If = 1, suppress all print statements
+    p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double res  = 2.0;              //Resonance of interest: e.g. 2.0 = 2:1, 1.5 = 3:2, etc.
     
@@ -77,8 +77,6 @@ void problem_init(int argc, char* argv[]){
     strcat(txt_file, str);
     char* c2 = argv[2];
     strcat(txt_file, c2);
-    strcat(txt_file, "_");          //Mar13th - Temporary for labelling
-    strcat(txt_file, argv[3]);      //Mar13th - Temporary for labelling
     strcat(txt_file, ext);
     
     //Delete previous file if it exists.
@@ -170,6 +168,7 @@ void problem_init(int argc, char* argv[]){
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
         assignparams(&Qp_temp,Qpfac,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
+        special_cases(c,i,&mig_fac);            //certain systems need a bit extra migration time
         p.Qp=Qp_temp;
         tau_a[i+1]=T;                           //migration rate
         tau_e[i+1]=T/K;                         //e_damping rate
@@ -312,7 +311,7 @@ void problem_output(){
             const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a2*a));
             const double de = -dt*(9.*M_PI*0.5)*Qp*GM3a3*R5a5*e/m;   //Tidal change for e
             const double da = 2.*a*e*de;                             //Tidal change for a
-        
+            
             a += da;
             e += de;
         

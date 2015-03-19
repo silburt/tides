@@ -95,12 +95,13 @@ if arg2==11:
             if(abs(p[-1,3]/(2*q[-1,3]) - 1) < 0.06):
                 plt.plot(p[i_tide:-1,arg1], p[i_tide:-1,3]/q[i_tide:-1,3] - 2., 'o'+colors[inc], label='P$_{'+str(i+1)+',ctlg}$ ='+str(round(P[i],2))+' d, P$_{'+str(j+1)+',ctlg}$='+str(round(P[j],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
                 inc += 1
-                mp_array = np.array([mp[j], mp[i]])
-                rp_array = np.array([rp[j], rp[i]])
-                Qp_array = np.array([Qp[j], Qp[i]])
-                a_array = np.array([np.mean(q[i_tide:f_tide,1]), np.mean(p[i_tide:f_tide,1])])
-                e_array = np.array([np.mean(q[i_tide:f_tide,2]), np.mean(p[i_tide:f_tide,2])])
-                resbreak2(mp_array,rp_array,Qp_array,a_array,e_array,Ms)
+                #mp_array = np.array([mp[j], mp[i]])
+                #rp_array = np.array([rp[j], rp[i]])
+                #Qp_array = np.array([Qp[j], Qp[i]])
+                #a_array = np.array([np.mean(q[i_tide:f_tide,1]), np.mean(p[i_tide:f_tide,1])])
+                #e_array = np.array([np.mean(q[i_tide:f_tide,2]), np.mean(p[i_tide:f_tide,2])])
+                #resbreak2(mp_array,rp_array,Qp_array,a_array,e_array,Ms)
+
                 #cond = resbreak2(mp_array,rp_array,Qp_array,a_array,e_array,Ms)
                 #print 'gamma = '+str(cond)+', gamma_c = 1.6'
                 #emean = np.mean(q[i_tide:f_tide,2])
@@ -165,8 +166,8 @@ if arg2==2 and analytics==1:
             plt.plot(time[arg4:arg3], e_eq[arg4:arg3], 'k', linewidth = 3, label='e$_{eq}$')
         else:
             plt.plot(time[arg4:arg3], e_eq[arg4:arg3], 'k', linewidth = 3)
-        #print 'tau_e(planet '+str(i+1)+') = '+str(round(tau/1000000.,0))+' Myr'
-        print 'tau_e(planet '+str(i+1)+') = '+str(round(tau,0))+' Years'
+        print 'tau_e(planet '+str(i+1)+') = '+str(round(tau/1000000.,0))+' Myr'
+        #print 'tau_e(planet '+str(i+1)+') = '+str(round(tau,0))+' Years'
     print 't(simulation)   = '+str(p[-1,0]/1000000.)+' Myr'
 
 #Analytics - plot tidal a - this assumes though that eccentricity is constant, which is
@@ -205,43 +206,3 @@ else:
     plt.ylabel('' + names[arg2])
 plt.legend(loc='upper left',prop={'size':10})
 plt.show()
-
-#old
-#def resbreak(mp,rp,Qp,a,e,Ms):
-#    #arrays
-#    Beta = np.zeros(2)
-#    mu = np.zeros(2)
-#    Lambdahat = np.zeros(2)
-#    Ghat = np.zeros(2)
-#    Lambda = np.zeros(2)
-#   G = np.zeros(2)
-#    I = np.zeros(2)
-#    gamma = np.zeros(2)
-#    T = np.zeros(2)
-#    #function
-#    for i in xrange(0,2):
-#        Beta[i] = Ms*mp[i]/(Ms + mp[i])
-#        mu[i] = Ms + mp[i]
-#       Lambdahat[i] = Beta[i]*math.sqrt(mu[i]*a[i]) #Circ. Ang. Mom.
-#       Ghat[i] = Lambdahat[i]*math.sqrt(1 - e[i]**2) #Ang. Mom
-#    Gamma = 2*Lambdahat[0] + Lambdahat[1] #Total Circ. Ang. Mom.
-#    for i in xrange(0,2):
-#        Lambda[i] = Lambdahat[i]/Gamma #Rescaling to new coords.
-#        G[i] = Ghat[i]/Gamma
-#        I[i] = Lambda[i] - G[i] #Ang. Mom. Deficit
-#    Gtot = G[0] + G[1]    #Tot. Ang. Mom.
-#    tanphi = math.sqrt(I[1]/I[0])
-#    tan2phi = tanphi**2
-#    for i in xrange(0,2):
-#        rad = rp[i]*0.00464913 #Solar Radii to AU
-#        R5a5 = (rad/a[i])**5
-#        GM3a3 = (Ms/a[i])**1.5 #G = 1
-#        lne = (9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
-#        T[i] = 2/lne
-#    tau = T[0]/T[1]
-#    gamma[0] = 4*Gtot
-#    gamma[1] = 2*Gtot
-#    print 'gamma 1,2=', gamma[0], gamma[1]
-#    denom = 1 + tau*tan2phi
-#    condition = gamma[0]/denom + gamma[1]*tau*tan2phi/denom
-#    return condition

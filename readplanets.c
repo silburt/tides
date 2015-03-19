@@ -69,7 +69,8 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
         *mp = 2.69*pow(*rp*solar2earthRp,0.93)*earth2solarMp; //Solar mass units
         if(p_suppress == 0) printf("--> Planet 1 - Calculated planet mass (Earth-realm) \n");
     } else if(*mp == 0. && *rp >=0.04){//Jupiter scaling relation
-        *mp = 0.001*(*rp/0.1);
+        double r3 = pow(*rp*695800000.,3); //in meters
+        *mp = 5.554*r3/2e30;     //in solar mass (density = 1.326 kg/m^3 * 4/3*pi = 5.554)
         if(p_suppress == 0) printf("--> Planet 1 - Calculated planet mass (Jovian-realm) \n");
     }
     
@@ -122,8 +123,9 @@ void extractplanets(int* char_pos, double* rho, double* inc, double* mp, double*
     if(*mp == 0. && *rp < 0.04){//Weiss & Marcy 2014, Neptune-sized
         *mp = 2.69*pow(*rp*solar2earthRp,0.93)*earth2solarMp; //Solar mass units
         if(p_suppress == 0) printf("--> Calculated planet mass (Earth-realm) \n");
-    } else if(*mp == 0. && *rp >=0.04){//Jupiter scaling relation
-        *mp = 0.001*(*rp/0.1);
+    } else if(*mp == 0. && *rp >=0.04){//Jupiter density scaling relation
+        double r3 = pow(*rp*695800000.,3); //in meters
+        *mp = 5.554*r3/2e30;     //in solar mass
         if(p_suppress == 0) printf("--> Calculated planet mass (Jovian-realm) \n");
     }
     
