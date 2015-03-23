@@ -19,24 +19,25 @@ initial migration to put planets into resonance
 #include "../examples/tides/assignparams.h"
 
 // A.S. variables added
-double   K;           /**<tau_a/tau_e>*/
-int      _N;          /**<# of planets>*/
-int      tide_forces; /**<Parameter to control if tides on/off>**/
-double   tide_delay;  /**<Lag time (in years) to turn on tides after**/
-int      mig_forces;  /**<Parameter to control if migration on/off>**/
-double   afac;        /**<Factor to increase a by of all planets>**/
-int      p_suppress;  /**<If = 1, then suppress all printing>**/
-double* tau_a; 	/**< Migration timescale in years for all particles */
-double* tau_e; 	/**< Eccentricity damping timescale in years for all particles */
-double* lambda; /**<Resonant angle>**/
-double* omega;  /**<argument of periapsis>**/
-double* t_mig;  /**<Migration timescale calc according to Goldreich & Schlichting (2014)>**/
+double  K;              /**<tau_a/tau_e>*/
+int     _N;             /**<# of planets>*/
+int     tides_on;       /**<Parameter to control if tides on/off>**/
+int     tide_force;     /**<If == 1, implement tides as forces, not a' & e'>**/
+double  tide_delay;     /**<Lag time (in years) to turn on tides after**/
+int     mig_forces;     /**<Parameter to control if migration on/off>**/
+double  afac;           /**<Factor to increase a by of all planets>**/
+int     p_suppress;     /**<If = 1, then suppress all printing>**/
+double* tau_a;          /**< Migration timescale in years for all particles */
+double* tau_e;          /**< Eccentricity damping timescale in years for all particles */
+double* lambda;         /**<Resonant angle>**/
+double* omega;          /**<argument of periapsis>**/
+double* t_mig;          /**<Migration timescale calc according to Goldreich & Schlichting (2014)>**/
 double* t_damp;
 double* mu_a;
-double* en;     /**<mean motion array - for pendulum energy>**/
+double* en;             /**<mean motion array - for pendulum energy>**/
 char* c;
 int* phi_i;
-int tide_print; /**<print message when tides are turned on>**/
+int tide_print;         /**<print message when tides are turned on>**/
 char txt_file[80];
 //
 
@@ -48,19 +49,22 @@ extern int display_wire;
 
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
-    //dt = (dt is calc in readplanets.c), unit is yr/2PI
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",200000.);  // in year/(2*pi)
-    K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    tide_forces = 1;                //If ==0, then no tidal forces on planets.
-    mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
-    c           = argv[1];          //System being investigated, Must be first string after ./nbody!
+    tmax        = input_get_double(argc,argv,"tmax",2000000.);  // in year/(2*pi)
+    c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double res  = 2.0;              //Resonance of interest: e.g. 2.0 = 2:1, 1.5 = 3:2, etc.
+    double timefac = 15.0;          //Number of kicks per orbital period (of closest planet)
     
-    double timefac = 15.0;
+    /* Migration constants */
+    K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
+    mig_forces  = 1;                //If ==0, no migration.
+    afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
+    
+    /* Tide constants */
+    tides_on = 1;                   //If ==0, then no tidal torques on planets.
+    tide_force = 1;                 //if ==1, implement tides as *forces*, not as e' and a'.
     double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
     
 #ifdef OPENGL
@@ -93,17 +97,18 @@ void problem_init(int argc, char* argv[]){
     //Star & Planet 1
     readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&rho,&inc,&mp,&rp,&P,&dt,timefac,p_suppress);
     if(mig_forces == 0 && p_suppress == 0) printf("--> Migration is *off* \n");
-    if(tide_forces == 0 && p_suppress == 0) printf("--> Tides are *off* \n");
+    if(tides_on == 0 && p_suppress == 0) printf("--> Tides are *off* \n");
     struct particle star; //Star MUST be the first particle added.
 	star.x  = 0; star.y  = 0; star.z  = 0;
 	star.vx = 0; star.vy = 0; star.vz = 0;
 	star.ax = 0; star.ay = 0; star.az = 0;
 	star.m  = Ms;
+    star.r = Rs;
 	particles_add(star);
     
     //Write tidal info to file
     double tide_delay_output = 0;
-    if(tide_forces == 1) tide_delay_output = tide_delay;
+    if(tides_on == 1) tide_delay_output = tide_delay;
     FILE *write;
     write=fopen(txt_file, "a");
     fprintf(write, "%f \n",tide_delay_output);
@@ -247,6 +252,56 @@ void problem_migration_forces(){
         }
     }
     
+    if(tides_on == 1 && tide_force == 1 && t > tide_delay){
+        struct particle com = particles[0];
+        const double Rs5 = pow(com.r*0.00464913,5); //Rs from Solar Radii to AU
+        const double Qpstar = 0.028/1e6;        //stellar k/Q, Wu & Murray (2003)
+        double GM2 = G*com.m*com.m;
+        for(int i=1;i<N;i++){
+            struct particle* p = &(particles[i]);
+            const double m = p->m;
+            const double mu = G*(com.m + m);
+            mu_a[i] = mu;
+            //radius of planet must be in AU for units to work out since G=1, [t]=yr/2pi, [m]=m_star
+            const double rp = p->r*0.00464913;  //Rp from Solar Radii to AU
+            const double Qp = p->Qp;
+            
+            const double dvx = p->vx-com.vx;
+            const double dvy = p->vy-com.vy;
+            const double dvz = p->vz-com.vz;
+            const double dx = p->x-com.x;
+            const double dy = p->y-com.y;
+            const double dz = p->z-com.z;
+            const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
+            const double r = sqrt ( dx*dx + dy*dy + dz*dz );
+            const double a = -mu/( v*v - 2.*mu/r );
+            
+            //Mignard (1979), implemented in Rodriguez (2013)
+            double r10 = pow(r,10);
+            const double rp2 = pow(rp,2);
+            double n = sqrt( mu/(a*a*a) );
+            double Gmp2 = G*m*m;
+            double tlagp = Qp/n;                    //tidal lag time, planet
+            double tlags = Qpstar/n;
+            double coeffp = -3*tlagp*GM2*rp2*rp2*rp/r10;   //planet
+            double coeffs = 3*tlags*Gmp2*Rs5/r10;  //star
+            double r2 = r*r;
+            double fx = 2*dx*dx*dvx + r2*dvx;  //assumes rot. speed of planet/star = 0
+            double fy = 2*dy*dy*dvy + r2*dvy;
+            double fz = 2*dz*dz*dvz + r2*dvz;
+            
+            double mratio = (com.m + m)/(com.m * m);
+            p->ax += mratio*fx*(coeffp - coeffs);
+            p->ay += mratio*fy*(coeffp - coeffs);
+            p->az += mratio*fz*(coeffp - coeffs);
+            
+            //print message
+            if(tide_print == 0 && p_suppress == 0){
+                printf("\n ***Tides (forces) have just been turned on at t=%f years***\n",t);
+                tide_print = 1;
+            }
+        }
+    }
 }
 
 void problem_inloop(){
@@ -278,33 +333,21 @@ void problem_output(){
         const double ey = 1./mu*( (v*v-mu/r)*dy - r*vr*dvy );
         const double ez = 1./mu*( (v*v-mu/r)*dz - r*vr*dvz );
         double e = sqrt( ex*ex + ey*ey + ez*ez );   // eccentricity
-        //double a = -mu/( v*v - 2.*mu/r );			// semi major axis
-        //const double cosE = (a - r)/(a*e);
-        //double cosf = (1 - e*e)/(e - e*e*cosE) - 1/e;
             
         // true anomaly + periapse (wiki, Fund. of Astrodyn. and App., by Vallado, 2007)
         const double rdote = dx*ex + dy*ey + dz*ez;
         double cosf = rdote/(e*r);
-        //double cosf = (a*(1 - e*e) - r)/(r*e);
         if(cosf >= 1.) cosf = 1.;
         if(cosf <= -1.) cosf = -1.;
-        //double const sinf = sin(f);
         double sinf = sqrt(1. - cosf*cosf);
         if(vr < 0.) sinf *= -1.;
         double const sinwf = dy/r;
         double const coswf = dx/r;
         double a = r*(1. + e*cosf)/(1. - e*e);
         double n;
-            
-        //Eccentric Anomaly
-        //double terme = sqrt((1+e)/(1-e));
-        //double const E = 2*atan(tan(f/2)/terme);
-        //const double cosf = (cos(E) - e)/(1 - e*cos(E));
-        //double a = r/(1 - e*cos(E));
-        //double n = sqrt(mu/(a*a*a));
         
         //Tides
-        if(tide_forces==1 && t > tide_delay){
+        if(tides_on == 1 && tide_force == 0 && t > tide_delay){
             const double a2 = a*a;
             const double rp2 = rp*rp;
             const double R5a5 = rp2*rp2*rp/(a2*a2*a);
@@ -317,8 +360,6 @@ void problem_output(){
         
             //Re-update coords.
             const double r_new = a*(1. - e*e)/(1. + e*cosf);
-            //const double r_new = a*(1 - e*cosE);
-            
             const double x_new = r_new*coswf + com.x;
             const double y_new = r_new*sinwf + com.y;
             n = sqrt(mu/(a*a*a));
@@ -346,13 +387,13 @@ void problem_output(){
             
             //print message
             if(tide_print == 0 && p_suppress == 0){
-                printf("\n ***Tides have just been turned on at t=%f years***\n",t);
+                printf("\n ***Tides (a', e') have just been turned on at t=%f years***\n",t);
                 tide_print = 1;
             }
             
         } else {
-            n = sqrt(mu/(a*a*a));
-        }     //Still need to calc this for period.
+            n = sqrt(mu/(a*a*a)); //Still need to calc this for period.
+        }
         en[i] = n;
         
         int output_var=0;
@@ -385,7 +426,7 @@ void problem_output(){
             while(phi3 < 0.) phi3 += 2*M_PI;
             
             //calculating Energy in pendulum model, j1=2,j2=-1,j4=-1 (8.6 in S.S.D.)
-            int ENcalc = 1;
+            int ENcalc = 0;
             double EN = 0,w02 = 0;
             if(i>=2 && ENcalc == 1){
                 double afs1 = 0.244190; //Table 8.5 S.S.D.

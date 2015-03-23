@@ -9,7 +9,7 @@ thresh=0.06
 simpath='saved_runs/round8_Mar16Qpfac1'
 ext = '_Qpfac1'
 
-early = 0   #if = 1, plot just before tides start (ini conditions)
+early = 1   #if = 1, plot just before tides start (ini conditions)
 
 systems=np.genfromtxt('reso/'+arg1+':'+arg2+'_systems.txt', dtype=("|S10")) #system names
 N_sys = len(systems)
@@ -106,9 +106,11 @@ print 'the median eccentricity of Kepler planets pre-tides is ', np.median(e0)
 if early == 1:
     simp = p0
     sime = e0
+    xmax = 0.16
 else:
     simp = PRsim
     sime = e_in
+    xmax = 0.06
 
 binwidth = 0.0001
 plt.hist(PRobs - 2.0, color='black', linewidth=2, bins=np.arange(0., 0.06 + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label='Observed $\Delta$ from 2:1 MMR')
@@ -116,7 +118,7 @@ plt.hist(simp - 2.0, color='green', linewidth=2, bins=np.arange(0., 0.06 + binwi
 plt.hist(sime, color='orange', linewidth=2, bins=np.arange(0., 0.15 + binwidth, binwidth), histtype='step', cumulative='true', normed='true', label='Simulated e$_{inner}$')
 
 plt.ylim([0,1.25])
-plt.xlim([0,0.06])
+plt.xlim([0,xmax])
 plt.xlabel('P$_2$/P$_1$ - 2 or e')
 plt.ylabel('counts, total='+str(len(PRsim)))
 plt.title('Period ratios and Eccentricities of Planets Close to 2:1 MMR. '+ext)

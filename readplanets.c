@@ -52,11 +52,9 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
     *rp = array[18];                    //planet radius (SOLAR units)
     *P = array[1];                      //Period (days)
 
-    //timestep (P/11.), in year/(2*pi).
-    //From Viswanath, Divakar 2002-03, need min. of 6*dt per P
-    //*dt = 2.*M_PI*array[1]/(365.*11.);
+    //Timestep - units of 2pi*yr (required)
     *dt = 2.*M_PI*array[1]/(365.*timefac);
-    if(p_suppress == 0) printf("The timestep used for this simulation is (years/2pi): %f \n",*dt);
+    if(p_suppress == 0) printf("The timestep used for this simulation is (2pi*years): %f \n",*dt);
     
     if(*Ms == 0.){
         *Ms = pow(*Rs,1.25);
