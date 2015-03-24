@@ -64,7 +64,7 @@ void problem_init(int argc, char* argv[]){
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
-    tide_force = 1;                 //if ==1, implement tides as *forces*, not as e' and a'.
+    tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
     double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
     
 #ifdef OPENGL
@@ -135,7 +135,7 @@ void problem_init(int argc, char* argv[]){
      
     //**Initial eccentricity**
     //double e=pow(mp/Ms, 0.3333333333);  //Goldreich & Schlichting (2014)
-    double e = 0.01;
+    double e = 0.0001;
     double f=0., w=M_PI/2.;
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
@@ -168,7 +168,6 @@ void problem_init(int argc, char* argv[]){
         }
         a *= afac;
         //e = pow(mp/Ms, 0.3333333333);
-        e = 0.01;
         f = i*M_PI/4.;
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
@@ -253,6 +252,10 @@ void problem_migration_forces(){
     }
     
     if(tides_on == 1 && tide_force == 1 && t > tide_delay){
+        double fx[N];
+        double fy[N];
+        double fz[N];
+        //radius of planet must be in AU for units to work out since G=1, [t]=yr/2pi, [m]=m_star
         struct particle com = particles[0];
         const double Rs5 = pow(com.r*0.00464913,5); //Rs from Solar Radii to AU
         const double Qpstar = 0.028/1e6;        //stellar k/Q, Wu & Murray (2003)
@@ -261,8 +264,6 @@ void problem_migration_forces(){
             struct particle* p = &(particles[i]);
             const double m = p->m;
             const double mu = G*(com.m + m);
-            mu_a[i] = mu;
-            //radius of planet must be in AU for units to work out since G=1, [t]=yr/2pi, [m]=m_star
             const double rp = p->r*0.00464913;  //Rp from Solar Radii to AU
             const double Qp = p->Qp;
             
@@ -274,32 +275,44 @@ void problem_migration_forces(){
             const double dz = p->z-com.z;
             const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
             const double r = sqrt ( dx*dx + dy*dy + dz*dz );
+            const double vr = (dx*dvx + dy*dvy + dz*dvz);
             const double a = -mu/( v*v - 2.*mu/r );
             
             //Mignard (1979), implemented in Rodriguez (2013)
-            double r10 = pow(r,10);
+            double r10 = pow(r,10);         //planet-star distance, AU
             const double rp2 = pow(rp,2);
             double n = sqrt( mu/(a*a*a) );
             double Gmp2 = G*m*m;
-            double tlagp = Qp/n;                    //tidal lag time, planet
-            double tlags = Qpstar/n;
-            double coeffp = -3*tlagp*GM2*rp2*rp2*rp/r10;   //planet
-            double coeffs = 3*tlags*Gmp2*Rs5/r10;  //star
+            double kdt_p = Qp/n;                    //tidal lag time, planet
+            double kdt_s = Qpstar/n;
+            double coeffp = -3*kdt_p*GM2*rp2*rp2*rp/r10;   //planet
+            double coeffs = 3*kdt_s*Gmp2*Rs5/r10;  //star
             double r2 = r*r;
-            double fx = 2*dx*dx*dvx + r2*dvx;  //assumes rot. speed of planet/star = 0
-            double fy = 2*dy*dy*dvy + r2*dvy;
-            double fz = 2*dz*dz*dvz + r2*dvz;
-            
-            double mratio = (com.m + m)/(com.m * m);
-            p->ax += mratio*fx*(coeffp - coeffs);
-            p->ay += mratio*fy*(coeffp - coeffs);
-            p->az += mratio*fz*(coeffp - coeffs);
-            
-            //print message
-            if(tide_print == 0 && p_suppress == 0){
-                printf("\n ***Tides (forces) have just been turned on at t=%f years***\n",t);
-                tide_print = 1;
+            fx[i] = (coeffp - coeffs)*(2*dx*vr + r2*dvx);  //assumes rot. speed of planet/star = 0
+            fy[i] = (coeffp - coeffs)*(2*dy*vr + r2*dvy);
+            fz[i] = (coeffp - coeffs)*(2*dz*vr + r2*dvz);
+            if(i==1)printf("tlagp=%.10f,tlags=%.10f,r=%f,rp=%.8f,n=%f,m=%f,Qp=%f,a=%f \n",kdt_p,kdt_s,r,rp,n,m,Qp,a);
+        }
+        
+        for(int i=1;i<N;i++){
+            struct particle* p = &(particles[i]);
+            const double m = p->m;
+            const double mratio = (com.m + m)/(com.m * m);
+            p->ax += mratio*fx[i];
+            p->ay += mratio*fy[i];
+            p->az += mratio*fz[i];
+            for(int j=1;j<N;j++){
+                if(j != i){
+                    p->ax += fx[j]/com.m;
+                    p->ay += fy[j]/com.m;
+                    p->az += fz[j]/com.m;
+                }
             }
+        }
+        //print message
+        if(tide_print == 0 && p_suppress == 0){
+            printf("\n ***Tides (forces) have just been turned on at t=%f years***\n",t);
+            tide_print = 1;
         }
     }
 }
@@ -325,7 +338,7 @@ void problem_output(){
         const double dx = par->x-com.x;
         const double dy = par->y-com.y;
         const double dz = par->z-com.z;
-            
+        
         const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
         const double r = sqrt ( dx*dx + dy*dy + dz*dz );
         const double vr = (dx*dvx + dy*dvy + dz*dvz)/r;
@@ -446,7 +459,7 @@ void problem_output(){
             append=fopen(txt_file, "a");
             //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
             //               eccentric anomaly, mean longitude, resonant angle, de/dt, 1.875/(n*mu^4/3*e)
-            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,1./pow(w02,0.5));
+            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3);
             fclose(append);
             
             #ifndef INTEGRATOR_WH

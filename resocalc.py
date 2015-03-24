@@ -43,7 +43,7 @@ while (count <= nlines - 1):
                     outputfull.write(str(data[i][length-1])+'\n')
                     for k in xrange(0,length - 2):
                         outputfull.write(str(data[j][k])+',')
-                    outputfull.write(str(data[j][length-1])+'\n\n')
+                    outputfull.write(str(data[j][length-1])+'\n')
                     if skip != 1:
                         output.write(data[i][1]+'\n')
                         skip = 1
