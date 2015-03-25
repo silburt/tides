@@ -135,7 +135,7 @@ void problem_init(int argc, char* argv[]){
      
     //**Initial eccentricity**
     //double e=pow(mp/Ms, 0.3333333333);  //Goldreich & Schlichting (2014)
-    double e = 0.0001;
+    double e = 0.01;
     double f=0., w=M_PI/2.;
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;

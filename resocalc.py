@@ -40,10 +40,10 @@ while (count <= nlines - 1):
                     length = len(data[0])                         #Full output for detail
                     for k in xrange(0,length - 2):
                         outputfull.write(str(data[i][k])+',')
-                    outputfull.write(str(data[i][length-1])+'\n')
+                    outputfull.write(str(data[i][length-1])+','+str(i-count)+'\n')
                     for k in xrange(0,length - 2):
                         outputfull.write(str(data[j][k])+',')
-                    outputfull.write(str(data[j][length-1])+'\n')
+                    outputfull.write(str(data[j][length-1])+','+str(j-count)+'\n')
                     if skip != 1:
                         output.write(data[i][1]+'\n')
                         skip = 1
