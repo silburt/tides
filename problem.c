@@ -50,7 +50,7 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",2000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",1000000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -61,11 +61,13 @@ void problem_init(int argc, char* argv[]){
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
+    double migspeed_fac = atof(argv[2]); //multiply *T by this factor in assignparams.c
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
+    //double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
+    double Qpfac = 1;
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -77,7 +79,7 @@ void problem_init(int argc, char* argv[]){
     char* ext = ".txt";
     strcat(txt_file, dir);
     strcat(txt_file, c);
-    char* str = "_Qpfac";
+    char* str = "_migspeedfac";
     strcat(txt_file, str);
     char* c2 = argv[2];
     strcat(txt_file, c2);
@@ -140,7 +142,7 @@ void problem_init(int argc, char* argv[]){
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
     double T=0.,t_mig_var=0.;
-    assignparams(&Qp_temp,Qpfac,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
+    assignparams(&Qp_temp,Qpfac,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P,migspeed_fac);
     p.Qp=Qp_temp;
     particles_add(p);
     if(p_suppress == 0){
@@ -171,7 +173,7 @@ void problem_init(int argc, char* argv[]){
         f = i*M_PI/4.;
         struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
         p.r = rp;
-        assignparams(&Qp_temp,Qpfac,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P);
+        assignparams(&Qp_temp,Qpfac,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P,migspeed_fac);
         special_cases(c,i,&mig_fac);            //certain systems need a bit extra migration time
         p.Qp=Qp_temp;
         tau_a[i+1]=T;                           //migration rate
@@ -185,8 +187,8 @@ void problem_init(int argc, char* argv[]){
     }
     
     //tidal delay
-    tide_delay = 2*mig_fac*max_t_mig; //starts 2x after migration finishes
-    if(tide_delay < 5000.) tide_delay = 5000.;
+    tide_delay = 1.5*mig_fac*max_t_mig; //starts 1.5x after migration finishes
+    if(tide_delay < 60000.) tide_delay = 60000.;
     
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
@@ -239,7 +241,7 @@ void problem_migration_forces(){
                     const double ey = 1./mu*( (v*v-mu/r)*dy - r*vr*dvy );
                     const double ez = 1./mu*( (v*v-mu/r)*dz - r*vr*dvz );
                     const double e = sqrt( ex*ex + ey*ey + ez*ez );		// eccentricity
-                    const double a = -mu/( v*v - 2.*mu/r );			// semi major axis
+                    const double a = -mu/( v*v - 2.*mu/r );			// semi major axis, AU
                     const double prefac1 = 1./(1.-e*e) /tau_e[i]/1.5;
                     const double prefac2 = 1./(r*h) * sqrt(mu/a/(1.-e*e))  /tau_e[i]/1.5;
                     p->ax += -dvx*prefac1 + (hy*dz-hz*dy)*prefac2;
@@ -279,7 +281,8 @@ void problem_migration_forces(){
             const double a = -mu/( v*v - 2.*mu/r );
             
             //Mignard (1979), implemented in Rodriguez (2013)
-            double r10 = pow(r,10);         //planet-star distance, AU
+            double r2 = r*r;
+            double r10 = pow(r2,5);         //planet-star distance, AU
             const double rp2 = pow(rp,2);
             double n = sqrt( mu/(a*a*a) );
             double Gmp2 = G*m*m;
@@ -287,17 +290,19 @@ void problem_migration_forces(){
             double kdt_s = Qpstar/n;
             double coeffp = -3*kdt_p*GM2*rp2*rp2*rp/r10;   //planet
             double coeffs = 3*kdt_s*Gmp2*Rs5/r10;  //star
-            double r2 = r*r;
             fx[i] = (coeffp - coeffs)*(2*dx*vr + r2*dvx);  //assumes rot. speed of planet/star = 0
             fy[i] = (coeffp - coeffs)*(2*dy*vr + r2*dvy);
             fz[i] = (coeffp - coeffs)*(2*dz*vr + r2*dvz);
-            if(i==1)printf("tlagp=%.10f,tlags=%.10f,r=%f,rp=%.8f,n=%f,m=%f,Qp=%f,a=%f \n",kdt_p,kdt_s,r,rp,n,m,Qp,a);
         }
         
         for(int i=1;i<N;i++){
             struct particle* p = &(particles[i]);
             const double m = p->m;
             const double mratio = (com.m + m)/(com.m * m);
+            if(i==1 && tide_print == 0){
+                printf("\n fx=%.16f, fy=%.16f,mratio=%f, p->ax=%.16f, p->ay=%.16f \n",fx[i]*mratio,fy[i]*mratio,mratio, p->ax, p->ay);
+                tide_print = 1;
+            }
             p->ax += mratio*fx[i];
             p->ay += mratio*fy[i];
             p->az += mratio*fz[i];

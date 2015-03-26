@@ -33,7 +33,7 @@ k_2 of Giant planets (Gavrilov & Zharkov, 1977)
  Neptune=   0.127
 */
 
-void assignparams(double* Qp, double Qpfac, double mp, double rp, double* T, double* t_mig_var, double Ms, char* txt_file, double a, double a_f, double P){
+void assignparams(double* Qp, double Qpfac, double mp, double rp, double* T, double* t_mig_var, double Ms, char* txt_file, double a, double a_f, double P, double migspeed_fac){
     
     //Assign Qp = k2/Q
     if(rp > 2*0.009156 && rp < 0.1){//Lee/Fabrycky/Lin distringuish Rp > 2R_E as mini-Neptune vs. Super-Earth
@@ -49,7 +49,7 @@ void assignparams(double* Qp, double Qpfac, double mp, double rp, double* T, dou
     double mu43 = pow(mp/Ms,4./3.);
     /*Goldreich & Schlichting (2014), tau_mig rate for 2:1 resonance, units = yr/2pi. Min is 3.75, 
      but use 5.0 to be safe.*/
-    *T = 5.00/(n*mu43);
+    *T = 5.00*migspeed_fac/(n*mu43);
     //*T = 10.00/(n*mu43);
     *t_mig_var = *T*(a - a_f)/a_f;  //length of time migrate for, units = yr/2pi
     if(a == a_f){//first planet
