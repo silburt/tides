@@ -416,7 +416,7 @@ void problem_output(){
         
         int output_var=0;
         if(output_check(tmax/100000.)) output_var = 1; //Used to be 100,000
-        else if(t < 80000. && output_check(100.)) output_var = 1; //used to be 100
+        else if(t < 70000. && output_check(50.)) output_var = 1; //used to be 100
         if(output_var == 1){
             omega[i] = atan2(ey,ex);
             if(ey < 0.) omega[i] += 2*M_PI;

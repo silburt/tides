@@ -4,12 +4,13 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import pylab
 
 arg1='2'
 arg2='1'
 thresh=0.06
-path = '../saved_runs/round8_Mar16Qpfac1/'
-ext = '_Qpfac1'
+path = '../saved_runs/round11_Mar26migspeedfac0.0625/'
+ext = '_migspeedfac0.0625'
 
 systems=np.genfromtxt('../reso/full/'+arg1+':'+arg2+'_systems_fulldetail.txt', delimiter=',', dtype=(int,"|S10","|S10","|S10",int,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,int)) #system names
 N_sys = len(systems)
@@ -30,7 +31,7 @@ while i < N_sys:
     #Get e_i and a_i
     fos = open(path+'orbits_'+systems[i][1]+''+ext+'.txt','r')
     lines = []
-    for k in range(0, 6000):
+    for k in range(0, 50000):
         lines.append(fos.readline())
     length = len(lines)
     inc_in = N+1+inner
@@ -44,14 +45,14 @@ while i < N_sys:
         tempin = lines[inc_in]
         temp_in = tempin.split("\t")
         tt = float(temp_in[0])
-        if tt > 70000 and tt < 80000:
+        if tt > 50000 and tt < 70000:
             tempout = lines[inc_out]
             temp_out = tempout.split("\t")
             e0avg_in = np.append(e0avg_in, float(temp_in[2]))
             e0avg_out = np.append(e0avg_out, float(temp_out[2]))
             a0avg_in = np.append(a0avg_in, float(temp_in[1]))
             a0avg_out = np.append(a0avg_out, float(temp_out[1]))
-        elif tt > 80000:
+        elif tt > 70000:
             e_in = np.median(e0avg_in)
             e_out = np.median(e0avg_out)
             a_in = np.median(a0avg_in)
@@ -76,7 +77,8 @@ plt.plot([0,0],[0,1.25], 'r--', linewidth=2, label='Explainable Via Tides')
 plt.ylim([0,1.25])
 plt.xlabel('$\Delta$', fontsize=16)
 plt.ylabel('cdf, counts='+str(N_sys/2), fontsize=16)
-plt.title('Max Evolution Due to Tides')
+plt.title('Max Evolution Due to Tides ('+ext+')')
 plt.legend(loc='upper left',prop={'size':10})
+pylab.savefig(path+'delta_max.png')
 plt.show()
 

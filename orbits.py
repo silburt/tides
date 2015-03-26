@@ -4,7 +4,7 @@ import numpy as np
 import math
 import matplotlib.cm as cm
 pi = math.pi
-analytics = 1
+analytics = 0
 arg_true=0
 
 #Concerns:  1) The eccentricity I'm supposed to use is at the libration center. How do I get that?

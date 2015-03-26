@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 arg1='2'
 arg2='1'
 thresh=0.06
-simpath='../saved_runs/round8_Mar16Qpfac1'
-ext = '_Qpfac1'
+simpath='../saved_runs/round11_Mar26migspeedfac0.75'
+ext = '_migspeedfac0.75'
 
 early = 1   #if = 1, plot just before tides start (ini conditions)
 
@@ -38,10 +38,10 @@ p0 = np.zeros(0)        #period ratio just before tides
 time=np.zeros(N_sys)
 Navg = 100
 Pavg=np.zeros(Navg-1)
+outMMR = 0
 
 for k in xrange(0,N_sys): #find period ratio of planets
     name = systems[k]
-    print name
     found = 0
     index = 0
     while found == 0:    #look at obs planets
@@ -79,15 +79,20 @@ for k in xrange(0,N_sys): #find period ratio of planets
         temp2 = lines[inc]
         tempt = temp2.split("\t")
         tt = float(tempt[0])
-        if tt > 70000 and tt < 80000:
+        if tt > 30000 and tt < 70000:
             temp2out = lines[inc + (outer - inner)]
             temptout = temp2out.split("\t")
             e0avg = np.append(e0avg, float(tempt[2]))
             p0avg = np.append(p0avg, float(temptout[3])/float(tempt[3]))
-        elif tt > 80000:
-            e0 = np.append(e0, np.median(e0avg))
-            p0 = np.append(e0, np.median(p0avg))
+        elif tt > 70000:
+            e0 = np.append(e0, np.mean(e0avg))
+            p0 = np.append(p0, np.mean(p0avg))    #initial period ratio
             exit = 1
+            if abs(np.mean(p0avg) - 2.0) > 0.01:
+                print name+' has abs(delta) > 0.01 (not in 2:1 MMR)'
+                outMMR += 1
+            else:
+                print name
         inc += N
     inp = np.mean(Pavg)
     simratio = outp/inp
@@ -96,8 +101,6 @@ for k in xrange(0,N_sys): #find period ratio of planets
     tempe = tempe.split("\t")
     time[k] = float(tempe[0])/1000000.
     e = float(tempe[2])
-    #if e > 0.05:
-    #    e = 0.05001
     e_in = np.append(e_in,e)   #eccentricity of inner planet (estimate of tides)
 
 fos.close()
@@ -106,19 +109,27 @@ print 'the median eccentricity of Kepler planets pre-tides is ', np.median(e0)
 if early == 1:
     simp = p0
     sime = e0
-    xmax = 0.16
+    timelabel = '0'
+    if outMMR > 2:
+        xmax = 0.1
+        xmin = -0.1
+        plt.plot([0,0],[0,1.25],'r--',linewidth=2,label='2:1 MMR')
+    else:
+        xmax = 0.06
+        xmin = 0
 else:
     simp = PRsim
     sime = e_in
     xmax = 0.06
+    timelabel = str(round(max(time)))
 
 binwidth = 0.0001
-plt.hist(PRobs - 2.0, color='black', linewidth=2, bins=np.arange(0., 0.06 + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label='Observed $\Delta$ from 2:1 MMR')
-plt.hist(simp - 2.0, color='green', linewidth=2, bins=np.arange(0., 0.06 + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label='Simulated $\Delta $ from 2:1 MMR after '+str(round(max(time)))+'Myr')
-plt.hist(sime, color='orange', linewidth=2, bins=np.arange(0., 0.15 + binwidth, binwidth), histtype='step', cumulative='true', normed='true', label='Simulated e$_{inner}$')
+#plt.hist(PRobs - 2.0, color='black', linewidth=2, bins=np.arange(-0.1, 0.1 + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label='Observed $\Delta$ from 2:1 MMR')
+plt.hist(simp - 2.0, color='green', linewidth=2, bins=np.arange(-0.1, 0.1 + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label='Simulated $\Delta $ from 2:1 MMR after '+timelabel+'Myr')
+plt.hist(sime, color='orange', linewidth=2, bins=np.arange(-0.1, 0.1 + binwidth, binwidth), histtype='step', cumulative='true', normed='true', label='Simulated e$_{inner}$')
 
 plt.ylim([0,1.25])
-plt.xlim([0,xmax])
+plt.xlim([xmin,xmax])
 plt.xlabel('P$_2$/P$_1$ - 2 or e')
 plt.ylabel('counts, total='+str(len(PRsim)))
 plt.title('Period ratios and Eccentricities of Planets Close to 2:1 MMR. '+ext)
