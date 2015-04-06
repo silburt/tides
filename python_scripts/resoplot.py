@@ -6,8 +6,10 @@ import matplotlib.pyplot as plt
 arg1='2'
 arg2='1'
 thresh=0.06
-simpath='../saved_runs/round11_Mar26migspeedfac0.75'
-ext = '_migspeedfac0.75'
+#simpath='../saved_runs/round12_Mar31msf6Qp5000'
+#ext = '_msf6Qp5000'
+simpath = '../saved_runs/round11_Mar26migspeedfac/migspeedfac3/'
+ext = '_migspeedfac3'
 
 early = 1   #if = 1, plot just before tides start (ini conditions)
 
@@ -111,7 +113,7 @@ if early == 1:
     sime = e0
     timelabel = '0'
     if outMMR > 2:
-        xmax = 0.1
+        xmax = 0.15
         xmin = -0.1
         plt.plot([0,0],[0,1.25],'r--',linewidth=2,label='2:1 MMR')
     else:
@@ -120,13 +122,14 @@ if early == 1:
 else:
     simp = PRsim
     sime = e_in
+    xmin = 0
     xmax = 0.06
     timelabel = str(round(max(time)))
 
 binwidth = 0.0001
-#plt.hist(PRobs - 2.0, color='black', linewidth=2, bins=np.arange(-0.1, 0.1 + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label='Observed $\Delta$ from 2:1 MMR')
-plt.hist(simp - 2.0, color='green', linewidth=2, bins=np.arange(-0.1, 0.1 + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label='Simulated $\Delta $ from 2:1 MMR after '+timelabel+'Myr')
-plt.hist(sime, color='orange', linewidth=2, bins=np.arange(-0.1, 0.1 + binwidth, binwidth), histtype='step', cumulative='true', normed='true', label='Simulated e$_{inner}$')
+plt.hist(PRobs - 2.0, color='black', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label='Observed $\Delta$ from 2:1 MMR')
+plt.hist(simp - 2.0, color='green', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label='Simulated $\Delta $ from 2:1 MMR after '+timelabel+'Myr')
+#plt.hist(sime, color='orange', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step', cumulative='true', normed='true', label='Simulated e$_{inner}$')
 
 plt.ylim([0,1.25])
 plt.xlim([xmin,xmax])

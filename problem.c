@@ -50,7 +50,7 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",1000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",30000000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -58,16 +58,17 @@ void problem_init(int argc, char* argv[]){
     double timefac = 15.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
-    K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
-    double migspeed_fac = atof(argv[2]); //multiply *T by this factor in assignparams.c
+    K           = 10;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
+    mig_forces  = 0;                //If ==0, no migration.
+    afac        = 1.00;             //Factor to increase 'a' of OUTER planets by.
+    //double migspeed_fac = atof(argv[2]); //multiply *T by this factor in assignparams.c
+    double migspeed_fac = 2;
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    //double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
-    double Qpfac = 1;
+    double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
+    //double Qpfac = 100;
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -79,7 +80,7 @@ void problem_init(int argc, char* argv[]){
     char* ext = ".txt";
     strcat(txt_file, dir);
     strcat(txt_file, c);
-    char* str = "_migspeedfac";
+    char* str = "_Qpfac";
     strcat(txt_file, str);
     char* c2 = argv[2];
     strcat(txt_file, c2);
@@ -137,7 +138,7 @@ void problem_init(int argc, char* argv[]){
      
     //**Initial eccentricity**
     //double e=pow(mp/Ms, 0.3333333333);  //Goldreich & Schlichting (2014)
-    double e = 0.01;
+    double e = 0.1;
     double f=0., w=M_PI/2.;
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;
@@ -188,7 +189,7 @@ void problem_init(int argc, char* argv[]){
     
     //tidal delay
     tide_delay = 1.5*mig_fac*max_t_mig; //starts 1.5x after migration finishes
-    if(tide_delay < 60000.) tide_delay = 60000.;
+    if(tide_delay < 80000.) tide_delay = 80000.;
     
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
@@ -416,7 +417,7 @@ void problem_output(){
         
         int output_var=0;
         if(output_check(tmax/100000.)) output_var = 1; //Used to be 100,000
-        else if(t < 70000. && output_check(50.)) output_var = 1; //used to be 100
+        else if(t < 100000. && output_check(100.)) output_var = 1; //used to be 100
         if(output_var == 1){
             omega[i] = atan2(ey,ex);
             if(ey < 0.) omega[i] += 2*M_PI;

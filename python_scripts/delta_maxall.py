@@ -10,8 +10,8 @@ from scipy.stats import itemfreq
 arg1='2'
 arg2='1'
 thresh=0.06
-path = '../saved_runs/round11_Mar26migspeedfac'
-pathext = ['2','1.25','1','0.75','0.5','0.25','0.125','0.10','0.0625']
+path = '../saved_runs/round11_Mar26migspeedfac/migspeedfac'
+pathext = ['15','10','6','4','3','2','1.25','1','0.75','0.5','0.25','0.0625']
 N_path = len(pathext)
 ext = '_migspeedfac'
 
@@ -84,6 +84,7 @@ while i < N_sys:
     if len(e0run_in > 0):
         emax_index = int(np.argmax(e0run_in))      #index of emax, regardless of which migspeedfac it belongs to.
         migfac_index = np.append(migfac_index,j_tracker[emax_index]) #info of which migspeedfac it belongs to
+        print e0run_in, j_tracker
         e_in = e0run_in[emax_index]
         e_out = e0run_out[emax_index]
         a_in = a0run_in[emax_index]
@@ -94,7 +95,7 @@ while i < N_sys:
     i += 2
 
 #count occurrences of where emax for each system is coming from (i.e. which migspeedfac)
-print migfac_index
+#print migfac_index
 freq = itemfreq(migfac_index)
 N_diff = freq.shape[0]
 for i in xrange(0,N_diff):

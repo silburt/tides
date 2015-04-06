@@ -40,6 +40,8 @@ void assignparams(double* Qp, double Qpfac, double mp, double rp, double* T, dou
         *Qp = Qpfac*1./(2.2e4); //Lowest Neptune value (Lee/Fabrycky/Lin 2013)
     } else if(rp >= 0.1){
         *Qp = Qpfac*1./(5.4e4); //Lowest Saturn value (Lee/Fabrycky/Lin 2013)
+    } else if(rp <0.005){
+        *Qp = Qpfac*10000.;
     } else{
         *Qp = Qpfac*1./40.;   //lowest Earth value (Lee/Fabrycky/Lin 2013)
     }
