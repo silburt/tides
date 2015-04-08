@@ -28,6 +28,7 @@ D = np.zeros(0)
 dD = np.zeros(0)    #Difference in Delta between numerics & theory, used when numth_comp ==1
 dafin = np.zeros(0) #Difference in final 'a' between numerics & theory, used when numth_comp ==1 (inner planet)
 dafout = np.zeros(0)#Difference in final 'a' between numerics & theory, used when numth_comp ==1 (outer planet)
+N_avg_outer = 100   #number of lines to average over when getting final eccentricity/semi-major axis
 i=0
 j=0
 while i < N_sys:
@@ -40,15 +41,23 @@ while i < N_sys:
     fos = open(path+'orbits_'+systems[i][1]+''+ext+'.txt','r')
     if numth_comp == 1:         #extract final a and e of inner/outer planets to compare.
         lines = fos.readlines()
-        tempin = lines[-1-N+inner+1]
-        temp_in = tempin.split("\t")
-        tmax = float(temp_in[0])
-        a_fin = float(temp_in[1])
-        e_fin = float(temp_in[2])
-        tempout = lines[-1-N+outer+1]
-        temp_out = tempout.split("\t")
-        a_fout = float(temp_out[1])
-        e_fout = float(temp_out[2])
+        e1_in = np.zeros(0)
+        e1_out = np.zeros(0)
+        a1_in = np.zeros(0)
+        a1_out = np.zeros(0)
+        for k in xrange(1,N_avg_outer+1):
+            tempin = lines[-1-k*N+inner+1]
+            temp_in = tempin.split("\t")
+            a1_in = np.append(a1_in,float(temp_in[1]))
+            e1_in = np.append(e1_in,float(temp_in[2]))
+            tempout = lines[-1-k*N+outer+1]
+            temp_out = tempout.split("\t")
+            a1_out = np.append(a1_out,float(temp_out[1]))
+            e1_out = np.append(e1_out,float(temp_out[2]))
+        a_fin = np.median(a1_in)
+        e_fin = np.median(e1_in)
+        a_fout = np.median(a1_out)
+        e_fout = np.median(e1_out)
     else:
         lines = []
         for k in xrange(0,50000):
@@ -61,7 +70,7 @@ while i < N_sys:
     a0avg_out = np.zeros(0)
     exit = 0
     dt = 0
-    while exit != 1:
+    while exit != 1:    #now get initial values, before tides are turned on.
         tempin = lines[inc_in]
         temp_in = tempin.split("\t")
         tt = float(temp_in[0])
@@ -92,6 +101,7 @@ while i < N_sys:
                 dafout = np.append(dafout, (a_fout_th - a_fout)/(a_out - a_fout))
                 #print e_in, e_fin, e_out, e_fout, Dth, Dnum, (Dnum - Dth)/Dnum, (a_fin_th - a_fin)/a_fin, (a_fout_th - a_fout)/a_fout
                 #print e_in, e_fin, a_in, a_in - a_fin, a_fin - a_fin_th, '(outer)',e_out, e_fout, a_out, a_out - a_fout, a_fout_th - a_fout
+                print (Dnum - Dth)/Dth, Dnum, Dth, N
             exit = 1
         inc_in += N
         inc_out += N

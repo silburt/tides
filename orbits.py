@@ -1,10 +1,11 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.optimize import curve_fit
 import math
 import matplotlib.cm as cm
 pi = math.pi
-analytics = 0
+analytics = 1
 arg_true=0
 
 #Concerns:  1) The eccentricity I'm supposed to use is at the libration center. How do I get that?
@@ -27,6 +28,8 @@ def resbreak2(mp,rp,Qp,a,e,Ms):
     if tau > tau_a and tau < tau_c:
         print 'Planets will leave resonance'
 
+def func(x, a, b):
+    return a * np.exp(-b * x)
 
 #time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
 file_name=str(sys.argv[1])
@@ -70,9 +73,10 @@ data = np.loadtxt(fos, delimiter="	")
 
 #Figure out array index where eccentricity has settled (i.e. post migration)
 ini = np.amax(mig)
-fini = ini + 20000
+fini = 60000
 i_tide = 0
 f_tide = 0
+
 var = 0
 p=data[0::N]
 for i in xrange(0,len(p[:,0])):
@@ -95,20 +99,6 @@ if arg2==11:
             if(abs(p[-1,3]/(2*q[-1,3]) - 1) < 0.06):
                 plt.plot(p[i_tide:-1,arg1], p[i_tide:-1,3]/q[i_tide:-1,3] - 2., 'o'+colors[inc], label='P$_{'+str(i+1)+',ctlg}$ ='+str(round(P[i],2))+' d, P$_{'+str(j+1)+',ctlg}$='+str(round(P[j],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
                 inc += 1
-                #mp_array = np.array([mp[j], mp[i]])
-                #rp_array = np.array([rp[j], rp[i]])
-                #Qp_array = np.array([Qp[j], Qp[i]])
-                #a_array = np.array([np.mean(q[i_tide:f_tide,1]), np.mean(p[i_tide:f_tide,1])])
-                #e_array = np.array([np.mean(q[i_tide:f_tide,2]), np.mean(p[i_tide:f_tide,2])])
-                #resbreak2(mp_array,rp_array,Qp_array,a_array,e_array,Ms)
-
-                #cond = resbreak2(mp_array,rp_array,Qp_array,a_array,e_array,Ms)
-                #print 'gamma = '+str(cond)+', gamma_c = 1.6'
-                #emean = np.mean(q[i_tide:f_tide,2])
-                #resbreak_mean = (3.*emean**2)**1.5 *Ms/(31.353*mp[i])
-                #print 'res_break min, mean, max = '+str(round(resbreak_min,2))+ ', '+str(round(resbreak_mean,2))+ ', '+str(round(resbreak_max,2))+ ' (requires > 1)'
-                #if resbreak_min > 1 or resbreak_max > 1:
-                    #plt.plot([1/lne, 1/lne],[-0.01,0.01], 'k--', label=r'$\tau_e$ = '+str(round(1/lne/1000000.,1))+' Myr', linewidth=2)
 
 elif arg2==12:
     q=data[arg1+1::N]
@@ -148,25 +138,20 @@ if arg2==2 and analytics==1:
     time = np.arange(0,p[-1,0],p[-1,0]/200.)
     for i in range(0,N):
         p=data[i::N]
-        a=np.mean(p[i_tide:f_tide,1])
+        a=np.median(p[i_tide:f_tide,1])
         rad = rp[i]*0.00464913 #Solar Radii to AU
         R5a5 = (rad/a)**5
         GM3a3 = (Ms/a)**1.5
-        edot_e = -(9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
-        e_t = math.e**(edot_e*time)*np.mean(p[i_tide:f_tide,2]) #p[i,2] is a constant of integration, initial e.
-        if i == 1:
-            plt.plot(time[arg4:arg3], e_t[arg4:arg3], 'k-.', linewidth=3, label='theoretical e(t)')
-        else:
-            plt.plot(time[arg4:arg3], e_t[arg4:arg3], 'k-.', linewidth=3)
-        tau = -1./edot_e
-        emean = np.mean(p[i_tide:f_tide,2])
-        e_eq = np.zeros(len(time))
-        e_eq.fill((emean*emean/6.)**0.5)
-        if i == 0:
-            plt.plot(time[arg4:arg3], e_eq[arg4:arg3], 'k', linewidth = 3, label='e$_{eq}$')
-        else:
-            plt.plot(time[arg4:arg3], e_eq[arg4:arg3], 'k', linewidth = 3)
-        print 'tau_e(planet '+str(i+1)+') = '+str(round(tau/1000000.,0))+' Myr'
+        if mp[i] > 0.0:
+            edot_e = -(9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
+            t_delay = 80000     #delay time before tidal exponential decay starts
+            e_t = np.e**(edot_e*(time - t_delay))*np.median(p[i_tide:f_tide,2]) #p[i,2] is a constant of integration, initial e.
+            if i == 0:
+                plt.plot(time[0:arg3], e_t[0:arg3], 'k-.', linewidth=3, label='theoretical e(t)')
+            else:
+                plt.plot(time[0:arg3], e_t[0:arg3], 'k-.', linewidth=3)
+            tau = -1./edot_e
+            print 'tau_e(planet '+str(i+1)+') = '+str(round(tau/1000000.,0))+' Myr'
         #print 'tau_e(planet '+str(i+1)+') = '+str(round(tau,0))+' Years'
     print 't(simulation)   = '+str(p[-1,0]/1000000.)+' Myr'
 
@@ -193,8 +178,9 @@ if arg2==1 and analytics == 10000:
 #plt.xscale('log')
 #plt.ylim([2,5.5])
 #range=0.05
-#plt.ylim([-range,range])
-#plt.xlim([-range,range])
+#if arg2==2:
+#    plt.ylim([0,0.11])
+plt.xlim([p[arg4,0],p[arg3,0]])
 plt.title(''+name)
 if arg2==12:
     plt.xlabel('e*cos$\phi$')
@@ -204,5 +190,5 @@ if arg2==12:
 else:
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])
-plt.legend(loc='upper left',prop={'size':10})
+plt.legend(loc='upper right',prop={'size':10})
 plt.show()

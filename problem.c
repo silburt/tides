@@ -58,9 +58,9 @@ void problem_init(int argc, char* argv[]){
     double timefac = 15.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
-    K           = 10;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    mig_forces  = 0;                //If ==0, no migration.
-    afac        = 1.00;             //Factor to increase 'a' of OUTER planets by.
+    K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
+    mig_forces  = 1;                //If ==0, no migration.
+    afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
     //double migspeed_fac = atof(argv[2]); //multiply *T by this factor in assignparams.c
     double migspeed_fac = 2;
     
@@ -138,7 +138,7 @@ void problem_init(int argc, char* argv[]){
      
     //**Initial eccentricity**
     //double e=pow(mp/Ms, 0.3333333333);  //Goldreich & Schlichting (2014)
-    double e = 0.1;
+    double e = 0.01;
     double f=0., w=M_PI/2.;
     struct particle p = tools_init_orbit2d(Ms, mp, a, e, w, f);
     p.r = rp;

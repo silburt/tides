@@ -61,7 +61,7 @@ void assignparams(double* Qp, double Qpfac, double mp, double rp, double* T, dou
     
     FILE *write;
     write=fopen(txt_file, "a");
-    fprintf(write, "%f,%f,%f,%f,%f,%f\n", mp,rp,P,*Qp,*T,*t_mig_var);
+    fprintf(write, "%.10f,%f,%f,%f,%f,%f\n", mp,rp,P,*Qp,*T,*t_mig_var);
     fclose(write);
 }
 

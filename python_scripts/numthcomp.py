@@ -6,12 +6,15 @@ import matplotlib.pyplot as plt
 import math
 import pylab
 
-#path = 'numthcomp/orbits_TESTP10j_Qpfac1000.txt'
-path = 'numthcomp/orbits_Kepler-326_Qpfac100.txt'
-N4avg = 50      #number of lines to average e and a over.
+#path = 'numthcomp/orbits_TESTP10k8_Qpfac7500.txt'
+path = 'numthcomp/orbits_Kepler-120_Qpfac1000.txt'
+#path = 'numthcomp/orbits_TESTK57rp_Qpfac7500.txt'
+
 inner = 0       #inner planet
 outer = 1       #outer planet
-N = 3           #number of planets
+N = 2           #number of planets
+
+N4avg = 50      #number of lines to average e and a over.
 mig_off = 30000 #when to start getting the baseline e value
 tides_on = 50000 #when to end getting the baseline e value
 
@@ -42,7 +45,7 @@ while exit != 1:
         ei_out = np.append(ei_out, float(temp_out[2]))
         ai_in = np.append(ai_in, float(temp_in[1]))
         ai_out = np.append(ai_out, float(temp_out[1]))
-    elif tt > tide_on:
+    elif tt > tides_on:
     #elif tt > 4050000:
         e_iin = np.mean(ei_in)       #initial values, before tides are turned on
         e_iout = np.mean(ei_out)
