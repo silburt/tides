@@ -35,6 +35,8 @@ double* t_mig;          /**<Migration timescale calc according to Goldreich & Sc
 double* t_damp;
 double* mu_a;
 double* en;             /**<mean motion array - for pendulum energy>**/
+double* term1;          /**<gold & schlich**/
+double* term2;          /**<gold & schlich**/
 char* c;
 int* phi_i;
 int tide_print;         /**<print message when tides are turned on>**/
@@ -50,7 +52,7 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",30000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",5000000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -58,8 +60,8 @@ void problem_init(int argc, char* argv[]){
     double timefac = 15.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
-    K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    mig_forces  = 1;                //If ==0, no migration.
+    K           = 10;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
+    mig_forces  = atoi(argv[3]);                //If ==0, no migration.
     afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
     //double migspeed_fac = atof(argv[2]); //multiply *T by this factor in assignparams.c
     double migspeed_fac = 2;
@@ -127,6 +129,8 @@ void problem_init(int argc, char* argv[]){
     phi_i = calloc(sizeof(int),_N+1);       //phi index (for outputting resonance angles)
     mu_a = calloc(sizeof(double),_N+1);
     en = calloc(sizeof(double),_N+1);
+    term1 = calloc(sizeof(double),_N+1);
+    term2 = calloc(sizeof(double),_N+1);
     
     //Resonance vars
     double Period[_N],a_f; //a_f = final desired position of planet after mig, a_i = initial migration spot
@@ -366,7 +370,7 @@ void problem_output(){
         double n;
         
         //Tides
-        if(tides_on == 1 && tide_force == 0 && t > tide_delay){
+        if(tides_on == 1 && tide_force == 0 && t > tide_delay && i==1){
             const double a2 = a*a;
             const double rp2 = rp*rp;
             const double R5a5 = rp2*rp2*rp/(a2*a2*a);
@@ -410,6 +414,9 @@ void problem_output(){
                 tide_print = 1;
             }
             
+            term1[i] = 2*e*a*de/dt - da/dt;
+            term2[i] = -3.2*a*e*n;
+            
         } else {
             n = sqrt(mu/(a*a*a)); //Still need to calc this for period.
         }
@@ -418,6 +425,7 @@ void problem_output(){
         int output_var=0;
         if(output_check(tmax/100000.)) output_var = 1; //Used to be 100,000
         else if(t < 100000. && output_check(100.)) output_var = 1; //used to be 100
+        
         if(output_var == 1){
             omega[i] = atan2(ey,ex);
             if(ey < 0.) omega[i] += 2*M_PI;
@@ -432,7 +440,7 @@ void problem_output(){
             double MA = E - e*sin(E);
             lambda[i] = MA + omega[i];
             double phi = 0., phi2 = 0., phi3 = 0.;     //resonant angles
-            if(i>=2){//tailored for 2:1 resonance, between inner/outer planet
+            if(i>1){//tailored for 2:1 resonance, between inner/outer planet
                 phi = 2.*lambda[i] - lambda[i-phi_i[i-1]] - omega[i-phi_i[i-1]];
                 phi2 = 2.*lambda[i] - lambda[i-phi_i[i-1]] - omega[i];
                 phi3 = omega[i-phi_i[i-1]] - omega[i];
@@ -444,7 +452,15 @@ void problem_output(){
             while(phi3 >= 2*M_PI) phi3 -= 2*M_PI;
             while(phi3 < 0.) phi3 += 2*M_PI;
             
-            //calculating Energy in pendulum model, j1=2,j2=-1,j4=-1 (8.6 in S.S.D.)
+            //Calculating deficit in migration due to resonance interaction (Gold&Schlich)
+            int GScalc = 1;
+            double val = 0;
+            if(GScalc==1 && i>1){
+                term2[i-1] *= sin(phi)*mu_a[i];
+                val = term1[i-1] + term2[i-1];
+            }
+            
+            //Calculating Energy in pendulum model, j1=2,j2=-1,j4=-1 (8.6 in S.S.D.)
             int ENcalc = 0;
             double EN = 0,w02 = 0;
             if(i>=2 && ENcalc == 1){
@@ -464,8 +480,8 @@ void problem_output(){
             FILE *append;
             append=fopen(txt_file, "a");
             //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
-            //               eccentric anomaly, mean longitude, resonant angle, de/dt, 1.875/(n*mu^4/3*e)
-            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3);
+            //               eccentric anomaly, mean longitude, resonant angle, de/dt, 1.875/(n*mu^4/3*e) |used to be:phi1     phi2     phi3
+            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],term1[i-1],term2[i-1],val);
             fclose(append);
             
             #ifndef INTEGRATOR_WH
@@ -489,4 +505,6 @@ void problem_finish(){
     free(phi_i);
     free(mu_a);
     free(en);
+    free(term1);
+    free(term2);
 }

@@ -67,7 +67,8 @@ for i in range(0,N):
     mig[i] = float(header[5])
 
 #Load numerical data
-names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Libration Timescale (order of mag.)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','G/G0 - 1']
+#names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Libration Timescale (order of mag.)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','G/G0 - 1']
+names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','2ea(de/dt) - (da/dt)',"-3.2(mu')aen(sinphi)","2ea(de/dt) - (da/dt) - 3.2(mu')aen(sinphi)",'Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','G/G0 - 1']
 colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
 
@@ -113,10 +114,6 @@ elif arg2==12:
     plt.scatter(x[arg4:arg3], y[arg4:arg3], c=gradient[arg4:arg3], cmap=cm.rainbow, lw=0, label='t$_{max}$ = '+str(round(q[-1,0]/1000000.))+' Myr', alpha = 0.7)
     plt.axhline(0, color='black')
     plt.axvline(0, color='black')
-elif arg2==8:
-    planet = 1
-    p=data[planet::N]
-    plt.plot(p[arg4:arg3,arg1], p[arg4:arg3,arg2], 'o'+colors[planet], label='m$_{'+str(planet+1)+'}$='+str(round(100*mp[planet]/(3*10**(-6)))/100.)+' m$_{earth}$', markeredgecolor='none')
 else:
     for i in range(0,N): #range(0,N) only goes to N-1
         p=data[i::N]
@@ -176,10 +173,10 @@ if arg2==1 and analytics == 10000:
 #de = -dt*(9.*pi*0.5)*Qp*GM3a3*R5a5*e/mp
 #plt.yscale('log')
 #plt.xscale('log')
-#plt.ylim([2,5.5])
+#plt.ylim([10.8,11.3])
 #range=0.05
-#if arg2==2:
-#    plt.ylim([0,0.11])
+if arg2==2:
+    plt.ylim([0,0.2])
 plt.xlim([p[arg4,0],p[arg3,0]])
 plt.title(''+name)
 if arg2==12:
