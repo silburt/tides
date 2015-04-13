@@ -74,7 +74,7 @@ data = np.loadtxt(fos, delimiter="	")
 
 #Figure out array index where eccentricity has settled (i.e. post migration)
 ini = np.amax(mig)
-fini = 60000
+fini = 70000
 i_tide = 0
 f_tide = 0
 

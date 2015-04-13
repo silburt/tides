@@ -69,3 +69,50 @@ void special_cases(char* sysname, int i, double* mig_fac){
     if(strcmp(sysname, "Kepler-32") == 0 && i == 2) *mig_fac = 1.40;
     if(strcmp(sysname, "Kepler-11") == 0 && i == 4){ *mig_fac = 3.0; printf("mig_fac=%f \n",*mig_fac);}
 }
+
+void calc_tidetau(double* tau_a, double* tau_e, double Qp, double mp, double rp, double Ms, double e_default, double a_default, char* sysname, int i, int p_suppress){
+    
+    FILE *f = fopen("reso/Kepler_ei.txt", "r");
+    char temp[512];
+    int line_num = 0, found_result=0, exit=0, char_pos=0;
+    
+    while(exit != 1){
+        line_num += 1;
+        fgets(temp, 512, f);      //get row of data from planets.txt
+        if((strstr(temp, sysname)) != NULL){ //see if matches Kepler system name.
+            char_pos=ftell(f);
+            if(p_suppress == 0 && i==0) printf("Calc tidetau_e & tidetau_a. \n");
+            found_result++;
+            exit = 1;
+        }
+        if(line_num > 100) exit = 1;
+    }
+    if(f) fclose(f);
+    
+    
+    double e,a;      //eccentricity once in resonance
+    if(found_result == 0){
+        printf("calc_tidetau: Cannot find %s! guestimate e_in=0.01, e_o=0.07 \n",sysname);
+        if(i==0){e = 0.01;} else{ e=0.07;}
+        a = a_default;
+    } else {
+        const int numfields=7;
+        int j=0;
+        char *string = temp;
+        double array[numfields];
+        while (j<numfields){
+            char *q = strsep(&string,",");
+            array[j] = (atof(q));
+            j++;
+        }
+    
+        if(i == array[5]){ e = array[1]; a = array[2]; }    //inner res planet
+        else if(i == array[6]){ e = array[3]; a = array[4]; }   //outer res planet
+        else { e = e_default; a = a_default; }  //not a res planet
+    }
+    double a5r5 = pow(a/(rp*0.00464913), 5);
+    *tau_e = 2./(9*M_PI)*(1./Qp)*sqrt(a*a*a/Ms/Ms/Ms)*a5r5*mp;
+    *tau_a = *tau_e/(2*e*e);
+    printf("tau_e,tau_a,e = %f,%f,%f \n",*tau_e,*tau_a,e);
+    
+}

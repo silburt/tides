@@ -7,7 +7,7 @@ import math
 import pylab
 
 #path = 'numthcomp/orbits_TESTP10k8_Qpfac7500.txt'
-path = 'numthcomp/orbits_Kepler-120_Qpfac1000.txt'
+path = 'numthcomp/orbits_TESTP5md_Qpfac100.txt'
 #path = 'numthcomp/orbits_TESTK57rp_Qpfac7500.txt'
 
 inner = 0       #inner planet
@@ -87,7 +87,7 @@ print '***inner planet:***'
 print 'a_i (num) = ',a_iin, 'e_i (num) = ',e_iin
 print 'af_th =',a_fin_th, 'a_i - af_th =', a_iin - a_fin_th
 print 'af_num =',a_fin, 'a_i - af_num =', a_iin - a_fin
-print 'error between th. and num. - D(af) =',dafin
+print 'error between th. and num. (a_th - a_num)/(a_i - a_num) - D(af) =',dafin
 #print '***Delta (distance from resonance)***'
 #print 'D(Theory) =', Dth
 #print 'D(Numerical) =', Dnum

@@ -17,31 +17,7 @@ initial migration to put planets into resonance
 #include "boundaries.h"
 #include "../examples/tides/readplanets.h"
 #include "../examples/tides/assignparams.h"
-
-// A.S. variables added
-double  K;              /**<tau_a/tau_e>*/
-int     _N;             /**<# of planets>*/
-int     tides_on;       /**<Parameter to control if tides on/off>**/
-int     tide_force;     /**<If == 1, implement tides as forces, not a' & e'>**/
-double  tide_delay;     /**<Lag time (in years) to turn on tides after**/
-int     mig_forces;     /**<Parameter to control if migration on/off>**/
-double  afac;           /**<Factor to increase a by of all planets>**/
-int     p_suppress;     /**<If = 1, then suppress all printing>**/
-double* tau_a;          /**< Migration timescale in years for all particles */
-double* tau_e;          /**< Eccentricity damping timescale in years for all particles */
-double* lambda;         /**<Resonant angle>**/
-double* omega;          /**<argument of periapsis>**/
-double* t_mig;          /**<Migration timescale calc according to Goldreich & Schlichting (2014)>**/
-double* t_damp;
-double* mu_a;
-double* en;             /**<mean motion array - for pendulum energy>**/
-double* term1;          /**<gold & schlich**/
-double* term2;          /**<gold & schlich**/
-char* c;
-int* phi_i;
-int tide_print;         /**<print message when tides are turned on>**/
-char txt_file[80];
-//
+#include "../examples/tides/vars.h"
 
 void problem_migration_forces();
 
@@ -60,15 +36,15 @@ void problem_init(int argc, char* argv[]){
     double timefac = 15.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
-    K           = 10;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    mig_forces  = atoi(argv[3]);                //If ==0, no migration.
+    K           = 100;               //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
+    mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
     //double migspeed_fac = atof(argv[2]); //multiply *T by this factor in assignparams.c
     double migspeed_fac = 2;
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
-    tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
+    tide_force = 1;                 //if ==1, implement tides as *forces*, not as e' and a'.
     double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
     //double Qpfac = 100;
     
@@ -130,7 +106,12 @@ void problem_init(int argc, char* argv[]){
     mu_a = calloc(sizeof(double),_N+1);
     en = calloc(sizeof(double),_N+1);
     term1 = calloc(sizeof(double),_N+1);
-    term2 = calloc(sizeof(double),_N+1);
+    term2a = calloc(sizeof(double),_N+1);
+    coeff2 = calloc(sizeof(double),_N+1);
+    if(tide_force == 1){
+        tidetau_a = calloc(sizeof(double),_N+1);
+        tidetau_e = calloc(sizeof(double),_N+1);
+    }
     
     //Resonance vars
     double Period[_N],a_f; //a_f = final desired position of planet after mig, a_i = initial migration spot
@@ -140,7 +121,7 @@ void problem_init(int argc, char* argv[]){
     double mig_fac,max_t_mig;   //automating length of tidal delay/migration
     mig_fac=1.0;
      
-    //**Initial eccentricity**
+    //**Init Planet 1**
     //double e=pow(mp/Ms, 0.3333333333);  //Goldreich & Schlichting (2014)
     double e = 0.01;
     double f=0., w=M_PI/2.;
@@ -149,13 +130,14 @@ void problem_init(int argc, char* argv[]){
     double T=0.,t_mig_var=0.;
     assignparams(&Qp_temp,Qpfac,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P,migspeed_fac);
     p.Qp=Qp_temp;
+    if(tide_force == 1)calc_tidetau(&tidetau_a[1],&tidetau_e[1],Qp_temp,mp,rp,Ms,e,a,c,0,p_suppress);
     particles_add(p);
     if(p_suppress == 0){
         printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
         printf("Planet 1: a=%f,P=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f \n",a,Period[0]*365./2./M_PI,e,mp,rp,Qp_temp,T,t_mig_var);
     }
     
-    //deal with N>1 planets
+    //**Init N>1 planets**
     for(int i=1;i<_N;i++){
         extractplanets(&char_val,&rho,&inc,&mp,&rp,&P,p_suppress);
         Period[i] = 2.*M_PI*P/365.; //obs period in yr/2pi
@@ -185,6 +167,7 @@ void problem_init(int argc, char* argv[]){
         tau_e[i+1]=T/K;                         //e_damping rate
         t_mig[i+1]=mig_fac*t_mig_var;           //length of time migrating for
         t_damp[i+1]=t_mig_var/3.;               //length of time damping migration out for
+        if(tide_force == 1)calc_tidetau(&tidetau_a[i+1],&tidetau_e[i+1],Qp_temp,mp,rp,Ms,e,a/afac,c,i,p_suppress);
         particles_add(p);
         if(t_mig_var > t_mig[i]) max_t_mig = t_mig_var; //find max t_mig_var for tidal_delay
         mig_fac = 1.0;                          //reset
@@ -259,71 +242,7 @@ void problem_migration_forces(){
     }
     
     if(tides_on == 1 && tide_force == 1 && t > tide_delay){
-        double fx[N];
-        double fy[N];
-        double fz[N];
-        //radius of planet must be in AU for units to work out since G=1, [t]=yr/2pi, [m]=m_star
-        struct particle com = particles[0];
-        const double Rs5 = pow(com.r*0.00464913,5); //Rs from Solar Radii to AU
-        const double Qpstar = 0.028/1e6;        //stellar k/Q, Wu & Murray (2003)
-        double GM2 = G*com.m*com.m;
-        for(int i=1;i<N;i++){
-            struct particle* p = &(particles[i]);
-            const double m = p->m;
-            const double mu = G*(com.m + m);
-            const double rp = p->r*0.00464913;  //Rp from Solar Radii to AU
-            const double Qp = p->Qp;
-            
-            const double dvx = p->vx-com.vx;
-            const double dvy = p->vy-com.vy;
-            const double dvz = p->vz-com.vz;
-            const double dx = p->x-com.x;
-            const double dy = p->y-com.y;
-            const double dz = p->z-com.z;
-            const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
-            const double r = sqrt ( dx*dx + dy*dy + dz*dz );
-            const double vr = (dx*dvx + dy*dvy + dz*dvz);
-            const double a = -mu/( v*v - 2.*mu/r );
-            
-            //Mignard (1979), implemented in Rodriguez (2013)
-            double r2 = r*r;
-            double r10 = pow(r2,5);         //planet-star distance, AU
-            const double rp2 = pow(rp,2);
-            double n = sqrt( mu/(a*a*a) );
-            double Gmp2 = G*m*m;
-            double kdt_p = Qp/n;                    //tidal lag time, planet
-            double kdt_s = Qpstar/n;
-            double coeffp = -3*kdt_p*GM2*rp2*rp2*rp/r10;   //planet
-            double coeffs = 3*kdt_s*Gmp2*Rs5/r10;  //star
-            fx[i] = (coeffp - coeffs)*(2*dx*vr + r2*dvx);  //assumes rot. speed of planet/star = 0
-            fy[i] = (coeffp - coeffs)*(2*dy*vr + r2*dvy);
-            fz[i] = (coeffp - coeffs)*(2*dz*vr + r2*dvz);
-        }
         
-        for(int i=1;i<N;i++){
-            struct particle* p = &(particles[i]);
-            const double m = p->m;
-            const double mratio = (com.m + m)/(com.m * m);
-            if(i==1 && tide_print == 0){
-                printf("\n fx=%.16f, fy=%.16f,mratio=%f, p->ax=%.16f, p->ay=%.16f \n",fx[i]*mratio,fy[i]*mratio,mratio, p->ax, p->ay);
-                tide_print = 1;
-            }
-            p->ax += mratio*fx[i];
-            p->ay += mratio*fy[i];
-            p->az += mratio*fz[i];
-            for(int j=1;j<N;j++){
-                if(j != i){
-                    p->ax += fx[j]/com.m;
-                    p->ay += fy[j]/com.m;
-                    p->az += fz[j]/com.m;
-                }
-            }
-        }
-        //print message
-        if(tide_print == 0 && p_suppress == 0){
-            printf("\n ***Tides (forces) have just been turned on at t=%f years***\n",t);
-            tide_print = 1;
-        }
     }
 }
 
@@ -415,7 +334,8 @@ void problem_output(){
             }
             
             term1[i] = 2*e*a*de/dt - da/dt;
-            term2[i] = -3.2*a*e*n;
+            coeff2[i] = 1.26*a*n;
+            term2a[i] = 2.38*e;
             
         } else {
             n = sqrt(mu/(a*a*a)); //Still need to calc this for period.
@@ -455,9 +375,13 @@ void problem_output(){
             //Calculating deficit in migration due to resonance interaction (Gold&Schlich)
             int GScalc = 1;
             double val = 0;
+            double term2 = 0;
             if(GScalc==1 && i>1){
-                term2[i-1] *= sin(phi)*mu_a[i];
-                val = term1[i-1] + term2[i-1];
+                term2a[i-1] *= sin(phi);
+                double term2b = 0.428*e*sin(phi2);
+                coeff2[i-1] *= m/com.m;
+                term2 = coeff2[i-1]*(term2a[i-1] - term2b);
+                val = term1[i-1] - term2;
             }
             
             //Calculating Energy in pendulum model, j1=2,j2=-1,j4=-1 (8.6 in S.S.D.)
@@ -481,7 +405,7 @@ void problem_output(){
             append=fopen(txt_file, "a");
             //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
             //               eccentric anomaly, mean longitude, resonant angle, de/dt, 1.875/(n*mu^4/3*e) |used to be:phi1     phi2     phi3
-            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],term1[i-1],term2[i-1],val);
+            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],term1[i-1],term2,val);
             fclose(append);
             
             #ifndef INTEGRATOR_WH
@@ -506,5 +430,6 @@ void problem_finish(){
     free(mu_a);
     free(en);
     free(term1);
-    free(term2);
+    free(term2a);
+    free(coeff2);
 }

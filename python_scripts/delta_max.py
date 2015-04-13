@@ -9,12 +9,14 @@ import pylab
 arg1='2'
 arg2='1'
 thresh=0.06
-path = '../saved_runs/round13_Apr1Qpfac100/'
-ext = '_Qpfac100'
+path = '../saved_runs/round8_Mar16Qpfac1/'
+ext = '_Qpfac1'
 #path = '../saved_runs/round11_Mar26migspeedfac/migspeedfac1.25/'
 #ext = '_migspeedfac1.25'
 
 numth_comp = 1        #Compare numerics and theory
+
+output = open('../reso/Kepler_ei.txt','w')
 
 systems=np.genfromtxt('../reso/full/'+arg1+':'+arg2+'_systems_fulldetail.txt', delimiter=',', dtype=(int,"|S10","|S10","|S10",int,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,int)) #system names
 N_sys = len(systems)
@@ -86,6 +88,7 @@ while i < N_sys:
             e_out = np.median(e0avg_out)
             a_in = np.median(a0avg_in)
             a_out = np.median(a0avg_out)
+            output.write(systems[i][1]+','+str(e_in)+','+str(a_in)+','+str(e_out)+','+str(a_out)+','+str(inner)+','+str(outer)+'\n')
             e0_in = np.append(e0_in, e_in)
             e0_out = np.append(e0_out, e_out)
             a0_in = np.append(a0_in, a_in)

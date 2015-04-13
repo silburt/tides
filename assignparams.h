@@ -13,4 +13,6 @@ void assignparams(double *Qp, double Qpfac, double mp, double rp, double* T,doub
 
 void special_cases(char* sysname, int i, double* mig_fac);
 
+void calc_tidetau(double* tau_a, double* tau_e, double Qp, double mp, double rp, double Ms, double e_default, double a_default, char* sysname, int i, int p_suppress);
+
 #endif
