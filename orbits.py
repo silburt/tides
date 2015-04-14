@@ -51,7 +51,6 @@ name=header[0]
 Ms = float(header[1])
 Rs = float(header[2])
 N = int(header[3])
-tide_delay = float(header[4])
 rp = np.zeros(N)
 mp = np.zeros(N)
 P = np.zeros(N)
@@ -65,6 +64,8 @@ for i in range(0,N):
     P[i] = float(header[2])
     Qp[i] = float(header[3])
     mig[i] = float(header[5])
+header = fos.readline()
+tide_delay = float(header[0])
 
 #Load numerical data
 #names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Libration Timescale (order of mag.)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','G/G0 - 1']
@@ -74,7 +75,7 @@ data = np.loadtxt(fos, delimiter="	")
 
 #Figure out array index where eccentricity has settled (i.e. post migration)
 ini = np.amax(mig)
-fini = 70000
+fini = tide_delay
 i_tide = 0
 f_tide = 0
 

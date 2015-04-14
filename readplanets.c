@@ -79,7 +79,7 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
     //write star characteristics to file. Planet characteristics come in assignparams.c
     FILE *write;
     write=fopen(txt_file, "a");
-    fprintf(write, "%s,%f,%f,%i,",sysname,*Ms,*Rs,*_N);
+    fprintf(write, "%s,%f,%f,%i \n",sysname,*Ms,*Rs,*_N);
     fclose(write);
 }
 

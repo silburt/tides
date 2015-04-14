@@ -70,7 +70,7 @@ void special_cases(char* sysname, int i, double* mig_fac){
     if(strcmp(sysname, "Kepler-11") == 0 && i == 4){ *mig_fac = 3.0; printf("mig_fac=%f \n",*mig_fac);}
 }
 
-//Calculate tau_a, tau_e for Paploizou & Larwood (2000) version of tides.
+//Calculate tidal tau_a=a/a', tau_e=e/e' for Paploizou & Larwood (2000) version of tides.
 void calc_tidetau(double* tau_a, double* tau_e, double Qp, double mp, double rp, double Ms, double e_default, double a_default, char* sysname, int i, int p_suppress){
     
     FILE *f = fopen("reso/Kepler_ei.txt", "r");
