@@ -176,7 +176,7 @@ if arg2==1 and analytics == 10000:
 #plt.ylim([10.8,11.3])
 #range=0.05
 if arg2==2:
-    plt.ylim([0,0.2])
+    plt.ylim([0.0,0.15])
 plt.xlim([p[arg4,0],p[arg3,0]])
 plt.title(''+name)
 if arg2==12:

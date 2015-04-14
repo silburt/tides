@@ -9,8 +9,8 @@ import pylab
 arg1='2'
 arg2='1'
 thresh=0.06
-path = '../saved_runs/round8_Mar16Qpfac1/'
-ext = '_Qpfac1'
+path = '../saved_runs/round13_Apr1Qpfac100/'
+ext = '_Qpfac100'
 #path = '../saved_runs/round11_Mar26migspeedfac/migspeedfac1.25/'
 #ext = '_migspeedfac1.25'
 

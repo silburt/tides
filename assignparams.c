@@ -70,6 +70,7 @@ void special_cases(char* sysname, int i, double* mig_fac){
     if(strcmp(sysname, "Kepler-11") == 0 && i == 4){ *mig_fac = 3.0; printf("mig_fac=%f \n",*mig_fac);}
 }
 
+//Calculate tau_a, tau_e for Paploizou & Larwood (2000) version of tides.
 void calc_tidetau(double* tau_a, double* tau_e, double Qp, double mp, double rp, double Ms, double e_default, double a_default, char* sysname, int i, int p_suppress){
     
     FILE *f = fopen("reso/Kepler_ei.txt", "r");
@@ -92,8 +93,8 @@ void calc_tidetau(double* tau_a, double* tau_e, double Qp, double mp, double rp,
     
     double e,a;      //eccentricity once in resonance
     if(found_result == 0){
-        printf("calc_tidetau: Cannot find %s! guestimate e_in=0.01, e_o=0.07 \n",sysname);
-        if(i==0){e = 0.01;} else{ e=0.07;}
+        printf("calc_tidetau: Cannot find %s! guestimate e_in=e_default, e_o=0.0925 \n",sysname);
+        if(i==0){e = e_default;} else{ e=0.0925;}
         a = a_default;
     } else {
         const int numfields=7;

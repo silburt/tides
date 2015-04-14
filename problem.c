@@ -28,7 +28,7 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",5000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",1500000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -40,13 +40,14 @@ void problem_init(int argc, char* argv[]){
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
     //double migspeed_fac = atof(argv[2]); //multiply *T by this factor in assignparams.c
-    double migspeed_fac = 2;
+    double migspeed_fac = 1;
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
-    tide_force = 1;                 //if ==1, implement tides as *forces*, not as e' and a'.
+    tide_force = atoi(argv[3]);     //if ==1, implement tides as *forces*, not as e' and a'.
     double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
     //double Qpfac = 100;
+    tide_print = 0;
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -59,16 +60,19 @@ void problem_init(int argc, char* argv[]){
     strcat(txt_file, dir);
     strcat(txt_file, c);
     char* str = "_Qpfac";
-    strcat(txt_file, str);
     char* c2 = argv[2];
+    strcat(txt_file, str);
     strcat(txt_file, c2);
+    if(tide_force == 1){
+        char* forcestring = "_tideF";   //implementing tides as forces
+        strcat(txt_file, forcestring);
+    }
     strcat(txt_file, ext);
     
     //Delete previous file if it exists.
     char sys_arg[50] = "rm -v ";
     strcat(sys_arg,txt_file);
     system(sys_arg); // delete previous output file
-    tide_print = 0;
     
     // Initial conditions
     if(p_suppress == 0) printf("You have chosen: %s \n",c);
@@ -242,7 +246,42 @@ void problem_migration_forces(){
     }
     
     if(tides_on == 1 && tide_force == 1 && t > tide_delay){
-        
+        struct particle com = particles[0]; // calculate add. forces w.r.t. center of mass
+        for(int i=1;i<N;i++){
+            struct particle* p = &(particles[i]);
+            const double dvx = p->vx - com.vx;
+            const double dvy = p->vy - com.vy;
+            const double dvz = p->vz - com.vz;
+            
+//          if(i==1){
+                //Papaloizou & Larwood (2000)
+                if (tidetau_a[i] != 0.){
+                    p->ax -=  dvx/(2.*tidetau_a[i]);
+                    p->ay -=  dvy/(2.*tidetau_a[i]);
+                    p->az -=  dvz/(2.*tidetau_a[i]);
+                }
+            
+                //Papaloizou & Larwood (2000)
+                if (tidetau_e[i] != 0. ){ 	// need h and e vectors for both types
+                    const double dx = p->x-com.x;
+                    const double dy = p->y-com.y;
+                    const double dz = p->z-com.z;
+                
+                    const double r = sqrt ( dx*dx + dy*dy + dz*dz );
+                    const double vr = (dx*dvx + dy*dvy + dz*dvz)/r;
+
+                    p->ax += -2./tidetau_e[i]*vr*dx/r;
+                    p->ay += -2./tidetau_e[i]*vr*dy/r;
+                    p->az += -2./tidetau_e[i]*vr*dz/r;
+                }
+                com = tools_get_center_of_mass(com,particles[i]);
+            //}
+        }
+        //print message
+        if(tide_print == 0 && p_suppress == 0){
+            printf("\n ***Tides (forces!) have just been turned on at t=%f years***\n",t);
+            tide_print = 1;
+        }
     }
 }
 
@@ -250,168 +289,177 @@ void problem_inloop(){
 }
 
 void problem_output(){
-    //Calculate Orbital Elements
-    struct particle com = particles[0];
-    for(int i=1;i<N;i++){
-        struct particle* par = &(particles[i]);
-        const double m = par->m;
-        const double mu = G*(com.m + m);
-        mu_a[i] = mu;
-        //radius of planet must be in AU for units to work out since G=1, [t]=yr/2pi, [m]=m_star
-        const double rp = par->r*0.00464913;       //Rp from Solar Radii to AU
-        const double Qp = par->Qp;
-
-        const double dvx = par->vx-com.vx;
-        const double dvy = par->vy-com.vy;
-        const double dvz = par->vz-com.vz;
-        const double dx = par->x-com.x;
-        const double dy = par->y-com.y;
-        const double dz = par->z-com.z;
-        
-        const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
-        const double r = sqrt ( dx*dx + dy*dy + dz*dz );
-        const double vr = (dx*dvx + dy*dvy + dz*dvz)/r;
-        const double ex = 1./mu*( (v*v-mu/r)*dx - r*vr*dvx );
-        const double ey = 1./mu*( (v*v-mu/r)*dy - r*vr*dvy );
-        const double ez = 1./mu*( (v*v-mu/r)*dz - r*vr*dvz );
-        double e = sqrt( ex*ex + ey*ey + ez*ez );   // eccentricity
+    //conditions for entering loops
+    int output_var=0;
+    if(output_check(tmax/100000.)) output_var = 1; //Used to be 100,000
+    else if(t < 100000. && output_check(100.)) output_var = 1; //used to be 100
+    int tide_go = 0;
+    if(tides_on == 1 && tide_force == 0 && t > tide_delay) tide_go = 1;
+    
+    //**Main Loop**
+    if(output_var == 1 || tide_go == 1){
+        //Calculate Orbital Elements
+        struct particle com = particles[0];
+        for(int i=1;i<N;i++){
+            struct particle* par = &(particles[i]);
+            const double m = par->m;
+            const double mu = G*(com.m + m);
+            mu_a[i] = mu;
+            //radius of planet must be in AU for units to work out since G=1, [t]=yr/2pi, [m]=m_star
+            const double rp = par->r*0.00464913;       //Rp from Solar Radii to AU
+            const double Qp = par->Qp;
             
-        // true anomaly + periapse (wiki, Fund. of Astrodyn. and App., by Vallado, 2007)
-        const double rdote = dx*ex + dy*ey + dz*ez;
-        double cosf = rdote/(e*r);
-        if(cosf >= 1.) cosf = 1.;
-        if(cosf <= -1.) cosf = -1.;
-        double sinf = sqrt(1. - cosf*cosf);
-        if(vr < 0.) sinf *= -1.;
-        double const sinwf = dy/r;
-        double const coswf = dx/r;
-        double a = r*(1. + e*cosf)/(1. - e*e);
-        double n;
-        
-        //Tides
-        if(tides_on == 1 && tide_force == 0 && t > tide_delay && i==1){
-            const double a2 = a*a;
-            const double rp2 = rp*rp;
-            const double R5a5 = rp2*rp2*rp/(a2*a2*a);
-            const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a2*a));
-            const double de = -dt*(9.*M_PI*0.5)*Qp*GM3a3*R5a5*e/m;   //Tidal change for e
-            const double da = 2.*a*e*de;                             //Tidal change for a
+            const double dvx = par->vx-com.vx;
+            const double dvy = par->vy-com.vy;
+            const double dvz = par->vz-com.vz;
+            const double dx = par->x-com.x;
+            const double dy = par->y-com.y;
+            const double dz = par->z-com.z;
             
-            a += da;
-            e += de;
-        
-            //Re-update coords.
-            const double r_new = a*(1. - e*e)/(1. + e*cosf);
-            const double x_new = r_new*coswf + com.x;
-            const double y_new = r_new*sinwf + com.y;
-            n = sqrt(mu/(a*a*a));
+            const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
+            const double r = sqrt ( dx*dx + dy*dy + dz*dz );
+            const double vr = (dx*dvx + dy*dvy + dz*dvz)/r;
+            const double ex = 1./mu*( (v*v-mu/r)*dx - r*vr*dvx );
+            const double ey = 1./mu*( (v*v-mu/r)*dy - r*vr*dvy );
+            const double ez = 1./mu*( (v*v-mu/r)*dz - r*vr*dvz );
+            double e = sqrt( ex*ex + ey*ey + ez*ez );   // eccentricity
             
-            const double term = n*a/sqrt(1.- e*e);
-            const double rdot = term*e*sinf;
-            const double rfdot = term*(1. + e*cosf);
-            const double vx_new = rdot*coswf - rfdot*sinwf + com.vx;
-            const double vy_new = rdot*sinwf + rfdot*coswf + com.vy;
-
-            //Stop program if nan values being produced.
-            if(x_new!=x_new || y_new!=y_new || vx_new!=vx_new ||vy_new!=vy_new){
-                printf("\n !!Failed run for: %s \n",c);
-                printf("cartesian before: dx=%f,dy=%f,dz=%f,ex=%f,ey=%f,ez=%f,r=%f,vx=%f,vy=%f,com.vx=%f,com.vy=%f,v=%f \n",dx,dy,dz,ex,ey,ez,r,par->vx,par->vy,com.vx,com.vy,v);
-                printf("Orbital elements: mu=%f,e=%f,a=%f,cosf=%.15f,sinf=%.15f,dt=%f,de=%f,da=%f,GM3a3=%f,R5a5=%f \n",mu,e,a,cosf,sinf,dt,de,da,GM3a3,R5a5);
-                printf("\n cartesian after: x_new=%f,y_new=%f,vx_new=%f,vy_new=%f,term=%f,rdot=%f,rfdot=%f \n",x_new,y_new,vx_new,vy_new,term,rdot,rfdot);
-                exit(0);
-            }
-        
-            par->x = x_new;
-            par->y = y_new;
-            par->vx = vx_new;
-            par->vy = vy_new;
-            com = tools_get_center_of_mass(com,particles[i]);
+            // true anomaly + periapse (wiki, Fund. of Astrodyn. and App., by Vallado, 2007)
+            const double rdote = dx*ex + dy*ey + dz*ez;
+            double cosf = rdote/(e*r);
+            if(cosf >= 1.) cosf = 1.;
+            if(cosf <= -1.) cosf = -1.;
+            double sinf = sqrt(1. - cosf*cosf);
+            if(vr < 0.) sinf *= -1.;
+            double const sinwf = dy/r;
+            double const coswf = dx/r;
+            double a = r*(1. + e*cosf)/(1. - e*e);
+            double n;
             
-            //print message
-            if(tide_print == 0 && p_suppress == 0){
-                printf("\n ***Tides (a', e') have just been turned on at t=%f years***\n",t);
-                tide_print = 1;
-            }
-            
-            term1[i] = 2*e*a*de/dt - da/dt;
-            coeff2[i] = 1.26*a*n;
-            term2a[i] = 2.38*e;
-            
-        } else {
-            n = sqrt(mu/(a*a*a)); //Still need to calc this for period.
-        }
-        en[i] = n;
-        
-        int output_var=0;
-        if(output_check(tmax/100000.)) output_var = 1; //Used to be 100,000
-        else if(t < 100000. && output_check(100.)) output_var = 1; //used to be 100
-        
-        if(output_var == 1){
-            omega[i] = atan2(ey,ex);
-            if(ey < 0.) omega[i] += 2*M_PI;
-            double cosE = (a - r)/(a*e);
-            double E;
-            if(cosf > 1. || cosf < -1.){
-                E = M_PI - M_PI*cosE;
+            //Tides
+            if(tide_go == 1){
+                const double a2 = a*a;
+                const double rp2 = rp*rp;
+                const double R5a5 = rp2*rp2*rp/(a2*a2*a);
+                const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a2*a));
+                const double de = -dt*(9.*M_PI*0.5)*Qp*GM3a3*R5a5*e/m;   //Tidal change for e
+                const double da = 2.*a*e*de;                             //Tidal change for a
+                
+                a += da;
+                e += de;
+                
+                //Re-update coords.
+                const double r_new = a*(1. - e*e)/(1. + e*cosf);
+                const double x_new = r_new*coswf + com.x;
+                const double y_new = r_new*sinwf + com.y;
+                n = sqrt(mu/(a*a*a));
+                
+                const double term = n*a/sqrt(1.- e*e);
+                const double rdot = term*e*sinf;
+                const double rfdot = term*(1. + e*cosf);
+                const double vx_new = rdot*coswf - rfdot*sinwf + com.vx;
+                const double vy_new = rdot*sinwf + rfdot*coswf + com.vy;
+                
+                //Stop program if nan values being produced.
+                if(x_new!=x_new || y_new!=y_new || vx_new!=vx_new ||vy_new!=vy_new){
+                    printf("\n !!Failed run for: %s \n",c);
+                    printf("cartesian before: dx=%f,dy=%f,dz=%f,ex=%f,ey=%f,ez=%f,r=%f,vx=%f,vy=%f,com.vx=%f,com.vy=%f,v=%f \n",dx,dy,dz,ex,ey,ez,r,par->vx,par->vy,com.vx,com.vy,v);
+                    printf("Orbital elements: mu=%f,e=%f,a=%f,cosf=%.15f,sinf=%.15f,dt=%f,de=%f,da=%f,GM3a3=%f,R5a5=%f \n",mu,e,a,cosf,sinf,dt,de,da,GM3a3,R5a5);
+                    printf("\n cartesian after: x_new=%f,y_new=%f,vx_new=%f,vy_new=%f,term=%f,rdot=%f,rfdot=%f \n",x_new,y_new,vx_new,vy_new,term,rdot,rfdot);
+                    exit(0);
+                }
+                
+                par->x = x_new;
+                par->y = y_new;
+                par->vx = vx_new;
+                par->vy = vy_new;
+                com = tools_get_center_of_mass(com,particles[i]);
+                
+                //print message
+                if(tide_print == 0 && p_suppress == 0){
+                    printf("\n ***Tides (a', e') have just been turned on at t=%f years***\n",t);
+                    tide_print = 1;
+                }
+                
+                //For (Gold&Schlich)
+                term1[i] = 2*e*a*de/dt - da/dt;
+                coeff2[i] = 1.26*a*n;
+                term2a[i] = 2.38*e;
+                
             } else {
-                E = acos(cosE);
+                n = sqrt(mu/(a*a*a)); //Still need to calc this for period.
             }
-            if(vr < 0.) E = 2.*M_PI - E;
-            double MA = E - e*sin(E);
-            lambda[i] = MA + omega[i];
-            double phi = 0., phi2 = 0., phi3 = 0.;     //resonant angles
-            if(i>1){//tailored for 2:1 resonance, between inner/outer planet
-                phi = 2.*lambda[i] - lambda[i-phi_i[i-1]] - omega[i-phi_i[i-1]];
-                phi2 = 2.*lambda[i] - lambda[i-phi_i[i-1]] - omega[i];
-                phi3 = omega[i-phi_i[i-1]] - omega[i];
-            }
-            while(phi >= 2*M_PI) phi -= 2*M_PI;
-            while(phi < 0.) phi += 2*M_PI;
-            while(phi2 >= 2*M_PI) phi2 -= 2*M_PI;
-            while(phi2 < 0.) phi2 += 2*M_PI;
-            while(phi3 >= 2*M_PI) phi3 -= 2*M_PI;
-            while(phi3 < 0.) phi3 += 2*M_PI;
+            en[i] = n;
             
-            //Calculating deficit in migration due to resonance interaction (Gold&Schlich)
-            int GScalc = 1;
-            double val = 0;
-            double term2 = 0;
-            if(GScalc==1 && i>1){
-                term2a[i-1] *= sin(phi);
-                double term2b = 0.428*e*sin(phi2);
-                coeff2[i-1] *= m/com.m;
-                term2 = coeff2[i-1]*(term2a[i-1] - term2b);
-                val = term1[i-1] - term2;
+            if(output_var == 1){
+                omega[i] = atan2(ey,ex);
+                if(ey < 0.) omega[i] += 2*M_PI;
+                double cosE = (a - r)/(a*e);
+                double E;
+                if(cosf > 1. || cosf < -1.){
+                    E = M_PI - M_PI*cosE;
+                } else {
+                    E = acos(cosE);
+                }
+                if(vr < 0.) E = 2.*M_PI - E;
+                double MA = E - e*sin(E);
+                lambda[i] = MA + omega[i];
+                double phi = 0., phi2 = 0., phi3 = 0.;     //resonant angles
+                if(i>1){//tailored for 2:1 resonance, between inner/outer planet
+                    phi = 2.*lambda[i] - lambda[i-phi_i[i-1]] - omega[i-phi_i[i-1]];
+                    phi2 = 2.*lambda[i] - lambda[i-phi_i[i-1]] - omega[i];
+                    phi3 = omega[i-phi_i[i-1]] - omega[i];
+                }
+                while(phi >= 2*M_PI) phi -= 2*M_PI;
+                while(phi < 0.) phi += 2*M_PI;
+                while(phi2 >= 2*M_PI) phi2 -= 2*M_PI;
+                while(phi2 < 0.) phi2 += 2*M_PI;
+                while(phi3 >= 2*M_PI) phi3 -= 2*M_PI;
+                while(phi3 < 0.) phi3 += 2*M_PI;
+                
+                //Calculating deficit in migration due to resonance interaction (Gold&Schlich)
+                int GScalc = 0;
+                double val = 0;
+                double term2 = 0;
+                if(GScalc==1 && i>1){
+                    term2a[i-1] *= sin(phi);
+                    double term2b = 0.428*e*sin(phi2);
+                    coeff2[i-1] *= m/com.m;
+                    term2 = coeff2[i-1]*(term2a[i-1] - term2b);
+                    val = term1[i-1] - term2;
+                }
+                
+                //Calculating Energy in pendulum model, j1=2,j2=-1,j4=-1 (8.6 in S.S.D.)
+                int ENcalc = 0;
+                double EN = 0,w02 = 0;
+                if(i>=2 && ENcalc == 1){
+                    double afs1 = 0.244190; //Table 8.5 S.S.D.
+                    double afd = -0.749964;
+                    double Cr = (m/com.m)*en[i-phi_i[i-1]]*afd;             //Eq. 8.32
+                    double Cs = (m/com.m)*en[i-phi_i[i-1]]*afs1;
+                    double cosphi = cos(phi);
+                    double wdot = 2*Cs + Cr*cosphi/e;                       //Eq. 8.30
+                    double epsdot = Cs*e*e + 0.5*Cr*e*cosphi;               //Eq. 8.31
+                    double phidot = 2*en[i] - (en[i-phi_i[i-1]] + epsdot) - wdot;
+                    w02 = -3*Cr*en[i-phi_i[i-1]]*e;                  //Eq. 8.47
+                    double sinhphi = sin(0.5*phi);
+                    EN = 0.5*phidot*phidot + 2*w02*sinhphi*sinhphi;  //Eq.8.48
+                }
+                
+                //output orbits in txt_file.
+                FILE *append;
+                append=fopen(txt_file, "a");
+                //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
+                //               eccentric anomaly, mean longitude, resonant angle, de/dt, 1.875/(n*mu^4/3*e) |used to be:phi1     phi2     phi3
+                fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],term1[i-1],term2,val);
+                fclose(append);
+                
+#ifndef INTEGRATOR_WH
+                tools_move_to_center_of_momentum();  	// The WH integrator assumes a heliocentric coordinate system.
+#endif // INTEGRATOR_WH
             }
-            
-            //Calculating Energy in pendulum model, j1=2,j2=-1,j4=-1 (8.6 in S.S.D.)
-            int ENcalc = 0;
-            double EN = 0,w02 = 0;
-            if(i>=2 && ENcalc == 1){
-                double afs1 = 0.244190; //Table 8.5 S.S.D.
-                double afd = -0.749964;
-                double Cr = (m/com.m)*en[i-phi_i[i-1]]*afd;             //Eq. 8.32
-                double Cs = (m/com.m)*en[i-phi_i[i-1]]*afs1;
-                double cosphi = cos(phi);
-                double wdot = 2*Cs + Cr*cosphi/e;                       //Eq. 8.30
-                double epsdot = Cs*e*e + 0.5*Cr*e*cosphi;               //Eq. 8.31
-                double phidot = 2*en[i] - (en[i-phi_i[i-1]] + epsdot) - wdot;
-                w02 = -3*Cr*en[i-phi_i[i-1]]*e;                  //Eq. 8.47
-                double sinhphi = sin(0.5*phi);
-                EN = 0.5*phidot*phidot + 2*w02*sinhphi*sinhphi;  //Eq.8.48
-            }
-            //output orbits in txt_file.
-            FILE *append;
-            append=fopen(txt_file, "a");
-            //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
-            //               eccentric anomaly, mean longitude, resonant angle, de/dt, 1.875/(n*mu^4/3*e) |used to be:phi1     phi2     phi3
-            fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],term1[i-1],term2,val);
-            fclose(append);
-            
-            #ifndef INTEGRATOR_WH
-            tools_move_to_center_of_momentum();  			// The WH integrator assumes a heliocentric coordinate system.
-            #endif // INTEGRATOR_WH
         }
+
     }
 
 	if(output_check(10000.*dt)){
@@ -432,4 +480,8 @@ void problem_finish(){
     free(term1);
     free(term2a);
     free(coeff2);
+    if(tide_force == 1){
+        free(tidetau_a);
+        free(tidetau_e);
+    }
 }
