@@ -16,7 +16,7 @@ def execute(sysname):
 
 #Main multiprocess execution - Give sysname and letters of outer planets close to resonance
 if __name__== '__main__':
-    pool = mp.Pool(processes=4)
+    pool = mp.Pool(processes=length)
     #args=[name[i] for i in xrange(0,length)]    #xrange alreday goes to length-1
     #args=[name[i] for i in xrange(0,3)]
     args=[name[i] for i in xrange(0,length)]

@@ -28,7 +28,7 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",1500000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",750000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -37,13 +37,13 @@ void problem_init(int argc, char* argv[]){
     /* Migration constants */
     K           = 10;               //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.06;             //Factor to increase 'a' of OUTER planets by.
+    afac        = 1.10;             //Factor to increase 'a' of OUTER planets by.
     //double migspeed_fac = atof(argv[2]); //multiply *T by this factor in assignparams.c
     double migspeed_fac = 1;
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
-    tide_force = atoi(argv[3]);     //if ==1, implement tides as *forces*, not as e' and a'.
+    tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
     double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
     //double Qpfac = 100;
     tide_print = 0;

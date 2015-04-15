@@ -44,12 +44,10 @@ void migration(double* tau_a, double* t_mig, int* phi_i, double* max_t_mig, doub
     tau_a[i] = 5.00*migspeed_fac/(n*mu43);
     int k = i - *phi_i;
     if(flag == 1){//i.e. a resonance
-        double rel_speed = 0.75;    //relative migration velocity
-        if(rel_speed*tau_a[k] > 3.75/(n*mu43)){ //i.e. is capture guaranteed?
+        double rel_speed = 0.75;    //*relative* migration velocity (key is relative)
+        if(rel_speed*tau_a[k]/(1. - rel_speed) > 3.75/(n*mu43)){ //condition for certain capture
             tau_a[i] = rel_speed*(tau_a[k]);    //set outer migration rate to rel_speed*tau_a[k]
             printf("** a/a' (outer) = %f a/a' (inner) ** (guarantees migration whilst in resonance) \n",rel_speed);
-        } else if(tau_a[k] - tau_a[i] < 0){ //rel_speed too fast
-            printf("***!!!Divergent migration for Resonant pair!!*** \n");
         }
     }
     *t_mig = mig_fac*(tau_a[i])*(a*afac - a_f)/a_f;  //length of time migrate for, units = yr/2pi
