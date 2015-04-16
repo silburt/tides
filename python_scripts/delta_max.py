@@ -9,8 +9,11 @@ import pylab
 arg1='2'
 arg2='1'
 thresh=0.06
-path = '../saved_runs/round13_Apr1Qpfac100/'
-ext = '_Qpfac100'
+path = '../saved_runs/round19_Apr15Qpfac500K10/'
+ext = '_Qpfac500_K10'
+#path = '../saved_runs/round13_Apr1Qpfac100/'
+#ext = '_Qpfac100'
+
 #path = '../saved_runs/round11_Mar26migspeedfac/migspeedfac1.25/'
 #ext = '_migspeedfac1.25'
 
@@ -64,8 +67,8 @@ while i < N_sys:
         lines = []
         for k in xrange(0,50000):
             lines.append(fos.readline())
-    inc_in = N+1+inner
-    inc_out = N+1+outer
+    inc_in = N+2+inner
+    inc_out = N+2+outer
     e0avg_in = np.zeros(0)
     e0avg_out = np.zeros(0)
     a0avg_in = np.zeros(0)

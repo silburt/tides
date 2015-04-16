@@ -66,6 +66,13 @@ void problem_init(int argc, char* argv[]){
         char* forcestring = "_tideF";   //implementing tides as forces
         strcat(txt_file, forcestring);
     }
+    if(K != 100){
+        char strK[15];
+        int Kint = (int) K;
+        sprintf(strK, "%d", Kint);
+        strcat(txt_file, "_K");
+        strcat(txt_file, strK);
+    }
     strcat(txt_file, ext);
     
     //Delete previous file if it exists.
@@ -75,7 +82,7 @@ void problem_init(int argc, char* argv[]){
     
     // Initial vars
     if(p_suppress == 0) printf("You have chosen: %s \n",c);
-    double Ms,Rs,a,rho,inc,mp,rp,Qp,max_t_mig=0;
+    double Ms,Rs,a,rho,inc,mp,rp,Qp,max_t_mig=0,damp_fac=4.0;
     int char_val, _N;
     
     //Star & Planet 1
@@ -119,7 +126,8 @@ void problem_init(int argc, char* argv[]){
     migration(tau_a, &t_mig[1], 0, &max_t_mig, P, 1, RT, Ms, mp, migspeed_fac, a, afac, p_suppress);   //calc migration speed/timescale
     struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e, w, f);
     p.r = rp;
-    //assignparams(&Qp,Qpfac,mp,rp,&T,&t_mig_var,Ms,txt_file,a,a_f,P[1],migspeed_fac);
+    tau_e[1] = tau_a[1]/K;
+    t_damp[1] = t_mig[1]/damp_fac;
     assignQp(&Qp, Qpfac, rp);
     p.Qp=Qp;
     particles_add(p);
@@ -136,7 +144,7 @@ void problem_init(int argc, char* argv[]){
         assignQp(&Qp, Qpfac, rp);
         migration(tau_a, &t_mig[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, migspeed_fac, a, afac, p_suppress);   //calc v_mig, t_mig
         tau_e[i] = tau_a[i]/K;
-        t_damp[i] = tau_a[i]/4.;
+        t_damp[i] = t_mig[i]/damp_fac;
         f = i*M_PI/4.;
         if(tide_force == 1)calc_tidetau(&tidetau_a[i],&tidetau_e[i],Qp,mp,rp,Ms,e,a/afac,c,i,p_suppress);
         struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e, w, f);

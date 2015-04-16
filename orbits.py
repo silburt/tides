@@ -65,7 +65,9 @@ for i in range(0,N):
     Qp[i] = float(header[3])
     mig[i] = float(header[5])
 header = fos.readline()
+header = header.split(",")
 tide_delay = float(header[0])
+#tide_delay=80000
 
 #Load numerical data
 #names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Libration Timescale (order of mag.)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','G/G0 - 1']
@@ -122,13 +124,10 @@ else:
         if arg2==3:
             plt.plot([p[arg4,0],p[arg3,0]], [P[i], P[i]], label='P$_{catalog}$', color='black', linewidth=2)
     mig_fac = 1.25
-    max_mig = mig_fac*max(mig) + mig_fac*max(mig)/3.
-    max_tide = 3*max_mig
-    if max_tide < 5000.:
-        max_tide = 5000.
+    max_mig = max(mig)
     if analytics == 1:
         plt.plot([max_mig, max_mig], [min(data[arg4:arg3,arg2]),max(data[arg4:arg3,arg2])], label='migration ends now!', color='red', linewidth=2)
-        plt.plot([2*max_mig, 2*max_mig], [min(data[:,arg2]),max(data[:,arg2])], label='tides turned on now!', color='red', linestyle='dashed', linewidth=2)
+        plt.plot([tide_delay, tide_delay], [min(data[:,arg2]),max(data[:,arg2])], label='tides turned on now!', color='red', linestyle='dashed', linewidth=2)
 
 
 #Analytics - plot tidal e - assumes that 'a' is constant, which to first order is true.
@@ -142,7 +141,7 @@ if arg2==2 and analytics==1:
         GM3a3 = (Ms/a)**1.5
         if mp[i] > 0.0:
             edot_e = -(9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
-            t_delay = 80000     #delay time before tidal exponential decay starts
+            t_delay = tide_delay     #delay time before tidal exponential decay starts
             e_t = np.e**(edot_e*(time - t_delay))*np.median(p[i_tide:f_tide,2]) #p[i,2] is a constant of integration, initial e.
             if i == 0:
                 plt.plot(time[0:arg3], e_t[0:arg3], 'k-.', linewidth=3, label='theoretical e(t)')
@@ -176,8 +175,8 @@ if arg2==1 and analytics == 10000:
 #plt.xscale('log')
 #plt.ylim([10.8,11.3])
 #range=0.05
-#if arg2==2:
-#    plt.ylim([0.0,0.15])
+if arg2==2 and analytics == 1:
+    plt.ylim([0.0,0.15])
 plt.xlim([p[arg4,0],p[arg3,0]])
 plt.title(''+name)
 if arg2==12:

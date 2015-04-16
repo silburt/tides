@@ -29,7 +29,7 @@ void migration(double* tau_a, double* t_mig, int* phi_i, double* max_t_mig, doub
             double val = G*Ms*P_res*P_res/(4*M_PI*M_PI);
             a_f = pow(val,1./3.); //a_final of outer planet in order to be in resonance with inner
             *phi_i = i-k;   //how far off the resonance is (e.g. two planets away?)
-            if(*phi_i > 1) mig_fac = 2.0; else mig_fac = 1.25; //if planet in between resonance, migrate a bit longer.
+            if(*phi_i > 1) mig_fac = 1.85; else mig_fac = 1.10; //if planet in between resonance, migrate a bit longer.
             //special_cases(c,i,&mig_fac);  //maybe need?
             flag = 1;
             if(p_suppress == 0)printf("2:1 resonance for planets %i and %i, delta = %f \n",k,i,delta);
