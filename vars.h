@@ -29,6 +29,7 @@ double* en;             /**<mean motion array - for pendulum energy>**/
 double* term1;          /**<gold & schlich**/
 double* term2a;          /**<gold & schlich**/
 double* coeff2;
+double* expmigfac;      /**<exponential migration factor>**/
 char* c;
 int* phi_i;
 int tide_print;         /**<print message when tides are turned on>**/
