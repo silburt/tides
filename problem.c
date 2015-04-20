@@ -72,6 +72,13 @@ void problem_init(int argc, char* argv[]){
         strcat(txt_file, "_K");
         strcat(txt_file, strK);
     }
+    if(iptmig_fac != 1){
+        char strmig[15];
+        int migint = (int) round(10*iptmig_fac);
+        sprintf(strmig, "%d", migint);
+        strcat(txt_file, "_migfac0.");
+        strcat(txt_file, strmig);
+    }
     strcat(txt_file, ext);
     
     //Delete previous file if it exists.
