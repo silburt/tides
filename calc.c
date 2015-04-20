@@ -15,12 +15,15 @@
 #include "readplanets.h"
 #include "../../src/main.h"
 
-void migration(double* tau_a, double* t_mig, double* t_damp, double *expmigfac, int* phi_i, double* max_t_mig, double* P, int i, double RT, double Ms, double mp, double iptmig_fac, double a, double afac, int p_suppress){
+void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, double *expmigfac, int* phi_i, double* max_t_mig, double* P, int i, double RT, double Ms, double mp, double iptmig_fac, double a, double afac, int p_suppress){
     //Resonance vars
     double mig_fac = 1.0;   //automating length of tidal delay/migration
     double Pfac = 2.*M_PI/365.; //converts period to yr/2pi
+    double mintau_a = 5000.; //minimum a'/a
+    double mintau_fac = 6.0; //absolute min is 3.75 (Gold&Schlich), but use 6 to be safe
     double a_f;
     int flag = 0; //if in resonance, set migration speed of outer planet to 75% inner planet.
+    int special_flag = 0; //for some special cases, do not reduce t_mig of inner planet
     
     for(int k=1;k<i;k++){
         double delta = P[i]/P[k] - 2.0; //calc if any 2:1 resonances
@@ -37,18 +40,19 @@ void migration(double* tau_a, double* t_mig, double* t_damp, double *expmigfac, 
         } else a_f = a; //if no resonance, migrate back to starting position
     }
     
-    /*Goldreich & Schlichting (2014), mig rate for 2:1 resonance, units = yr/2pi.
-     Min is 3.75, but use 5.0 to be safe.*/
+    //Goldreich & Schlichting (2014), mig rate for 2:1 resonance, units = yr/2pi.
     double n = 365.*2*M_PI/P[i];  //units = 2Pi/yr
     double mu43 = pow(mp/Ms,4./3.);
-    tau_a[i] = 5.00/(n*mu43);
+    tau_a[i] = mintau_fac/(n*mu43);
+    if(tau_a[i] < mintau_a) tau_a[i] = mintau_a;
     int k = i - *phi_i;
     if(flag == 1){//i.e. a resonance
         //double rel_speed = 0.75;    //*relative* migration velocity (key is relative)
         //if(rel_speed*tau_a[k]/(1. - rel_speed) > 5.0/(n*mu43)){ //condition for certain capture
-        double rel_speed = 1/((n*mu43*tau_a[k])/5.0 + 1.); //fastest mig speed with guaranteed capture
+        double rel_speed = 1/((n*mu43*tau_a[k])/mintau_fac + 1.); //fastest mig speed with guaranteed capture
         tau_a[i] = rel_speed*(tau_a[k]);    //set outer migration rate to rel_speed*tau_a[k]
-        t_mig[k] *= 0.65*iptmig_fac;
+        special_cases(sysname,i,k,&special_flag);
+        if(special_flag == 0) t_mig[k] *= 0.65*iptmig_fac;
         printf("** a/a' (outer) = %f a/a' (inner) ** (guarantees migration whilst in resonance) \n",rel_speed);
         //}
     }
@@ -111,11 +115,6 @@ void assignQp(double* Qp, double Qpfac, double rp){
     }
 }
 
-void special_cases(char* sysname, int i, double* mig_fac){
-    if(strcmp(sysname, "Kepler-32") == 0 && i == 2) *mig_fac = 1.40;
-    if(strcmp(sysname, "Kepler-11") == 0 && i == 4){ *mig_fac = 3.0; printf("mig_fac=%f \n",*mig_fac);}
-}
-
 //Calculate tidal tau_a=a/a', tau_e=e/e' for Paploizou & Larwood (2000) version of tides.
 void calc_tidetau(double* tau_a, double* tau_e, double Qp, double mp, double rp, double Ms, double e_default, double a_default, char* sysname, int i, int p_suppress){
     
@@ -171,4 +170,11 @@ void printwrite(int i, char* txt_file, double a,double P,double e,double mp,doub
     write=fopen(txt_file, "a");
     fprintf(write, "%.10f,%f,%f,%f,%f,%f\n", mp,rp,P,Qp,tau_a,t_mig+t_damp);
     fclose(write);
+}
+
+void special_cases(char* sysname, int i, int k, int* special_flag){
+    if(strcmp(sysname, "Kepler-31") == 0 && i == 3 && k == 2){
+        *special_flag = 1;
+        printf("Special_flag=1 \n");
+    }
 }

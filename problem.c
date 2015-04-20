@@ -123,7 +123,7 @@ void problem_init(int argc, char* argv[]){
     double f=0., w=M_PI/2.;
     calcsemi(&a,Ms,P[1]);      //I don't trust archive values. Make it all consistent
     assignQp(&Qp, Qpfac, rp);
-    migration(tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
+    migration(c,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
     struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e, w, f);
     p.r = rp;
     tau_e[1] = tau_a[1]/K;
@@ -141,7 +141,7 @@ void problem_init(int argc, char* argv[]){
         extractplanets(&char_val,&rho,&inc,&mp,&rp,&P[i],p_suppress);
         calcsemi(&a,Ms,P[i]);
         assignQp(&Qp, Qpfac, rp);
-        migration(tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
+        migration(c,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
         tau_e[i] = tau_a[i]/K;
         f = i*M_PI/4.;
         if(tide_force == 1)calc_tidetau(&tidetau_a[i],&tidetau_e[i],Qp,mp,rp,Ms,e,a/afac,c,i,p_suppress);
