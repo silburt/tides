@@ -28,7 +28,7 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",30000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",50000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -278,7 +278,7 @@ void problem_inloop(){
 void problem_output(){
     //conditions for entering loops
     int output_var=0;
-    if(output_check(tmax/100000.)) output_var = 1; //Used to be 100,000
+    if(output_check(tmax/1000.)) output_var = 1; //Used to be 100,000
     else if(t < tide_delay && output_check(200.)) output_var = 1; //used to be 100
     int tide_go = 0;
     if(tides_on == 1 && tide_force == 0 && t > tide_delay) tide_go = 1;

@@ -46,9 +46,9 @@ void migration(double* tau_a, double* t_mig, double* t_damp, double *expmigfac, 
     if(flag == 1){//i.e. a resonance
         //double rel_speed = 0.75;    //*relative* migration velocity (key is relative)
         //if(rel_speed*tau_a[k]/(1. - rel_speed) > 5.0/(n*mu43)){ //condition for certain capture
-        double rel_speed = 1/((n*mu43*tau_a[k])/5.0 + 1.);
+        double rel_speed = 1/((n*mu43*tau_a[k])/5.0 + 1.); //fastest mig speed with guaranteed capture
         tau_a[i] = rel_speed*(tau_a[k]);    //set outer migration rate to rel_speed*tau_a[k]
-        t_mig[k] *= 0.1;
+        t_mig[k] *= 0.25;
         printf("** a/a' (outer) = %f a/a' (inner) ** (guarantees migration whilst in resonance) \n",rel_speed);
         //}
     }
@@ -58,12 +58,10 @@ void migration(double* tau_a, double* t_mig, double* t_damp, double *expmigfac, 
     if(t_mig[i] + t_damp[i] > *max_t_mig) *max_t_mig = t_mig[i] + t_damp[i]; //find max t_mig_var for tidal_delay
     
     //migration damping timescale - need min damp time or weird eccentricity effects ensue
-    double damp_fac = 1.0;
-    t_damp[i] = t_mig[i]/damp_fac;
-    //double min_tdamp = 3000.; //Need to damp minimum over a libration timescale.
-    //if(t_damp[i] < min_tdamp && i>1 && flag == 1) t_damp[i] = min_tdamp;
+    double damp_fac = 3.0;
+    t_damp[i] = t_mig[i]/damp_fac; //Need to damp minimum over a libration timescale.
     
-    *expmigfac = t_damp[i]/log(1000000./tau_a[i]);
+    *expmigfac = t_damp[i]/log(2000000./tau_a[i]);
     
     //The amount of distance covered from the exp damp decay is equivalent to t_equiv travelling at tau_a[i].
     //Since we want the planets to end up at their initial positions, need to subtract this from mig_fac
