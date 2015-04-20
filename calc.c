@@ -15,7 +15,7 @@
 #include "readplanets.h"
 #include "../../src/main.h"
 
-void migration(double* tau_a, double* t_mig, double* t_damp, double *expmigfac, int* phi_i, double* max_t_mig, double* P, int i, double RT, double Ms, double mp, double migspeed_fac, double a, double afac, int p_suppress){
+void migration(double* tau_a, double* t_mig, double* t_damp, double *expmigfac, int* phi_i, double* max_t_mig, double* P, int i, double RT, double Ms, double mp, double iptmig_fac, double a, double afac, int p_suppress){
     //Resonance vars
     double mig_fac = 1.0;   //automating length of tidal delay/migration
     double Pfac = 2.*M_PI/365.; //converts period to yr/2pi
@@ -41,33 +41,35 @@ void migration(double* tau_a, double* t_mig, double* t_damp, double *expmigfac, 
      Min is 3.75, but use 5.0 to be safe.*/
     double n = 365.*2*M_PI/P[i];  //units = 2Pi/yr
     double mu43 = pow(mp/Ms,4./3.);
-    tau_a[i] = 5.00*migspeed_fac/(n*mu43);
+    tau_a[i] = 5.00/(n*mu43);
     int k = i - *phi_i;
     if(flag == 1){//i.e. a resonance
         //double rel_speed = 0.75;    //*relative* migration velocity (key is relative)
         //if(rel_speed*tau_a[k]/(1. - rel_speed) > 5.0/(n*mu43)){ //condition for certain capture
         double rel_speed = 1/((n*mu43*tau_a[k])/5.0 + 1.); //fastest mig speed with guaranteed capture
         tau_a[i] = rel_speed*(tau_a[k]);    //set outer migration rate to rel_speed*tau_a[k]
-        t_mig[k] *= 0.25;
+        t_mig[k] *= 0.65*iptmig_fac;
         printf("** a/a' (outer) = %f a/a' (inner) ** (guarantees migration whilst in resonance) \n",rel_speed);
         //}
     }
     
     //migration timescale
-    t_mig[i] = tau_a[i]*(mig_fac*(a*afac - a_f)/a_f);  //length of time migrate for, units = yr/2pi
+    t_mig[i] = tau_a[i]*mig_fac*(a*afac - a_f)/a_f;  //length of time migrate for, units = yr/2pi
     if(t_mig[i] + t_damp[i] > *max_t_mig) *max_t_mig = t_mig[i] + t_damp[i]; //find max t_mig_var for tidal_delay
     
     //migration damping timescale - need min damp time or weird eccentricity effects ensue
     double damp_fac = 3.0;
     t_damp[i] = t_mig[i]/damp_fac; //Need to damp minimum over a libration timescale.
-    
     *expmigfac = t_damp[i]/log(2000000./tau_a[i]);
     
     //The amount of distance covered from the exp damp decay is equivalent to t_equiv travelling at tau_a[i].
-    //Since we want the planets to end up at their initial positions, need to subtract this from mig_fac
-    //double t_equiv = *expmigfac*(1 - exp(-t_damp[i]/ *expmigfac));
-    //t_mig[i] -= t_equiv;
-    //if(t_mig[i] < 0) t_mig[i] = 0;
+    //Since we want inner planet to end up at its initial position, need to subtract this from mig_fac
+    /*
+    int k = i - *phi_i;
+    double t_equiv = *expmigfac*(1 - exp(-t_damp[k]/ *expmigfac));
+    t_mig[k] -= t_equiv;
+    if(t_mig[k] < 0) t_mig[k] = 0;
+    */
     
 }
 
