@@ -28,7 +28,7 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",750000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",30000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -125,7 +125,7 @@ void problem_init(int argc, char* argv[]){
     double f=0., w=M_PI/2.;
     calcsemi(&a,Ms,P[1]);      //I don't trust archive values. Make it all consistent
     assignQp(&Qp, Qpfac, rp);
-    migration(tau_a, &t_mig[1], &t_damp[1], &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, migspeed_fac, a, afac, p_suppress);   //calc migration speed/timescale
+    migration(tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, migspeed_fac, a, afac, p_suppress);
     struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e, w, f);
     p.r = rp;
     tau_e[1] = tau_a[1]/K;
@@ -143,7 +143,7 @@ void problem_init(int argc, char* argv[]){
         extractplanets(&char_val,&rho,&inc,&mp,&rp,&P[i],p_suppress);
         calcsemi(&a,Ms,P[i]);
         assignQp(&Qp, Qpfac, rp);
-        migration(tau_a, &t_mig[i], &t_damp[i], &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, migspeed_fac, a, afac, p_suppress);   //calc v_mig, t_mig
+        migration(tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, migspeed_fac, a, afac, p_suppress);
         tau_e[i] = tau_a[i]/K;
         f = i*M_PI/4.;
         if(tide_force == 1)calc_tidetau(&tidetau_a[i],&tidetau_e[i],Qp,mp,rp,Ms,e,a/afac,c,i,p_suppress);
@@ -279,7 +279,7 @@ void problem_output(){
     //conditions for entering loops
     int output_var=0;
     if(output_check(tmax/100000.)) output_var = 1; //Used to be 100,000
-    else if(t < 100000. && output_check(40.)) output_var = 1; //used to be 100
+    else if(t < tide_delay && output_check(200.)) output_var = 1; //used to be 100
     int tide_go = 0;
     if(tides_on == 1 && tide_force == 0 && t > tide_delay) tide_go = 1;
     
