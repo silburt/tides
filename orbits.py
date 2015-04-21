@@ -5,7 +5,7 @@ from scipy.optimize import curve_fit
 import math
 import matplotlib.cm as cm
 pi = math.pi
-analytics = 0
+analytics = 1
 arg_true=0
 
 #Concerns:  1) The eccentricity I'm supposed to use is at the libration center. How do I get that?
@@ -176,7 +176,7 @@ if arg2==1 and analytics == 10000:
 #plt.ylim([10.8,11.3])
 #range=0.05
 if arg2==2 and analytics == 1:
-    plt.ylim([0.0,0.15])
+    plt.ylim([0.0,0.25])
 plt.xlim([p[arg4,0],p[arg3,0]])
 plt.title(''+name)
 if arg2==12:

@@ -283,8 +283,8 @@ void problem_inloop(){
 void problem_output(){
     //conditions for entering loops
     int output_var=0;
-    if(output_check(tmax/1000.)) output_var = 1; //Used to be 100,000
-    else if(t < tide_delay && output_check(200.)) output_var = 1; //used to be 100
+    if(output_check(tmax/100000.)) output_var = 1; //Used to be 100,000
+    else if(t < tide_delay && output_check(100.)) output_var = 1; //used to be 100
     int tide_go = 0;
     if(tides_on == 1 && tide_force == 0 && t > tide_delay) tide_go = 1;
     
