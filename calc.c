@@ -21,9 +21,14 @@ void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, doub
     double Pfac = 2.*M_PI/365.; //converts period to yr/2pi
     double mintau_a = 5000.; //minimum a'/a
     double mintau_fac = 6.0; //absolute min is 3.75 (Gold&Schlich), but use 6 to be safe
-    double a_f;
-    int flag = 0; //if in resonance, set migration speed of outer planet to 75% inner planet.
+    double a_f = a; //default - if no resonance, migrate back to starting position
     int special_flag = 0; //for some special cases, do not reduce t_mig of inner planet
+    
+    //Goldreich & Schlichting (2014), mig rate for 2:1 resonance, units = yr/2pi.
+    double n = 365.*2*M_PI/P[i];  //units = 2Pi/yr
+    double mu43 = pow(mp/Ms,4./3.);
+    tau_a[i] = mintau_fac/(n*mu43);
+    if(tau_a[i] < mintau_a) tau_a[i] = mintau_a;
     
     for(int k=1;k<i;k++){
         double delta = P[i]/P[k] - 2.0; //calc if any 2:1 resonances
@@ -32,32 +37,25 @@ void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, doub
             double val = G*Ms*P_res*P_res/(4*M_PI*M_PI);
             a_f = pow(val,1./3.); //a_final of outer planet in order to be in resonance with inner
             *phi_i = i-k;   //how far off the resonance is (e.g. two planets away?)
-            if(*phi_i > 1) mig_fac = 1.5; else mig_fac = 1.2; //if planet in between resonance, migrate a bit longer.
-            //special_cases(c,i,&mig_fac);  //maybe need?
-            flag = 1;
+            if(*phi_i > 1) mig_fac = 1.75; else mig_fac = 1.2; //if planet in between resonance, migrate a bit longer.
+            
+            //double rel_speed = 0.75;    //*relative* migration velocity (key is relative)
+            //if(rel_speed*tau_a[k]/(1. - rel_speed) > 5.0/(n*mu43)){ //condition for certain capture
+            double rel_speed = 1/((n*mu43*tau_a[k])/mintau_fac + 1.); //fastest mig speed with guaranteed capture
+            if(rel_speed < 0.6) rel_speed = 0.6;    //don't want it to be too fast.
+            tau_a[i] = rel_speed*(tau_a[k]);    //set outer migration rate to rel_speed*tau_a[k]
+            special_cases(sysname,i,k,&special_flag);
+            if(special_flag == 0){
+                double red_fac = 0.65;
+                t_mig[k] *= red_fac*iptmig_fac;  //inner planet migrates for much less time
+                t_damp[k] *= red_fac*iptmig_fac;
+            }
+            printf("** a/a' (outer) = %f a/a' (inner) ** (guarantees migration whilst in resonance) \n",rel_speed);
             if(p_suppress == 0)printf("2:1 resonance for planets %i and %i, delta = %f \n",k,i,delta);
             break;      //can only be in a "res" resonance with one inner planet
-        } else a_f = a; //if no resonance, migrate back to starting position
-    }
-
-    //Goldreich & Schlichting (2014), mig rate for 2:1 resonance, units = yr/2pi.
-    double n = 365.*2*M_PI/P[i];  //units = 2Pi/yr
-    double mu43 = pow(mp/Ms,4./3.);
-    tau_a[i] = mintau_fac/(n*mu43);
-    if(tau_a[i] < mintau_a) tau_a[i] = mintau_a;
-    if(flag == 1){//i.e. a resonance
-        //double rel_speed = 0.75;    //*relative* migration velocity (key is relative)
-        //if(rel_speed*tau_a[k]/(1. - rel_speed) > 5.0/(n*mu43)){ //condition for certain capture
-        int kk = i - *phi_i;
-        double rel_speed = 1/((n*mu43*tau_a[kk])/mintau_fac + 1.); //fastest mig speed with guaranteed capture
-        tau_a[i] = rel_speed*(tau_a[kk]);    //set outer migration rate to rel_speed*tau_a[k]
-        special_cases(sysname,i,kk,&special_flag);
-        if(special_flag == 0) t_mig[kk] *= 0.65*iptmig_fac;
-        printf("** a/a' (outer) = %f a/a' (inner) ** (guarantees migration whilst in resonance) \n",rel_speed);
-        //}
+        }
     }
     
-        printf("Hello3 \n");
     //migration timescale
     t_mig[i] = tau_a[i]*mig_fac*(a*afac - a_f)/a_f;  //length of time migrate for, units = yr/2pi
     if(t_mig[i] + t_damp[i] > *max_t_mig) *max_t_mig = t_mig[i] + t_damp[i]; //find max t_mig_var for tidal_delay
@@ -69,13 +67,14 @@ void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, doub
     
     //The amount of distance covered from the exp damp decay is equivalent to t_equiv travelling at tau_a[i].
     //Since we want inner planet to end up at its initial position, need to subtract this from mig_fac
+    /*
     if(i > 1){
         int kk2 = i - *phi_i;
         double t_equiv = *expmigfac*(1 - exp(-t_damp[kk2]/ *expmigfac));
         t_mig[kk2] -= t_equiv;
         if(t_mig[kk2] < 0) t_mig[kk2] = 0;
     }
-    
+    */
 }
 
 void assignQp(double* Qp, double Qpfac, double rp){
@@ -159,7 +158,7 @@ void calc_tidetau(double* tau_a, double* tau_e, double Qp, double mp, double rp,
     }
     double a5r5 = pow(a/(rp*0.00464913), 5);
     *tau_e = 2./(9*M_PI)*(1./Qp)*sqrt(a*a*a/Ms/Ms/Ms)*a5r5*mp;
-    *tau_a = *tau_e/(2*e*e);
+    *tau_a = *tau_e/(2*e*e);    //Dan uses a K factor instead.
     printf("tau_e,tau_a,e = %f,%f,%f \n",*tau_e,*tau_a,e);
     
 }

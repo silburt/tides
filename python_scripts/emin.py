@@ -31,6 +31,7 @@ arg2='1'
 thresh=0.06
 path = '../saved_runs/round8_Mar16Qpfac1/'
 ext = '_Qpfac1'
+mean_dPout = 0.5 #0.5*(typical amount (in days) that the outer planet migrates in by)
 
 systems=np.genfromtxt('../reso/full/'+arg1+':'+arg2+'_systems_fulldetail.txt', delimiter=',', dtype=(int,"|S10","|S10","|S10",int,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,int)) #system names
 N_sys = len(systems)
@@ -55,11 +56,17 @@ while i < N_sys:
     temp = get_line(f, length - N + outer + 1)
     data = temp.split("\t")
     Pout_f = float(data[3])     #observed 'P' of outer planet after 20Gyr
-    ain_i = calca(Pin,Ms,Rs)    #ini position for sim, inner planet (outer mig. in).
-    ain_f = calca(Pout_f/(delta + 2.0),Ms,Rs) #final required position of inner, based on current position of outer after 20Gyr of sim
+    #Method 1 -
+    #ain_i = calca(Pin,Ms,Rs)    #ini position for sim, inner planet (outer mig. in).
+    #ain_f = calca(Pout_f/(delta + 2.0),Ms,Rs) #final required position of inner, based on current position of outer after 20Gyr of sim
+    #****Method 2**** - Assume outer planet doesn't move at all, inner planet starts at Pout/2.0 and does all the migrating in via tides.
+    ain_i = calca((Pout + mean_dPout)/2.0,Ms,Rs)
+    ain_f = calca(Pin,Ms,Rs)
     ratio = ain_i/ain_f
     if ratio > 1.0:
-        e_i = np.append(e_i, (math.log(ratio))**0.5)    #from a'/a = 2ee'
+        term = (math.log(ratio))**0.5
+        e_i = np.append(e_i, term)    #from a'/a = 2ee'
+        print systems[i][1],', e_min (inner planet) = ', term
     else:
         print '**Warning:'+systems[i][1]+' has ain_i/ain_f < 1.0, removed from analysis**'
         skip = 1
@@ -90,9 +97,10 @@ while i < N_sys:
     skip = 0
 
 binwidth = 0.0001
-#plt.hist(e0, color='green', alpha = 0.8, linewidth=2, bins=np.arange(0., 0.25 + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'e$_{sim}$')
-#plt.hist(e_i, color='blue', alpha = 0.8, linewidth=2, bins=np.arange(0., 0.25 + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'e$_{min}$')
-plt.hist(e_i - e0, color='black', linewidth=2, bins=np.arange(0., 0.25 + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'e$_{min}$ - e$_{sim}$ (e-boost req.)')
+max = max(e_i) + 0.02
+#plt.hist(e0, color='green', alpha = 0.8, linewidth=2, bins=np.arange(0., max + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'e$_{sim}$')
+plt.hist(e_i, color='blue', alpha = 0.8, linewidth=2, bins=np.arange(0., max + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'e$_{min}$')
+#plt.hist(e_i - e0, color='black', linewidth=2, bins=np.arange(0., max + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'e$_{min}$ - e$_{sim}$ (e-boost req.)')
 
 plt.ylim([0,1.25])
 plt.xlabel('e', fontsize=16)
