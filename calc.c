@@ -116,7 +116,7 @@ void assignQp(double* Qp, double Qpfac, double rp){
 }
 
 //Calculate tidal tau_a=a/a', tau_e=e/e' for Paploizou & Larwood (2000) version of tides.
-void calc_tidetau(double* tau_a, double* tau_e, double Qp, double mp, double rp, double Ms, double e_default, double a_default, char* sysname, int i, int p_suppress){
+void calc_tidetau(double* tau_a, double* tau_e, double K, double Qp, double mp, double rp, double Ms, double e_default, double a_default, char* sysname, int i, int p_suppress){
     
     FILE *f = fopen("reso/Kepler_ei.txt", "r");
     char temp[512];
@@ -158,7 +158,8 @@ void calc_tidetau(double* tau_a, double* tau_e, double Qp, double mp, double rp,
     }
     double a5r5 = pow(a/(rp*0.00464913), 5);
     *tau_e = 2./(9*M_PI)*(1./Qp)*sqrt(a*a*a/Ms/Ms/Ms)*a5r5*mp;
-    *tau_a = *tau_e/(2*e*e);    //Dan uses a K factor instead.
+    //*tau_a = *tau_e/(2*e*e);
+    *tau_a = *tau_e*K;      //Dan uses a K factor instead.
     printf("tau_e,tau_a,e = %f,%f,%f \n",*tau_e,*tau_a,e);
     
 }

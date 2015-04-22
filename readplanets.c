@@ -73,7 +73,7 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
     }
     
     //delete previous output file
-    char sys_arg[50] = "rm -v ";
+    char sys_arg[100] = "rm -v ";
     strcat(sys_arg,txt_file);
     system(sys_arg);
     //write star characteristics to file. Planet characteristics come in assignparams.c

@@ -28,7 +28,7 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",50000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",2000000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -42,7 +42,7 @@ void problem_init(int argc, char* argv[]){
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
-    tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
+    tide_force = 1;                 //if ==1, implement tides as *forces*, not as e' and a'.
     double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
     //double Qpfac = 100;
     tide_print = 0;
@@ -80,11 +80,6 @@ void problem_init(int argc, char* argv[]){
         strcat(txt_file, strmig);
     }
     strcat(txt_file, ext);
-    
-    //Delete previous file if it exists.
-    char sys_arg[50] = "rm -v ";
-    strcat(sys_arg,txt_file);
-    system(sys_arg); // delete previous output file
     
     // Initial vars
     if(p_suppress == 0) printf("You have chosen: %s \n",c);
@@ -137,7 +132,7 @@ void problem_init(int argc, char* argv[]){
     assignQp(&Qp, Qpfac, rp);
     p.Qp=Qp;
     particles_add(p);
-    if(tide_force == 1)calc_tidetau(&tidetau_a[1],&tidetau_e[1],Qp,mp,rp,Ms,e,a,c,0,p_suppress);
+    if(tide_force == 1)calc_tidetau(&tidetau_a[1],&tidetau_e[1],K,Qp,mp,rp,Ms,e,a,c,0,p_suppress);
     
     //print/writing stuff
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
@@ -151,7 +146,7 @@ void problem_init(int argc, char* argv[]){
         migration(c,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
         tau_e[i] = tau_a[i]/K;
         f = i*M_PI/4.;
-        if(tide_force == 1)calc_tidetau(&tidetau_a[i],&tidetau_e[i],Qp,mp,rp,Ms,e,a/afac,c,i,p_suppress);
+        if(tide_force == 1)calc_tidetau(&tidetau_a[i],&tidetau_e[i],K,Qp,mp,rp,Ms,e,a/afac,c,i,p_suppress);
         struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e, w, f);
         p.r = rp;
         p.Qp = Qp;
