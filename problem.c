@@ -28,11 +28,11 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",2000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",1000000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
-    double timefac = 15.0;          //Number of kicks per orbital period (of closest planet)
+    double timefac = 50.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
@@ -132,7 +132,6 @@ void problem_init(int argc, char* argv[]){
     assignQp(&Qp, Qpfac, rp);
     p.Qp=Qp;
     particles_add(p);
-    if(tide_force == 1)calc_tidetau(&tidetau_a[1],&tidetau_e[1],K,Qp,mp,rp,Ms,e,a,c,0,p_suppress);
     
     //print/writing stuff
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
@@ -146,12 +145,10 @@ void problem_init(int argc, char* argv[]){
         migration(c,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
         tau_e[i] = tau_a[i]/K;
         f = i*M_PI/4.;
-        if(tide_force == 1)calc_tidetau(&tidetau_a[i],&tidetau_e[i],K,Qp,mp,rp,Ms,e,a/afac,c,i,p_suppress);
         struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e, w, f);
         p.r = rp;
         p.Qp = Qp;
         particles_add(p);
-        
         printwrite(i,txt_file,a,P[i],e,mp,rp,Qp,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
     }
     
@@ -173,12 +170,12 @@ void problem_init(int argc, char* argv[]){
 
 void problem_migration_forces(){
     if(mig_forces==1){
+        int print = 1;
         struct particle com = particles[0]; // calculate migration forces with respect to center of mass;
         for(int i=1;i<N;i++){ // N = _N + 1 = total number of planets + star
                 double t_migend = t_mig[i] + t_damp[i]; //when migration ends
                 if (t > t_mig[i] && t < t_migend) { //ramp down the migration force (by increasing the migration timescale)
                     tau_a[i] *= exp(dt/expmigfac[i]);
-                    //tau_a[i] = tau_a[i] + (t - t_mig[i])*(3000000.0 - tau_a[i])/(t_migend - t_mig[i]); //need a better exponential decay of migration
                     tau_e[i] = tau_a[i]/K;
                 } else if(t > t_migend){
                     tau_a[i]=0.;
@@ -186,8 +183,9 @@ void problem_migration_forces(){
                     double sum = 0;
                     for(int j=0;j<N;j++) sum += tau_a[j];
                     if(sum < 0.1){
-                        mig_forces = 0; //turn migration loop off altogether
-                        if(p_suppress == 0) printf("\n **migration loop off at t=%f** \n",t);
+                        mig_forces = 0; //turn migration loop off altogether, save calcs
+                        if(p_suppress == 0 && print == 1) printf("\n\n **migration loop off at t=%f** \n\n",t);
+                        print = 0;
                     }
                 }
             
@@ -232,6 +230,40 @@ void problem_migration_forces(){
         }
     }
     
+    //This is done here since after migration is over we have the resonance eccentricities
+    if(tautide_force_calc == 0 && mig_forces == 0. && tide_force == 1 && tides_on == 1){
+        tautide_force_calc = 1; //only do this process once
+        struct particle com = particles[0];
+        for(int i=1;i<N;i++){
+            struct particle* par = &(particles[i]);
+            const double m = par->m;
+            const double mu = G*(com.m + m);
+            const double rp = par->r*0.00464913;       //Rp from Solar Radii to AU
+            const double Qp = par->Qp;
+            
+            const double dvx = par->vx-com.vx;
+            const double dvy = par->vy-com.vy;
+            const double dvz = par->vz-com.vz;
+            const double dx = par->x-com.x;
+            const double dy = par->y-com.y;
+            const double dz = par->z-com.z;
+            
+            const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
+            const double r = sqrt ( dx*dx + dy*dy + dz*dz );
+            const double vr = (dx*dvx + dy*dvy + dz*dvz)/r;
+            const double ex = 1./mu*( (v*v-mu/r)*dx - r*vr*dvx );
+            const double ey = 1./mu*( (v*v-mu/r)*dy - r*vr*dvy );
+            const double ez = 1./mu*( (v*v-mu/r)*dz - r*vr*dvz );
+            const double e = sqrt( ex*ex + ey*ey + ez*ez );   // eccentricity
+            const double a = -mu/( v*v - 2.*mu/r );			// semi major axis, AU
+            double a5r5 = pow(a/rp, 5);
+            tidetau_e[i] = 2./(9*M_PI)*(1./Qp)*sqrt(a*a*a/com.m/com.m/com.m)*a5r5*m;
+            //tidetau_a[i] = tidetau_e[i]/(2*e*e);    //Lithwick & Wu - problem with this method
+            tidetau_a[i] = tidetau_e[i]*1000; //Dan uses a K factor instead.
+            if(p_suppress == 0) printf("planet %i: tau_e,=%.1f Myr, tau_a=%.1f Myr, a=%f,e=%f \n",i,tidetau_e[i]/1e6,tidetau_a[i]/1e6,a,e);
+        }
+    }
+    
     if(tides_on == 1 && tide_force == 1 && t > tide_delay){
         struct particle com = particles[0]; // calculate add. forces w.r.t. center of mass
         for(int i=1;i<N;i++){
@@ -240,12 +272,12 @@ void problem_migration_forces(){
             const double dvy = p->vy - com.vy;
             const double dvz = p->vz - com.vz;
             
-//          if(i==1){
+          //if(i==1){
                 //Papaloizou & Larwood (2000)
                 if (tidetau_a[i] != 0.){
-                    p->ax -=  dvx/(2.*tidetau_a[i]);
-                    p->ay -=  dvy/(2.*tidetau_a[i]);
-                    p->az -=  dvz/(2.*tidetau_a[i]);
+                    p->ax +=  -dvx/(2.*tidetau_a[i]);
+                    p->ay +=  -dvy/(2.*tidetau_a[i]);
+                    p->az +=  -dvz/(2.*tidetau_a[i]);
                 }
             
                 //Papaloizou & Larwood (2000)
@@ -260,13 +292,24 @@ void problem_migration_forces(){
                     p->ax += -2./tidetau_e[i]*vr*dx/r;
                     p->ay += -2./tidetau_e[i]*vr*dy/r;
                     p->az += -2./tidetau_e[i]*vr*dz/r;
+                    
+                    if(output_check(tmax/10000.)){
+                        FILE *append2;
+                        append2=fopen("output_tidebug.txt", "a");
+                        //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
+                        //               eccentric anomaly, mean longitude, resonant angle, de/dt, 1.875/(n*mu^4/3*e) |used to be:phi1     phi2     phi3
+                        fprintf(append2,"%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e \n",t,r,vr,tidetau_e[i],tidetau_a[i],dvx,dvy,-dvx/(2.*tidetau_a[i]),-dvy/(2.*tidetau_a[i]),-2./tidetau_e[i]*vr*dx/r,-2./tidetau_e[i]*vr*dy/r, -dvx/(2.*tidetau_a[i]) - 2./tidetau_e[i]*vr*dx/r, -dvy/(2.*tidetau_a[i]) - 2./tidetau_e[i]*vr*dy/r,dvz,dz);
+                        fclose(append2);
+                    }
+
                 }
                 com = tools_get_center_of_mass(com,particles[i]);
             //}
         }
+        
         //print message
         if(tide_print == 0 && p_suppress == 0){
-            printf("\n ***Tides (forces!) have just been turned on at t=%f years***\n",t);
+            printf("\n\n ***Tides (forces!) have just been turned on at t=%f years***\n\n",t);
             tide_print = 1;
         }
     }
@@ -364,7 +407,7 @@ void problem_output(){
                 
                 //print message
                 if(tide_print == 0 && p_suppress == 0){
-                    printf("\n ***Tides (a', e') have just been turned on at t=%f years***\n",t);
+                    printf("\n\n ***Tides (a', e') have just been turned on at t=%f years***\n\n",t);
                     tide_print = 1;
                 }
                 

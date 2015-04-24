@@ -6,11 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 from itertools import islice
-
-def get_line(f, n):
-    for line in islice(f, n-1, n):
-        data = line
-    return data
+pi = math.pi
 
 def calca(P,Ms,Rs):
     G = 6.67*10**-11
@@ -22,17 +18,16 @@ def calca(P,Ms,Rs):
     a /= 1.496*10**11
     return a
 
+#parameters
+T = 1e10    #length of time a system has to achieve current delta spacing
+mig_out = 1.01  #(a_i/a_f)_outer planet - an assumption
+
 arg1='2'
 arg2='1'
-thresh=0.06
-path = '../saved_runs/round8_Mar16Qpfac1/'
-ext = '_Qpfac1'
 
 systems=np.genfromtxt('../reso/full/'+arg1+':'+arg2+'_systems_fulldetail.txt', delimiter=',', dtype=(int,"|S10","|S10","|S10",int,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,int)) #system names
 N_sys = len(systems)
-skip = 0
 e_i = np.zeros(0)
-e0 = np.zeros(0)
 i=0
 j=0
 while i < N_sys:
@@ -50,67 +45,55 @@ while i < N_sys:
     alpha = 0.630
     b = 1.190
     c = 0.428
-    mu_in = systems[i][19]*3e-6/Ms
-    mu_out = systems[i+1][19]*3e-6/Ms
+    mp_in = systems[i][19]*3e-6
+    mp_out = systems[i+1][19]*3e-6
     rp_in = systems[i][22]
     rp_out = systems[i+1][22]
     solar2earthRp = 109.21
     earth2solarMp = 3e-6
-    if mu_in == 0. and rp_in < 0.04:    #Weiss & Marcy
-        mu_in = 2.69*(rp_in*solar2earthRp)**(0.93) * earth2solarMp/Ms
-    if mu_in == 0. and rp_in >= 0.04:     #Jupiter density
+    if mp_in == 0. and rp_in < 0.04:    #Weiss & Marcy
+        mp_in = 2.69*(rp_in*solar2earthRp)**(0.93) * earth2solarMp
+    if mp_in == 0. and rp_in >= 0.04:     #Jupiter density
         r3 = (rp_in*695800000.)**3
-        mu_in = 1330*r3/2e30/Ms
-    if mu_out == 0. and rp_out < 0.04:    #Weiss & Marcy
-        mu_out = 2.69*(rp_out*solar2earthRp)**(0.93) * earth2solarMp/Ms
-    if mu_out == 0. and rp_out >= 0.04:     #Jupiter density
+        mp_in = 1330*r3/2e30
+    if mp_out == 0. and rp_out < 0.04:    #Weiss & Marcy
+        mp_out = 2.69*(rp_out*solar2earthRp)**(0.93) * earth2solarMp
+    if mp_out == 0. and rp_out >= 0.04:     #Jupiter density
         r3 = (rp_out*695800000.)**3
-        mu_out = 1330*r3/2e30/Ms
-    num = math.log(alpha * (delta + 2)**(2./3.))
-    den = (1 - (c/(2*alpha*b)*(mu_in/mu_out))**2)
-    term = (num/den)**0.5
-    if term < 1.0 and term > 0.:
-        e_i = np.append(e_i, term)    #from a'/a = 2ee'
-        print systems[i][1],', e_min (inner planet) = ', term
+        mp_out = 1330*r3/2e30
+    Qp_in = 0
+    if rp_in > 2*0.009156 and rp_in < 0.1:
+        Qp_in = 1./(2.2e4)
+    elif rp_in >= 0.1:
+        Qp_in = 1./(5.4e4)
     else:
-        print '**Warning:'+systems[i][1]+' has e_min =',term, ', removed from analysis**'
-        skip = 1
-    #compare to simulated eccentricity when run starts
-    fos = open(path+'orbits_'+systems[i][1]+''+ext+'.txt','r')
-    lines = []
-    for k in range(0, 6000):
-        lines.append(fos.readline())
-    length = len(lines)
-    inc = N+1+inner
-    e0avg = np.zeros(0)
-    exit = 0
-    while exit != 1:
-        temp2 = lines[inc]
-        tempt = temp2.split("\t")
-        tt = float(tempt[0])
-        if tt > 70000 and tt < 80000:
-            temp2out = lines[inc + (outer - inner)]
-            temptout = temp2out.split("\t")
-            e0avg = np.append(e0avg, float(tempt[2]))
-        elif tt > 80000:
-            if skip != 1:
-                e0 = np.append(e0, np.median(e0avg))
-            exit = 1
-        inc += N
+        Qp_in = 1./40.
+    rad_in = rp_in*0.00464913 #Solar Radii to AU
+    a_in = calca(Pin,Ms,Rs)
+    R5a5 = (rad_in/a_in)**5
+    GM3a3 = (Ms/a_in)**1.5
+    tau_e = 1./((9.*pi/2.)*Qp_in*GM3a3*R5a5/mp_in)
+    X_in = T/tau_e
+    if X_in > 20:
+        ecc = 0.01
+        print systems[i][1], 'X_in = ',X_in,'e ~ 0.01'
+    else:
+        num1 = ((delta + 2)/2)**(2./3.)
+        ecc = (math.log(mig_out*num1)/(math.exp(2*X_in) - 1))**0.5
+        print systems[i][1], 'e_min = ', ecc
+    e_i = np.append(e_i,ecc)
     j += 1
     i += 2
-    skip = 0
 
 binwidth = 0.0001
 max = max(e_i) + 0.02
-#plt.hist(e0, color='green', alpha = 0.8, linewidth=2, bins=np.arange(0., max + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'e$_{sim}$')
 plt.hist(e_i, color='blue', alpha = 0.8, linewidth=2, bins=np.arange(0., max + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'e$_{min}$')
-#plt.hist(e_i - e0, color='black', linewidth=2, bins=np.arange(0., max + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'e$_{min}$ - e$_{sim}$ (e-boost req.)')
 
 plt.ylim([0,1.25])
+plt.xscale('log')
 plt.xlabel('e', fontsize=16)
 plt.ylabel('cdf, counts='+str(N_sys/2), fontsize=16)
-plt.title('Difference in Required e to Explain Obs Period Due to Tides Alone')
+plt.title('Minimum Eccentricity Required by Inner Planet Given $\Delta$ and t='+str(T/1e9)+' Gyr')
 plt.legend(loc='upper left',prop={'size':10})
 plt.show()
 
