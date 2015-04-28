@@ -28,21 +28,22 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",1000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",5000000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
-    double timefac = 50.0;          //Number of kicks per orbital period (of closest planet)
+    double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
+    double e    = 0.01;             //initial eccentricity of the planets
     mig_forces  = 1;                //If ==0, no migration.
     afac        = 1.10;             //Factor to increase 'a' of OUTER planets by.
     double iptmig_fac  = atof(argv[3]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
-    tide_force = 1;                 //if ==1, implement tides as *forces*, not as e' and a'.
+    tide_force = atoi(argv[4]);                 //if ==1, implement tides as *forces*, not as e' and a'.
     double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
     //double Qpfac = 100;
     tide_print = 0;
@@ -121,7 +122,6 @@ void problem_init(int argc, char* argv[]){
     P[1] = P_temp;
     
     //planet 1
-    double e = 0.01;
     double f=0., w=M_PI/2.;
     calcsemi(&a,Ms,P[1]);      //I don't trust archive values. Make it all consistent
     assignQp(&Qp, Qpfac, rp);
@@ -257,9 +257,10 @@ void problem_migration_forces(){
             const double e = sqrt( ex*ex + ey*ey + ez*ez );   // eccentricity
             const double a = -mu/( v*v - 2.*mu/r );			// semi major axis, AU
             double a5r5 = pow(a/rp, 5);
+            
             tidetau_e[i] = 2./(9*M_PI)*(1./Qp)*sqrt(a*a*a/com.m/com.m/com.m)*a5r5*m;
-            //tidetau_a[i] = tidetau_e[i]/(2*e*e);    //Lithwick & Wu - problem with this method
-            tidetau_a[i] = tidetau_e[i]*1000; //Dan uses a K factor instead.
+            //tidetau_a[i] = tidetau_e[i]*K; //Dan uses a K factor instead.
+            
             if(p_suppress == 0) printf("planet %i: tau_e,=%.1f Myr, tau_a=%.1f Myr, a=%f,e=%f \n",i,tidetau_e[i]/1e6,tidetau_a[i]/1e6,a,e);
         }
     }
@@ -273,13 +274,17 @@ void problem_migration_forces(){
             const double dvz = p->vz - com.vz;
             
           //if(i==1){
-                //Papaloizou & Larwood (2000)
+                /*Papaloizou & Larwood (2000) - Unlike the orbital elements version of tides,
+                 tidetau_e already induces an a' (Gold&Schlich2015), and so the tidetau_a is
+                 an additional migration on top... don't think I need it. */
+                /*
                 if (tidetau_a[i] != 0.){
                     p->ax +=  -dvx/(2.*tidetau_a[i]);
                     p->ay +=  -dvy/(2.*tidetau_a[i]);
                     p->az +=  -dvz/(2.*tidetau_a[i]);
                 }
-            
+                 */
+                 
                 //Papaloizou & Larwood (2000)
                 if (tidetau_e[i] != 0. ){ 	// need h and e vectors for both types
                     const double dx = p->x-com.x;
@@ -293,7 +298,8 @@ void problem_migration_forces(){
                     p->ay += -2./tidetau_e[i]*vr*dy/r;
                     p->az += -2./tidetau_e[i]*vr*dz/r;
                     
-                    if(output_check(tmax/10000.)){
+                    int output_tide = 0;
+                    if(output_check(tmax/10000.) && output_tide == 1){
                         FILE *append2;
                         append2=fopen("output_tidebug.txt", "a");
                         //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,

@@ -21,6 +21,7 @@ void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, doub
     double Pfac = 2.*M_PI/365.; //converts period to yr/2pi
     double mintau_a = 5000.; //minimum a'/a
     double mintau_fac = 6.0; //absolute min is 3.75 (Gold&Schlich), but use 6 to be safe
+    double min_rel_speed = 0.75;    //was 0.6
     double a_f = a; //default - if no resonance, migrate back to starting position
     int special_flag = 0; //for some special cases, do not reduce t_mig of inner planet
     
@@ -42,7 +43,7 @@ void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, doub
             //double rel_speed = 0.75;    //*relative* migration velocity (key is relative)
             //if(rel_speed*tau_a[k]/(1. - rel_speed) > 5.0/(n*mu43)){ //condition for certain capture
             double rel_speed = 1/((n*mu43*tau_a[k])/mintau_fac + 1.); //fastest mig speed with guaranteed capture
-            if(rel_speed < 0.6) rel_speed = 0.6;    //don't want it to be too fast.
+            if(rel_speed < min_rel_speed) rel_speed = min_rel_speed;    //don't want it to be too fast.
             tau_a[i] = rel_speed*(tau_a[k]);    //set outer migration rate to rel_speed*tau_a[k]
             special_cases(sysname,i,k,&special_flag);
             if(special_flag == 0){

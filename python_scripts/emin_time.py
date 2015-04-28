@@ -1,4 +1,4 @@
-#The purpose of this macro is to calculate the minimum eccentricity required by the inner planet in order to achieve the current planet spacing observed due to tides alone (assuming the planets started in the 2:1 MMR. The equation for Delta is rearranged in terms of the initial inner and outer planet's eccentricity. We then use Goldreich & Schlichting's Eq. 42 to get everything in terms of the inner planet's eccentricity, and solve for that. We assume that the final eccentricity of both the inner and outer planet ~ 0.
+#The purpose of this macro is to calculate the minimum eccentricity required by the inner planet in order to achieve the current planet spacing observed due to tides alone, given that the planets started in 2:1 MMR, and that the planets had T years to migrate to that position
 
 
 import sys
@@ -19,7 +19,7 @@ def calca(P,Ms,Rs):
     return a
 
 #parameters
-T = 1e10    #length of time a system has to achieve current delta spacing
+T = 5e9    #length of time a system has to achieve current delta spacing
 mig_out = 1.01  #(a_i/a_f)_outer planet - an assumption
 
 arg1='2'
@@ -86,10 +86,12 @@ while i < N_sys:
     i += 2
 
 binwidth = 0.0001
+y_lim = 1.25
 max = max(e_i) + 0.02
 plt.hist(e_i, color='blue', alpha = 0.8, linewidth=2, bins=np.arange(0., max + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'e$_{min}$')
+plt.plot([1.0,1.0],[0,y_lim], 'r--', linewidth=2, label = 'Unfeasible Eccentricity')
 
-plt.ylim([0,1.25])
+plt.ylim([0,y_lim])
 plt.xscale('log')
 plt.xlabel('e', fontsize=16)
 plt.ylabel('cdf, counts='+str(N_sys/2), fontsize=16)
