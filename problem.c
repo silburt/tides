@@ -43,7 +43,7 @@ void problem_init(int argc, char* argv[]){
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
-    tide_force = atoi(argv[4]);                 //if ==1, implement tides as *forces*, not as e' and a'.
+    tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
     double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
     //double Qpfac = 100;
     tide_print = 0;

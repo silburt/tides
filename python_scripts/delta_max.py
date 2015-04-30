@@ -11,8 +11,8 @@ arg2='1'
 thresh=0.06
 #path = '../saved_runs/round19_Apr15Qpfac500K10/'
 #ext = '_Qpfac500_K10'
-path = '../saved_runs/round21_Apr22Qpfac200migfac0.3/'
-ext = '_Qpfac200_migfac0.3'
+path = '../saved_runs/round22_Apr22Qpfac200migfac0.8/'
+ext = '_Qpfac200_migfac0.8'
 
 #path = '../saved_runs/round11_Mar26migspeedfac/migspeedfac1.25/'
 #ext = '_migspeedfac1.25'
@@ -22,7 +22,8 @@ numth_comp = 1        #Compare numerics and theory
 output = open('../reso/Kepler_ei.txt','w')
 
 systems=np.genfromtxt('../reso/full/'+arg1+':'+arg2+'_systems_fulldetail.txt', delimiter=',', dtype=(int,"|S10","|S10","|S10",int,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,int)) #system names
-systems = np.delete(systems,[14,15,16,17,18,19,52,53,58,59,68,69])
+#remove systems - Kepler-223 (double res), 226 (inner planet in between resonance),  31 (double res), 57 (m1 >> m2), 80 (inner planet between resonance), 85 (unstable),
+#systems = np.delete(systems,[14,15,16,17,18,19,34,35,36,37,58,59,62,63,68,69])
 
 N_sys = len(systems)
 skip = 0
@@ -112,12 +113,12 @@ while i < N_sys:
             D = np.append(D, Dth)
             if numth_comp == 1:
                 Dnum = (a_fout/a_fin)**1.5 - 2              #Period ratio, delta_numerical
-                dD = np.append(dD, (Dnum - Dth)/Dth)
+                dD = np.append(dD, (Dnum - Dth))
                 dafin = np.append(dafin, (a_fin_th - a_fin)/(a_in - a_fin))
                 dafout = np.append(dafout, (a_fout_th - a_fout)/(a_out - a_fout))
                 #print e_in, e_fin, e_out, e_fout, Dth, Dnum, (Dnum - Dth)/Dnum, (a_fin_th - a_fin)/a_fin, (a_fout_th - a_fout)/a_fout
                 #print e_in, e_fin, a_in, a_in - a_fin, a_fin - a_fin_th, '(outer)',e_out, e_fout, a_out, a_out - a_fout, a_fout_th - a_fout
-                print i,(Dnum - Dth)/Dth, Dnum, Dth, N
+                print i,(Dnum - Dth), Dnum, Dth, N
                 #print 'dP_outer = ', P_out - P_fout
             exit = 1
         inc_in += N
@@ -126,13 +127,13 @@ while i < N_sys:
 
 #median dP of outer planet in resonance
 
-xmin = -2
-xmax = 1
+xmin = -0.25
+xmax = 0.25
 binwidth = 0.0001
 #plt.hist(D, color='green', alpha = 0.8, linewidth=1, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$\Delta_{sim,max}$')
 #plt.hist(delta, color='blue', alpha = 0.8, linewidth=1, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$\Delta_{obs}$')
 #plt.hist(delta - D, color='black', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$\Delta_{obs}$ - $\Delta_{sim,max}$ ($\Delta$-boost req.)')
-plt.hist(dD, color='purple', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$(\Delta_{th} - \Delta_{num})/ \Delta_{num}$ (Does theory agree with num)')
+plt.hist(dD, color='purple', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$(\Delta_{th} - \Delta_{num})$ (Does theory agree with num)')
 #plt.hist(dafin, color='yellow', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$(a_{th,in} - a_{num,in})/ a_{num,in}$')
 #plt.hist(dafout, color='orange', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$(a_{th,out} - a_{num,out})/ a_{num,out})$')
 

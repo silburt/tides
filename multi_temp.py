@@ -3,13 +3,16 @@ import os
 import sys
 import numpy as np
 
-name = ['a','b','c','d']
+name = ['','a','b','c']
 length=len(name)
 
 os.system('make')
 
 def execute(sysname):
-    os.system('./nbody2 TESTP5m'+str(sysname)+' 100')
+    Qpfac = 100
+    if sysname == '':
+        Qpfac = 10000
+    os.system('./nbody TESTP5m'+sysname+' '+str(Qpfac)+' 0.6')
 
 #Main multiprocess execution - Give sysname and letters of outer planets close to resonance
 if __name__== '__main__':

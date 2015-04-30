@@ -13,7 +13,7 @@ all:
 	# Compile
 	$(MAKE) -C ../../src/
 	# Copy result
-	cp ../../src/nbody .
+	cp ../../src/nbody2 .
 
 doc: all
 	$(MAKE) -C ../../src/ doc

@@ -1,3 +1,5 @@
+#Purpose of this macro is to find the systems within X percent of the specified MMR
+
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
