@@ -35,9 +35,9 @@ void problem_init(int argc, char* argv[]){
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
-    K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    double e    = atof(argv[3]);             //initial eccentricity of the planets
     mig_forces  = 0;                //If ==0, no migration.
+    K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
+    e_ini       = atof(argv[3]);    //initial eccentricity of the planets
     afac        = 1.0;             //Factor to increase 'a' of OUTER planets by.
     double iptmig_fac  = 1;//atof(argv[3]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
@@ -80,9 +80,9 @@ void problem_init(int argc, char* argv[]){
         strcat(txt_file, "_migfac0.");
         strcat(txt_file, strmig);
     }
-    if(e != 0.01){
+    if(e_ini != 0.01){
         char strmig[15];
-        int migint = (int) round(100*e);
+        int migint = (int) round(100*e_ini);
         printf("migint = %i \n",migint);
         sprintf(strmig, "%d", migint);
         strcat(txt_file, "_ei0.");
@@ -98,6 +98,7 @@ void problem_init(int argc, char* argv[]){
     //Star & Planet 1
     double P_temp;
     readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&rho,&inc,&mp,&rp,&P_temp,&dt,timefac,p_suppress);
+    N_ini = _N+1;
     if(mig_forces == 0 && p_suppress == 0) printf("--> Migration is *off* \n");
     if(tides_on == 0 && p_suppress == 0) printf("--> Tides are *off* \n");
     struct particle star; //Star MUST be the first particle added.
@@ -134,7 +135,7 @@ void problem_init(int argc, char* argv[]){
     calcsemi(&a,Ms,P[1]);      //I don't trust archive values. Make it all consistent
     assignQp(&Qp, Qpfac, rp);
     migration(c,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
-    struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e, w, f);
+    struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, w, f);
     p.r = rp;
     tau_e[1] = tau_a[1]/K;
     assignQp(&Qp, Qpfac, rp);
@@ -143,7 +144,7 @@ void problem_init(int argc, char* argv[]){
     
     //print/writing stuff
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
-    printwrite(1,txt_file,a,P[1],e,mp,rp,Qp,tau_a[1],t_mig[1],t_damp[1],afac,p_suppress);
+    printwrite(1,txt_file,a,P[1],e_ini,mp,rp,Qp,tau_a[1],t_mig[1],t_damp[1],afac,p_suppress);
     
     //outer planets (i=0 is star)
     for(int i=2;i<_N+1;i++){
@@ -153,11 +154,11 @@ void problem_init(int argc, char* argv[]){
         migration(c,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
         tau_e[i] = tau_a[i]/K;
         f = i*M_PI/4.;
-        struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e, w, f);
+        struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, w, f);
         p.r = rp;
         p.Qp = Qp;
         particles_add(p);
-        printwrite(i,txt_file,a,P[i],e,mp,rp,Qp,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
+        printwrite(i,txt_file,a,P[i],e_ini,mp,rp,Qp,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
     }
     
     //tidal delay
@@ -388,6 +389,16 @@ void problem_output(){
             double const coswf = dx/r;
             double a = r*(1. + e*cosf)/(1. - e*e);
             double n;
+            
+            //Test for collision
+            if(N < N_ini && collision_print == 0){
+                printf("\n\n system %s with e_ini=%f,e_now=%f had a collision!! \n\n",c,e_ini,e);
+                FILE *append;
+                append=fopen("Kepler_e_coll.txt", "a");
+                fprintf(append,"%s,%e,%e,\n",c,e_ini,t);
+                fclose(append);
+                collision_print = 1;
+            }
             
             //Tides
             if(tide_go == 1){//For TESTP5m need && i==1
