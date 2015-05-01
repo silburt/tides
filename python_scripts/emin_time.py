@@ -26,8 +26,12 @@ arg1='2'
 arg2='1'
 
 systems=np.genfromtxt('../reso/full/'+arg1+':'+arg2+'_systems_fulldetail.txt', delimiter=',', dtype=(int,"|S10","|S10","|S10",int,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,int)) #system names
+
+#systems = np.delete(systems,[14,15,16,17,18,19,34,35,36,37,58,59,62,63,68,69])
+
 N_sys = len(systems)
 e_i = np.zeros(0)
+e_dyn = np.zeros(0)
 i=0
 j=0
 while i < N_sys:
@@ -70,6 +74,7 @@ while i < N_sys:
         Qp_in = 1./40.
     rad_in = rp_in*0.00464913 #Solar Radii to AU
     a_in = calca(Pin,Ms,Rs)
+    a_out = calca(Pout,Ms,Rs)
     R5a5 = (rad_in/a_in)**5
     GM3a3 = (Ms/a_in)**1.5
     tau_e = 1./((9.*pi/2.)*Qp_in*GM3a3*R5a5/mp_in)
@@ -82,14 +87,25 @@ while i < N_sys:
         ecc = (math.log(mig_out*num1)/(math.exp(2*X_in) - 1))**0.5
         print systems[i][1], 'e_min = ', ecc
     e_i = np.append(e_i,ecc)
+    R_H = 0.5*(a_in + a_out)*((mp_in + mp_out)/(3*Ms))**(1./3.)
+    K = (a_out - a_in)/R_H
+    K50 = 0.7*np.log10(T/Pin) + 2.87
+    print K50, K
+    e_dyn = np.append(e_dyn, (K - K50)*0.01)    #max e from stability arg
     j += 1
     i += 2
 
 binwidth = 0.0001
 y_lim = 1.25
 max = max(e_i) + 0.02
-plt.hist(e_i, color='blue', alpha = 0.8, linewidth=2, bins=np.arange(0., max + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'e$_{min}$')
-plt.plot([1.0,1.0],[0,y_lim], 'r--', linewidth=2, label = 'Unfeasible Eccentricity')
+med_e_dyn = np.median(e_dyn)
+
+plt.plot([1.0,1.0],[0,y_lim], 'r--', linewidth=2)
+p = plt.axvspan(1.0, max, facecolor='red', alpha=0.4, label = 'Unfeasible Eccentricity')
+plt.plot([med_e_dyn,med_e_dyn],[0,y_lim], 'b--', linewidth = 2)
+p = plt.axvspan(med_e_dyn, max, facecolor='b', alpha=0.4, label = 'Max Eccentricity (Stability Arg.)')
+
+plt.hist(e_i, color='black', alpha = 0.8, linewidth=2, bins=np.arange(0., max + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'e$_{min}$')
 
 plt.ylim([0,y_lim])
 plt.xscale('log')

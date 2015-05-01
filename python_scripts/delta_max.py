@@ -9,9 +9,7 @@ import pylab
 arg1='2'
 arg2='1'
 thresh=0.06
-#path = '../saved_runs/round19_Apr15Qpfac500K10/'
-#ext = '_Qpfac500_K10'
-path = '../saved_runs/round22_Apr22Qpfac200migfac0.8/'
+path = '../saved_runs/round25_May1Qpfac200_migfac0.8/'
 ext = '_Qpfac200_migfac0.8'
 
 #path = '../saved_runs/round11_Mar26migspeedfac/migspeedfac1.25/'
@@ -22,8 +20,8 @@ numth_comp = 1        #Compare numerics and theory
 output = open('../reso/Kepler_ei.txt','w')
 
 systems=np.genfromtxt('../reso/full/'+arg1+':'+arg2+'_systems_fulldetail.txt', delimiter=',', dtype=(int,"|S10","|S10","|S10",int,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,int)) #system names
-#remove systems - Kepler-223 (double res), 226 (inner planet in between resonance),  31 (double res), 57 (m1 >> m2), 80 (inner planet between resonance), 85 (unstable),
-#systems = np.delete(systems,[14,15,16,17,18,19,34,35,36,37,58,59,62,63,68,69])
+#remove systems - Kepler-11 (unstable when in res), Kepler-223 (double res), 226 (inner planet in between resonance),  31 (double res), 331 (double res), 80 (inner planet between resonance), 85 (unstable),
+systems = np.delete(systems,[2,3,14,15,16,17,18,19,34,35,36,37,46,47,62,63,68,69])
 
 N_sys = len(systems)
 skip = 0
@@ -87,7 +85,7 @@ while i < N_sys:
         tempin = lines[inc_in]
         temp_in = tempin.split("\t")
         tt = float(temp_in[0])
-        if tt > 30000 and tt < 80000:
+        if tt > 50000 and tt < 80000:
             tempout = lines[inc_out]
             temp_out = tempout.split("\t")
             e0avg_in = np.append(e0avg_in, float(temp_in[2]))
@@ -95,7 +93,7 @@ while i < N_sys:
             a0avg_in = np.append(a0avg_in, float(temp_in[1]))
             a0avg_out = np.append(a0avg_out, float(temp_out[1]))
             P0avg_out = np.append(P0avg_out, float(temp_out[3]))
-        elif tt > 55000:
+        elif tt > 80000:
             e_in = np.median(e0avg_in)      #initial values, before tides are turned on
             e_out = np.median(e0avg_out)
             a_in = np.median(a0avg_in)

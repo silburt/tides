@@ -28,7 +28,7 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",5000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",1000000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -36,13 +36,13 @@ void problem_init(int argc, char* argv[]){
     
     /* Migration constants */
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    double e    = 0.01;             //initial eccentricity of the planets
-    mig_forces  = 1;                //If ==0, no migration.
-    afac        = 1.10;             //Factor to increase 'a' of OUTER planets by.
-    double iptmig_fac  = atof(argv[3]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
+    double e    = atof(argv[3]);             //initial eccentricity of the planets
+    mig_forces  = 0;                //If ==0, no migration.
+    afac        = 1.0;             //Factor to increase 'a' of OUTER planets by.
+    double iptmig_fac  = 1;//atof(argv[3]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
     /* Tide constants */
-    tides_on = 1;                   //If ==0, then no tidal torques on planets.
+    tides_on = 0;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
     double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
     //double Qpfac = 100;
@@ -78,6 +78,14 @@ void problem_init(int argc, char* argv[]){
         int migint = (int) round(10*iptmig_fac);
         sprintf(strmig, "%d", migint);
         strcat(txt_file, "_migfac0.");
+        strcat(txt_file, strmig);
+    }
+    if(e != 0.01){
+        char strmig[15];
+        int migint = (int) round(100*e);
+        printf("migint = %i \n",migint);
+        sprintf(strmig, "%d", migint);
+        strcat(txt_file, "_ei0.");
         strcat(txt_file, strmig);
     }
     strcat(txt_file, ext);
@@ -219,6 +227,15 @@ void problem_migration_forces(){
                     const double ez = 1./mu*( (v*v-mu/r)*dz - r*vr*dvz );
                     const double e = sqrt( ex*ex + ey*ey + ez*ez );		// eccentricity
                     const double a = -mu/( v*v - 2.*mu/r );			// semi major axis, AU
+                    
+                    //TESTP5m*********************** to get them all starting off in line together
+                    /**
+                    if(a < 0.091432 && t > 500 && i==2){
+                        mig_forces = 0;
+                        if(p_suppress == 0) printf("\n\n **migration loop off (abrupt) at t=%f** \n\n",t);
+                    }
+                    **/
+                    
                     const double prefac1 = 1./(1.-e*e) /tau_e[i]/1.5;
                     const double prefac2 = 1./(r*h) * sqrt(mu/a/(1.-e*e))  /tau_e[i]/1.5;
                     p->ax += -dvx*prefac1 + (hy*dz-hz*dy)*prefac2;
@@ -373,7 +390,7 @@ void problem_output(){
             double n;
             
             //Tides
-            if(tide_go == 1){
+            if(tide_go == 1){//For TESTP5m need && i==1
                 const double a2 = a*a;
                 const double rp2 = rp*rp;
                 const double R5a5 = rp2*rp2*rp/(a2*a2*a);

@@ -12,7 +12,7 @@ def execute(sysname):
     Qpfac = 100
     if sysname == '':
         Qpfac = 10000
-    os.system('./nbody TESTP5m'+sysname+' '+str(Qpfac)+' 0.6')
+    os.system('./nbody TESTP5m'+sysname+' '+str(Qpfac)+' 0.8')
 
 #Main multiprocess execution - Give sysname and letters of outer planets close to resonance
 if __name__== '__main__':
