@@ -9,11 +9,14 @@ import pylab
 arg1='2'
 arg2='1'
 thresh=0.06
+
+#tideF
+#path = '../saved_runs/round24_Apr28Qpfac200_migfac0.8_tideF/'
+#ext = '_Qpfac200_tideF_migfac0.8'
+
+#tides as orb ele
 path = '../saved_runs/round25_May1Qpfac200_migfac0.8/'
 ext = '_Qpfac200_migfac0.8'
-
-#path = '../saved_runs/round11_Mar26migspeedfac/migspeedfac1.25/'
-#ext = '_migspeedfac1.25'
 
 numth_comp = 1        #Compare numerics and theory
 
@@ -125,13 +128,13 @@ while i < N_sys:
 
 #median dP of outer planet in resonance
 
-xmin = -0.25
-xmax = 0.25
+xmin = -0.08
+xmax = 0.02
 binwidth = 0.0001
 #plt.hist(D, color='green', alpha = 0.8, linewidth=1, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$\Delta_{sim,max}$')
 #plt.hist(delta, color='blue', alpha = 0.8, linewidth=1, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$\Delta_{obs}$')
 #plt.hist(delta - D, color='black', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$\Delta_{obs}$ - $\Delta_{sim,max}$ ($\Delta$-boost req.)')
-plt.hist(dD, color='purple', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$(\Delta_{th} - \Delta_{num})$ (Does theory agree with num)')
+plt.hist(dD, color='purple', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true')
 #plt.hist(dafin, color='yellow', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$(a_{th,in} - a_{num,in})/ a_{num,in}$')
 #plt.hist(dafout, color='orange', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$(a_{th,out} - a_{num,out})/ a_{num,out})$')
 
@@ -139,10 +142,9 @@ plt.hist(dD, color='purple', linewidth=2, bins=np.arange(xmin, xmax + binwidth, 
 plt.plot([0,0],[0,1.25], 'r--', linewidth=2)
 
 plt.ylim([0,1.25])
-plt.xlabel('$\Delta$', fontsize=16)
+plt.xlabel('$\Delta_{num} - \Delta_{th}$', fontsize=16)
 plt.ylabel('cdf, counts='+str(N_sys/2), fontsize=16)
-plt.title('Max Evolution Due to Tides ('+ext+')')
-plt.legend(loc='upper left',prop={'size':10})
+#plt.title('Max Evolution Due to Tides ('+ext+')')
 pylab.savefig(path+'delta_max.png')
 plt.show()
 

@@ -19,6 +19,6 @@ void calc_tidetau(double* tau_a, double* tau_e, double K, double Qp, double mp, 
 
 void printwrite(int i, char* txt_file, double a,double P,double e,double mp,double rp,double Qp,double tau_a,double t_mig, double t_damp,double afac,int p_suppress);
 
-void special_cases(char* sysname, int i, int k, int* special_flag);
+void Qpfac_check(char* sysname, double* Qpfac);
 
 #endif /* defined(____migration__) */

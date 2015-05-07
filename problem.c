@@ -35,11 +35,11 @@ void problem_init(int argc, char* argv[]){
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
-    mig_forces  = 0;                //If ==0, no migration.
+    mig_forces  = 1;                //If ==0, no migration.
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    e_ini       = atof(argv[3]);    //initial eccentricity of the planets
-    afac        = 1.0;             //Factor to increase 'a' of OUTER planets by.
-    double iptmig_fac  = 1;//atof(argv[3]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
+    e_ini       = 0.01;//atof(argv[3]);    //initial eccentricity of the planets
+    afac        = 1.1;             //Factor to increase 'a' of OUTER planets by.
+    double iptmig_fac  = atof(argv[3]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
     /* Tide constants */
     tides_on = 0;                   //If ==0, then no tidal torques on planets.
@@ -47,6 +47,7 @@ void problem_init(int argc, char* argv[]){
     double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
     //double Qpfac = 100;
     tide_print = 0;
+    Qpfac_check(c,&Qpfac);
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -394,8 +395,8 @@ void problem_output(){
             if(N < N_ini && collision_print == 0){
                 printf("\n\n system %s with e_ini=%f,e_now=%f had a collision!! \n\n",c,e_ini,e);
                 FILE *append;
-                append=fopen("Kepler_e_coll.txt", "a");
-                fprintf(append,"%s,%e,%e,\n",c,e_ini,t);
+                append=fopen("python_scripts/Kepler_e_coll.txt", "a");
+                fprintf(append,"%s,%e,%e\n",c,e_ini,t);
                 fclose(append);
                 collision_print = 1;
             }

@@ -45,7 +45,6 @@ void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, doub
             double rel_speed = 1/((n*mu43*tau_a[k])/mintau_fac + 1.); //fastest mig speed with guaranteed capture
             if(rel_speed < min_rel_speed) rel_speed = min_rel_speed;    //don't want it to be too fast.
             tau_a[i] = rel_speed*(tau_a[k]);    //set outer migration rate to rel_speed*tau_a[k]
-            special_cases(sysname,i,k,&special_flag);
             if(special_flag == 0){
                 double red_fac = 0.65;
                 t_mig[k] *= red_fac*iptmig_fac;  //inner planet migrates for much less time
@@ -174,9 +173,15 @@ void printwrite(int i, char* txt_file, double a,double P,double e,double mp,doub
     fclose(write);
 }
 
-void special_cases(char* sysname, int i, int k, int* special_flag){
-    if(strcmp(sysname, "Kepler-31") == 0 && i == 3 && k == 2){
-        *special_flag = 1;
-        printf("Special_flag=1 \n");
+void Qpfac_check(char* sysname, double* Qpfac){
+    const int Nsys = 8;
+    int proceed = 0;
+    char systems[Nsys][15]={"Kepler-32", "Kepler-83", "Kepler-221", "Kepler-267", "Kepler-272", "Kepler-326", "Kepler-327", "Kepler-331"};
+    for(int i=0;i<Nsys;i++){
+        if(strcmp(sysname, systems[i]) == 0 && *Qpfac > 20) proceed = 1;
+    }
+    if(proceed == 1){
+        *Qpfac = 1;
+        printf("!!** Short tau_e, change Qpfac = 1 for %s **!! \n",sysname);
     }
 }

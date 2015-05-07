@@ -75,9 +75,9 @@ for i in xrange(0,Nfiles):
 axes[0].set_xlim([p[f_tide,0],p[-1,0]])
 axes[1].set_ylim([4.92,5.06])
 axes[0].set_ylim([9.98,10.21])
-axes[1].set_xlabel('time (years)')
-axes[1].set_ylabel('Inner Planet Period (days)')
-axes[0].set_ylabel('Outer Planet Period (days)')
+axes[1].set_xlabel('time (years)', fontsize=13)
+axes[1].set_ylabel('Inner Planet Period (days)', fontsize=13)
+axes[0].set_ylabel('Outer Planet Period (days)', fontsize=13)
 #axes[0].set_ylim([1.99,2.01])
 
 fig.subplots_adjust(hspace=0.075)
