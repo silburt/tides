@@ -176,7 +176,7 @@ void printwrite(int i, char* txt_file, double a,double P,double e,double mp,doub
 void Qpfac_check(char* sysname, double* Qpfac){
     const int Nsys = 8;
     int proceed = 0;
-    char systems[Nsys][15]={"Kepler-32", "Kepler-83", "Kepler-221", "Kepler-267", "Kepler-272", "Kepler-326", "Kepler-327", "Kepler-331"};
+    char systems[8][15]={"Kepler-32", "Kepler-83", "Kepler-221", "Kepler-267", "Kepler-272", "Kepler-326", "Kepler-327", "Kepler-331"};
     for(int i=0;i<Nsys;i++){
         if(strcmp(sysname, systems[i]) == 0 && *Qpfac > 20) proceed = 1;
     }

@@ -10,12 +10,9 @@ arg1='2'
 arg2='1'
 thresh=0.06
 
-#tideF
-#path = '../saved_runs/round24_Apr28Qpfac200_migfac0.8_tideF/'
+#path = '../saved_runs/round26_May8Qpfac200_tideF/'
 #ext = '_Qpfac200_tideF_migfac0.8'
-
-#tides as orb ele
-path = '../saved_runs/round25_May1Qpfac200_migfac0.8/'
+path = '../saved_runs/round27_May8Qpfac200/'
 ext = '_Qpfac200_migfac0.8'
 
 numth_comp = 1        #Compare numerics and theory
@@ -134,13 +131,14 @@ binwidth = 0.0001
 #plt.hist(D, color='green', alpha = 0.8, linewidth=1, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$\Delta_{sim,max}$')
 #plt.hist(delta, color='blue', alpha = 0.8, linewidth=1, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$\Delta_{obs}$')
 #plt.hist(delta - D, color='black', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$\Delta_{obs}$ - $\Delta_{sim,max}$ ($\Delta$-boost req.)')
-plt.hist(dD, color='purple', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true')
+plt.hist(dD, color='black', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true')
 #plt.hist(dafin, color='yellow', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$(a_{th,in} - a_{num,in})/ a_{num,in}$')
 #plt.hist(dafout, color='orange', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$(a_{th,out} - a_{num,out})/ a_{num,out})$')
 
 #plt.plot([0,0],[0,1.25], 'r--', linewidth=2, label='Explainable Via Tides')
 plt.plot([0,0],[0,1.25], 'r--', linewidth=2)
 
+plt.xlim([-0.07,0.01])
 plt.ylim([0,1.25])
 plt.xlabel('$\Delta_{num} - \Delta_{th}$', fontsize=16)
 plt.ylabel('cdf, counts='+str(N_sys/2), fontsize=16)

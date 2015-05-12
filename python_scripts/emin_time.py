@@ -42,7 +42,7 @@ def calcQp(Qp,rp):
 #plot initial things
 binwidth = 0.0001
 y_lim = 1.05
-max = 40
+max = 200
 med_e_dyn = 0.3 #from Kepler_ei_col.py
 linestyles=['solid','dashed','dotted','dashdot']
 
@@ -114,7 +114,7 @@ for k in xrange(0,N_T):
     plt.hist(e_i, color='black', alpha = 0.8, linewidth=2, linestyle=linestyles[k], bins=np.arange(0., max + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$e_{min}$, T='+str(T/1e9)+' Gyr')
 
 plt.ylim([0,y_lim])
-plt.xlim([0.001,max+5])
+plt.xlim([0.001,max-50])
 plt.xscale('log')
 plt.xlabel('$e_{i,min}$', fontsize=16)
 plt.ylabel('cdf, counts='+str(N_sys/2), fontsize=10)

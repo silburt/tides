@@ -28,7 +28,7 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",1000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",50000000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -37,17 +37,16 @@ void problem_init(int argc, char* argv[]){
     /* Migration constants */
     mig_forces  = 1;                //If ==0, no migration.
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    e_ini       = 0.01;//atof(argv[3]);    //initial eccentricity of the planets
-    afac        = 1.1;             //Factor to increase 'a' of OUTER planets by.
+    e_ini       = 0.01; //atof(argv[3]);    //initial eccentricity of the planets
+    afac        = 1.03;             //Factor to increase 'a' of OUTER planets by.
     double iptmig_fac  = atof(argv[3]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
     /* Tide constants */
     tides_on = 0;                   //If ==0, then no tidal torques on planets.
-    tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double Qpfac = atof(argv[2]);   //multiply Qp by this factor in assignparams.c
-    //double Qpfac = 100;
+    tide_force = atoi(argv[2]);                 //if ==1, implement tides as *forces*, not as e' and a'.
+    double Qpfac = atof(argv[4]);             //multiply Qp by this factor in assignparams.c
     tide_print = 0;
-    Qpfac_check(c,&Qpfac);
+    Qpfac_check(c,&Qpfac);          //For special systems, make sure that if Qpfac is set too high, it's reduced.
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -60,9 +59,11 @@ void problem_init(int argc, char* argv[]){
     strcat(txt_file, dir);
     strcat(txt_file, c);
     char* str = "_Qpfac";
-    char* c2 = argv[2];
     strcat(txt_file, str);
-    strcat(txt_file, c2);
+    char strQpfac[15];
+    int Qpfactor = (int) Qpfac;
+    sprintf(strQpfac, "%d", Qpfactor);
+    strcat(txt_file, strQpfac);
     if(tide_force == 1){
         char* forcestring = "_tideF";   //implementing tides as forces
         strcat(txt_file, forcestring);
