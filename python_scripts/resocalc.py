@@ -57,10 +57,13 @@ output.close()
 Pratio = np.delete(Pratio, 0,0) #delete first row that was created earlier
 #cdf = np.cumsum(Pratio)
 binwidth=0.01
-plt.hist(Pratio, bins=np.arange(round(100*min(Pratio))/100., round(100*max(Pratio))/100. + binwidth, binwidth))
+center = float(arg1)/float(arg2)
+plt.hist(Pratio, bins=np.arange(center - thresh, center + thresh + binwidth, binwidth), color='gray')
+plt.plot([2.06, 2.06], [0,10], 'r--', linewidth = 2)
 plt.xlabel('P$_2$/P$_1$')
-plt.ylabel('counts, total='+str(len(Pratio)))
-plt.title('Histogram of Planets close to Resonance')
+plt.ylabel('counts')#, total='+str(len(Pratio)))
+#plt.title('Histogram of Planets close to Resonance')
+plt.xlim([center - thresh, center + thresh])
 plt.show()
 
 

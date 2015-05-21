@@ -32,6 +32,7 @@ a0_out = np.zeros(0)
 P0_out = np.zeros(0)
 delta = np.zeros(0)
 D = np.zeros(0)
+Dnumarr = np.zeros(0)
 dD = np.zeros(0)    #Difference in Delta between numerics & theory, used when numth_comp ==1
 dafin = np.zeros(0) #Difference in final 'a' between numerics & theory, used when numth_comp ==1 (inner planet)
 dafout = np.zeros(0)#Difference in final 'a' between numerics & theory, used when numth_comp ==1 (outer planet)
@@ -111,19 +112,20 @@ while i < N_sys:
             D = np.append(D, Dth)
             if numth_comp == 1:
                 Dnum = (a_fout/a_fin)**1.5 - 2              #Period ratio, delta_numerical
+                Dnumarr = np.append(Dnumarr, Dnum)
                 dD = np.append(dD, (Dnum - Dth))
                 dafin = np.append(dafin, (a_fin_th - a_fin)/(a_in - a_fin))
                 dafout = np.append(dafout, (a_fout_th - a_fout)/(a_out - a_fout))
                 #print e_in, e_fin, e_out, e_fout, Dth, Dnum, (Dnum - Dth)/Dnum, (a_fin_th - a_fin)/a_fin, (a_fout_th - a_fout)/a_fout
                 #print e_in, e_fin, a_in, a_in - a_fin, a_fin - a_fin_th, '(outer)',e_out, e_fout, a_out, a_out - a_fout, a_fout_th - a_fout
-                print i,(Dnum - Dth), Dnum, Dth, N
-                #print 'dP_outer = ', P_out - P_fout
+                #print i,(Dnum - Dth), Dnum, Dth, N
+                print i,Dnum - delta[i/2], Dnum, delta[i/2]
             exit = 1
         inc_in += N
         inc_out += N
     i += 2
 
-#median dP of outer planet in resonance
+print 'median e_i,in =', np.median(e0_in)
 
 xmin = -0.08
 xmax = 0.02
@@ -131,7 +133,10 @@ binwidth = 0.0001
 #plt.hist(D, color='green', alpha = 0.8, linewidth=1, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$\Delta_{sim,max}$')
 #plt.hist(delta, color='blue', alpha = 0.8, linewidth=1, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$\Delta_{obs}$')
 #plt.hist(delta - D, color='black', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$\Delta_{obs}$ - $\Delta_{sim,max}$ ($\Delta$-boost req.)')
-plt.hist(dD, color='black', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true')
+
+plt.hist(dD, color='black', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label='$\Delta_{num} - \Delta_{th}$')
+plt.hist(Dnumarr - delta, color='black', linestyle='dashed',linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label='$\Delta_{num} - \Delta_{obs}$')
+
 #plt.hist(dafin, color='yellow', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$(a_{th,in} - a_{num,in})/ a_{num,in}$')
 #plt.hist(dafout, color='orange', linewidth=2, bins=np.arange(xmin, xmax + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$(a_{th,out} - a_{num,out})/ a_{num,out})$')
 
@@ -139,9 +144,10 @@ plt.hist(dD, color='black', linewidth=2, bins=np.arange(xmin, xmax + binwidth, b
 plt.plot([0,0],[0,1.25], 'r--', linewidth=2)
 
 plt.xlim([-0.07,0.01])
-plt.ylim([0,1.25])
-plt.xlabel('$\Delta_{num} - \Delta_{th}$', fontsize=16)
+plt.ylim([0,1.05])
+plt.xlabel('$d\Delta$', fontsize=16)
 plt.ylabel('cdf, counts='+str(N_sys/2), fontsize=16)
+plt.legend(loc='upper left',prop={'size':13})
 #plt.title('Max Evolution Due to Tides ('+ext+')')
 pylab.savefig(path+'delta_max.png')
 plt.show()

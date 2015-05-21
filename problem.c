@@ -28,7 +28,7 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",50000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",5000000.);  // in year/(2*pi)
     c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -42,7 +42,7 @@ void problem_init(int argc, char* argv[]){
     double iptmig_fac  = atof(argv[3]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
     /* Tide constants */
-    tides_on = 0;                   //If ==0, then no tidal torques on planets.
+    tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = atoi(argv[2]);                 //if ==1, implement tides as *forces*, not as e' and a'.
     double Qpfac = atof(argv[4]);             //multiply Qp by this factor in assignparams.c
     tide_print = 0;
@@ -232,12 +232,12 @@ void problem_migration_forces(){
                     const double a = -mu/( v*v - 2.*mu/r );			// semi major axis, AU
                     
                     //TESTP5m*********************** to get them all starting off in line together
-                    /**
+                    /*
                     if(a < 0.091432 && t > 500 && i==2){
                         mig_forces = 0;
                         if(p_suppress == 0) printf("\n\n **migration loop off (abrupt) at t=%f** \n\n",t);
                     }
-                    **/
+                    */
                     
                     const double prefac1 = 1./(1.-e*e) /tau_e[i]/1.5;
                     const double prefac2 = 1./(r*h) * sqrt(mu/a/(1.-e*e))  /tau_e[i]/1.5;
@@ -517,7 +517,7 @@ void problem_output(){
                 append=fopen(txt_file, "a");
                 //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
                 //               eccentric anomaly, mean longitude, resonant angle, de/dt, 1.875/(n*mu^4/3*e) |used to be:phi1     phi2     phi3
-                fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],term1[i-1],term2,val);
+                fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3);
                 fclose(append);
                 
 #ifndef INTEGRATOR_WH

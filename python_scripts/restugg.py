@@ -8,9 +8,9 @@ import math
 import matplotlib.cm as cm
 pi = math.pi
 
-names = ['orbits_TESTP5m_Qpfac10000_migfac0.1.txt','orbits_TESTP5ma_Qpfac100_migfac0.2.txt','orbits_TESTP5mb_Qpfac100_migfac0.2.txt','orbits_TESTP5mc_Qpfac100_migfac0.2.txt','orbits_TESTP5mm_Qpfac10000.txt','orbits_TESTP5mma_Qpfac100.txt','orbits_TESTP5mmb_Qpfac100.txt','orbits_TESTP5mmc_Qpfac100.txt',]
+names = ['orbits_TESTP5m_Qpfac20000_migfac0.5.txt','orbits_TESTP5ma_Qpfac100_migfac0.2.txt','orbits_TESTP5mb_Qpfac300_migfac0.5.txt','orbits_TESTP5mc_Qpfac500_migfac0.5.txt','orbits_TESTP5mm_Qpfac100_ei0.10.txt','orbits_TESTP5mma_Qpfac200_ei0.10.txt','orbits_TESTP5mmb_Qpfac175_ei0.10.txt','orbits_TESTP5mmc_Qpfac250_ei0.10.txt',]
 Nfiles = len(names)
-colors=['b','g','m','r','b','g','m','r']
+colors=['black', 'dimgray', 'darkgray', 'lightgray', 'black', 'dimgray', 'darkgray', 'lightgray']
 
 fig, axes = plt.subplots(nrows=2, ncols=1, sharex=True)
 massr = np.zeros(0)
@@ -66,21 +66,23 @@ for i in xrange(0,Nfiles):
             line = '--'
             width = 3
         if j == 1:
-            labelstr = 'm$_{in}$='+str(round(100*mp[j-1]/(3*10**(-6)))/100.)+' m$_{earth}$, m$_{out}$='+str(round(100*mp[j]/(3*10**(-6)))/100.)+' m$_{earth}$'
+            labelstr = 'm$_{in}$='+str(round(100*mp[j-1]/(3*10**(-6)))/100.)+' m$_{earth}$'
         axes[1-j].plot(p[:,0], p[:,3], colors[i], markeredgecolor='none', linestyle=line, linewidth=width, label=labelstr)
         if i > 3:
             axes[1-j].plot(p[:,0], p[:,3], colors[i], markeredgecolor='none', linestyle='-.', linewidth=width, label=labelstr)
     print 'completed file', i
 
 axes[0].set_xlim([p[f_tide,0],p[-1,0]])
-axes[1].set_ylim([4.92,5.06])
-axes[0].set_ylim([9.98,10.21])
+axes[1].set_ylim([4.94,5.06])
+axes[0].set_ylim([10.0,10.12])
 axes[1].set_xlabel('time (years)', fontsize=13)
-axes[1].set_ylabel('Inner Planet Period (days)', fontsize=13)
-axes[0].set_ylabel('Outer Planet Period (days)', fontsize=13)
+fig.text(0.05, 0.3, 'Inner Planet $P$ (days)', ha='center', va='center', rotation='vertical', fontsize=13)
+fig.text(0.05, 0.7, 'Outer Planet $P$ (days)', ha='center', va='center', rotation='vertical', fontsize=13)
+#axes[1].set_ylabel('Inner Planet Period (days)', fontsize=13)
+#axes[0].set_ylabel('Outer Planet Period (days)', fontsize=13)
 #axes[0].set_ylim([1.99,2.01])
 
 fig.subplots_adjust(hspace=0.075)
 plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
-axes[0].legend(loc='upper right',prop={'size':9})
+#axes[0].legend(loc='upper right',prop={'size':10})
 plt.show()

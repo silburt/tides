@@ -38,15 +38,17 @@ while j < N_ressys:
         index = count
         mp = data[index][19]
         mperr = data[index][20]
-        Ms = data[index][17]
-        Mserr = data[index][18]
+        Ms = data[index][15]
+        Mserr = data[index][16]
         strmp = blank(mp)
         strmperr = blank(mperr)
         mppm = blank2(strmp)
         strMs = blank(Ms)
+        if Ms > 0 and Mserr == 0:
+            Mserr = 0.05
         strMserr = blank(Mserr)
         mspm = blank2(strMs)
-        output.write(str(data[index][1])+' & '+str(data[index][2])+' & '+str(float("{0:.2f}".format(data[index][5])))+' & \checkmark & $'+strmp+' '+mppm+' '+strmperr+'$ & $'+str(float("{0:.2f}".format(data[index][22]*RstoE)))+' \pm '+str(float("{0:.2f}".format(data[index][23]*RstoE)))+'$ & '+str(data[index][4])+' & $'+str(data[index][15])+' \pm '+str(data[index][16])+'$ & $'+strMs+' '+mspm+' '+strMserr+'$ \\\  \n')
+        output.write(str(data[index][1])+' & '+str(data[index][2])+' & '+str(float("{0:.2f}".format(data[index][5])))+' & \checkmark & $'+strmp+' '+mppm+' '+strmperr+'$ & $'+str(float("{0:.2f}".format(data[index][22]*RstoE)))+' \pm '+str(float("{0:.2f}".format(data[index][23]*RstoE)))+'$ & '+str(data[index][4])+' & $'+strMs+' '+mspm+' '+strMserr+'$ & $'+str(data[index][17])+' \pm '+str(data[index][18])+'$ \\\  \n')
         for i in xrange(1,Np):
             index = i + count
             mp = data[index][19]

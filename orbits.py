@@ -173,10 +173,10 @@ if arg2==1 and analytics == 10000:
 #de = -dt*(9.*pi*0.5)*Qp*GM3a3*R5a5*e/mp
 #plt.yscale('log')
 #plt.xscale('log')
-#plt.ylim([12.28, 12.36])
+#plt.ylim([9.8,10.1])
 #range=0.05
-#if arg2==2 and analytics == 1:
-#    plt.ylim([0.0,0.25])
+if arg2==2 and analytics == 1:
+    plt.ylim([0.0,0.25])
 plt.xlim([p[arg4,0],p[arg3,0]])
 plt.title(''+name)
 if arg2==12:
