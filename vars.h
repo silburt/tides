@@ -39,7 +39,7 @@ int N_ini;              /**<initial number of planets - i.e. was there a collisi
 double e_ini;           /**<initial eccentricity of planets>**/
 int collision_print = 0;/**<message to print if there's a collision>**/
 
-double* tidetau_e;      /**<tau_e/a if calculating tides as forces via Papaloizou & Larwood>**/
+double* tidetauinv_e;   /**<1/tau_e if calculating tides as forces via Papaloizou & Larwood>**/
 double* tidetau_a;
 
 #endif
