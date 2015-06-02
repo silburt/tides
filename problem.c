@@ -28,17 +28,17 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    tmax        = input_get_double(argc,argv,"tmax",5000000.);  // in year/(2*pi)
+    tmax        = input_get_double(argc,argv,"tmax",100000.);  // in year/(2*pi)
     Keplername  = "Kepler-326";          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
-    mig_forces  = 1;                //If ==0, no migration.
+    mig_forces  = 0;                //If ==0, no migration.
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    e_ini       = 0.01; //atof(argv[3]);    //initial eccentricity of the planets
-    afac        = 1.03;             //Factor to increase 'a' of OUTER planets by.
+    e_ini       = 0.1; //atof(argv[3]);    //initial eccentricity of the planets
+    afac        = 1.00;             //Factor to increase 'a' of OUTER planets by.
     double iptmig_fac  = 1;         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
     /* Tide constants */
@@ -171,8 +171,6 @@ void problem_init(int argc, char* argv[]){
     write=fopen(txt_file, "a");
     fprintf(write, "%f \n",tide_delay_output);
     fclose(write);
-    
-    exit(1);
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
 #ifndef INTEGRATOR_WH			// The WH integrator assumes a heliocentric coordinate system.
