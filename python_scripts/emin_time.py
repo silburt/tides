@@ -8,6 +8,7 @@ import math
 from itertools import islice
 import random
 random.seed(10)
+
 pi = math.pi
 
 def calca(P,Ms,Rs):
@@ -39,6 +40,14 @@ def calcQp(Qp,rp):
         Qp = 1./40.
     return Qp
 
+#important parameters
+T_arr = [1e9,5e9,10e9]      #length of time a system has to achieve current delta spacing
+N_T = len(T_arr)
+mig_out = 1.001          #(a_i/a_f)_outer planet - an assumption
+
+arg1='2'
+arg2='1'
+
 #plot initial things
 binwidth = 0.0001
 y_lim = 1.05
@@ -50,14 +59,6 @@ plt.plot([1.0,1.0],[0,y_lim], 'r--', linewidth=2)
 p = plt.axvspan(1.0, max+5, facecolor='red', alpha=0.4, label = 'Unfeasible Eccentricity')
 plt.plot([med_e_dyn,med_e_dyn],[0,y_lim], 'b--', linewidth = 2)
 p = plt.axvspan(med_e_dyn, 1.0, facecolor='b', alpha=0.4, label = '$e_{i,50}$ (Stability)')
-
-#parameters
-T_arr = [1e9,5e9,10e9]      #length of time a system has to achieve current delta spacing
-N_T = len(T_arr)
-mig_out = 1.01          #(a_i/a_f)_outer planet - an assumption
-
-arg1='2'
-arg2='1'
 
 systems=np.genfromtxt('../reso/full/'+arg1+':'+arg2+'_systems_fulldetail.txt', delimiter=',', dtype=(int,"|S10","|S10","|S10",int,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,int)) #system names
 
@@ -116,7 +117,7 @@ for k in xrange(0,N_T):
 plt.ylim([0,y_lim])
 plt.xlim([0.001,max-50])
 plt.xscale('log')
-plt.xlabel('$e_{i,min}$', fontsize=16)
+plt.xlabel('$e_{i,min}$', fontsize=18)
 plt.ylabel('cdf, counts='+str(N_sys/2), fontsize=16)
 #plt.title('Minimum Eccentricity Required by Inner Planet Given $\Delta$ and t='+str(T/1e9)+' Gyr')
 plt.legend(loc='upper left',prop={'size':13})

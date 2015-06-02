@@ -30,6 +30,8 @@ e0_out = np.zeros(0)
 a0_in = np.zeros(0)
 a0_out = np.zeros(0)
 P0_out = np.zeros(0)
+ef_out = np.zeros(0)
+ef_in = np.zeros(0)
 delta = np.zeros(0)
 D = np.zeros(0)
 Dnumarr = np.zeros(0)
@@ -69,6 +71,8 @@ while i < N_sys:
         a_fout = np.median(a1_out)
         e_fout = np.median(e1_out)
         P_fout = np.median(P1_out)
+        ef_out = np.append(ef_out, e_fout)
+        ef_in = np.append(ef_in, e_fin)
     else:
         lines = []
         for k in xrange(0,50000):
@@ -119,13 +123,15 @@ while i < N_sys:
                 #print e_in, e_fin, e_out, e_fout, Dth, Dnum, (Dnum - Dth)/Dnum, (a_fin_th - a_fin)/a_fin, (a_fout_th - a_fout)/a_fout
                 #print e_in, e_fin, a_in, a_in - a_fin, a_fin - a_fin_th, '(outer)',e_out, e_fout, a_out, a_out - a_fout, a_fout_th - a_fout
                 #print i,(Dnum - Dth), Dnum, Dth, N
-                print i,Dnum - delta[i/2], Dnum, delta[i/2]
+                print i,Dnum - delta[i/2], Dnum, delta[i/2],e_fin,e_fout
             exit = 1
         inc_in += N
         inc_out += N
     i += 2
 
 print 'median e_i,in =', np.median(e0_in)
+print 'median/min/max e_f,out =',np.median(ef_out), np.min(ef_out), np.max(ef_out)
+print 'median/min/max e_f,in =',np.median(ef_in), np.min(ef_in), np.max(ef_in)
 
 xmin = -0.08
 xmax = 0.02
@@ -147,7 +153,7 @@ plt.xlim([-0.07,0.01])
 plt.ylim([0,1.05])
 plt.xlabel('$d\Delta$', fontsize=16)
 plt.ylabel('cdf, counts='+str(N_sys/2), fontsize=16)
-plt.legend(loc='upper left',prop={'size':13})
+plt.legend(loc='upper left',prop={'size':16})
 #plt.title('Max Evolution Due to Tides ('+ext+')')
 pylab.savefig(path+'delta_max.png')
 plt.show()

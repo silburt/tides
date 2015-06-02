@@ -1,6 +1,4 @@
 tides
 =====
 
-Code containing migration, tides for integrating a solar system.
-
-Notes: If you want to run more than one simulation on the same system, you need to create multiple executibles (i.e. multiple nbody files). To do this, need to edit both the tides/Makefile and src/Makefile, and change ./nbody to e.g. ./nbody2, ‘make’ and then run ./nbody2. 
+This is the code that works with the old version of rebound. I.e. the ./nbody routines. This is the code that my upcoming paper is based off of. I've integrated my code to work with the new version of rebound, but thought I'd keep this here just incase as a backup.

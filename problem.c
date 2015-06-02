@@ -29,7 +29,7 @@ void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
     tmax        = input_get_double(argc,argv,"tmax",5000000.);  // in year/(2*pi)
-    c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
+    Keplername  = "Kepler-326";          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
@@ -39,14 +39,14 @@ void problem_init(int argc, char* argv[]){
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     e_ini       = 0.01; //atof(argv[3]);    //initial eccentricity of the planets
     afac        = 1.03;             //Factor to increase 'a' of OUTER planets by.
-    double iptmig_fac  = atof(argv[3]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
+    double iptmig_fac  = 1;         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
-    tide_force = atoi(argv[2]);                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double Qpfac = atof(argv[4]);             //multiply Qp by this factor in assignparams.c
+    tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
+    double Qpfac = 1;             //multiply Qp by this factor in assignparams.c
     tide_print = 0;
-    Qpfac_check(c,&Qpfac);          //For special systems, make sure that if Qpfac is set too high, it's reduced.
+    Qpfac_check(Keplername,&Qpfac);          //For special systems, make sure that if Qpfac is set too high, it's reduced.
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -57,7 +57,7 @@ void problem_init(int argc, char* argv[]){
     char* dir = "runs/orbits_";
     char* ext = ".txt";
     strcat(txt_file, dir);
-    strcat(txt_file, c);
+    strcat(txt_file, Keplername);
     char* str = "_Qpfac";
     strcat(txt_file, str);
     char strQpfac[15];
@@ -93,13 +93,13 @@ void problem_init(int argc, char* argv[]){
     strcat(txt_file, ext);
     
     // Initial vars
-    if(p_suppress == 0) printf("You have chosen: %s \n",c);
+    if(p_suppress == 0) printf("You have chosen: %s \n",Keplername);
     double Ms,Rs,a,rho,inc,mp,rp,Qp,max_t_mig=0;
     int char_val, _N;
     
     //Star & Planet 1
     double P_temp;
-    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&rho,&inc,&mp,&rp,&P_temp,&dt,timefac,p_suppress);
+    readplanets(Keplername,txt_file,&char_val,&_N,&Ms,&Rs,&rho,&inc,&mp,&rp,&P_temp,&dt,timefac,p_suppress);
     N_ini = _N+1;
     if(mig_forces == 0 && p_suppress == 0) printf("--> Migration is *off* \n");
     if(tides_on == 0 && p_suppress == 0) printf("--> Tides are *off* \n");
@@ -136,7 +136,7 @@ void problem_init(int argc, char* argv[]){
     double f=0., w=M_PI/2.;
     calcsemi(&a,Ms,P[1]);      //I don't trust archive values. Make it all consistent
     assignQp(&Qp, Qpfac, rp);
-    migration(c,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
+    migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
     struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, w, f);
     p.r = rp;
     tau_e[1] = tau_a[1]/K;
@@ -153,7 +153,7 @@ void problem_init(int argc, char* argv[]){
         extractplanets(&char_val,&rho,&inc,&mp,&rp,&P[i],p_suppress);
         calcsemi(&a,Ms,P[i]);
         assignQp(&Qp, Qpfac, rp);
-        migration(c,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
+        migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
         tau_e[i] = tau_a[i]/K;
         f = i*M_PI/4.;
         struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, w, f);
@@ -171,6 +171,8 @@ void problem_init(int argc, char* argv[]){
     write=fopen(txt_file, "a");
     fprintf(write, "%f \n",tide_delay_output);
     fclose(write);
+    
+    exit(1);
     
 	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
 #ifndef INTEGRATOR_WH			// The WH integrator assumes a heliocentric coordinate system.
@@ -392,15 +394,16 @@ void problem_output(){
             double a = r*(1. + e*cosf)/(1. - e*e);
             double n;
             
+            /*
             //Test for collision
             if(N < N_ini && collision_print == 0){
                 printf("\n\n system %s with e_ini=%f,e_now=%f had a collision!! \n\n",c,e_ini,e);
                 FILE *append;
-                append=fopen("python_scripts/Kepler_e_coll.txt", "a");
+                append=fopen("python_scripts/emax_dyn.txt", "a");
                 fprintf(append,"%s,%e,%e\n",c,e_ini,t);
                 fclose(append);
                 collision_print = 1;
-            }
+            }*/
             
             //Tides
             if(tide_go == 1){//For TESTP5m need && i==1
@@ -428,7 +431,7 @@ void problem_output(){
                 
                 //Stop program if nan values being produced.
                 if(x_new!=x_new || y_new!=y_new || vx_new!=vx_new ||vy_new!=vy_new){
-                    printf("\n !!Failed run for: %s \n",c);
+                    printf("\n !!Failed run for: %s \n",Keplername);
                     printf("cartesian before: dx=%f,dy=%f,dz=%f,ex=%f,ey=%f,ez=%f,r=%f,vx=%f,vy=%f,com.vx=%f,com.vy=%f,v=%f \n",dx,dy,dz,ex,ey,ez,r,par->vx,par->vy,com.vx,com.vy,v);
                     printf("Orbital elements: mu=%f,e=%f,a=%f,cosf=%.15f,sinf=%.15f,dt=%f,de=%f,da=%f,GM3a3=%f,R5a5=%f \n",mu,e,a,cosf,sinf,dt,de,da,GM3a3,R5a5);
                     printf("\n cartesian after: x_new=%f,y_new=%f,vx_new=%f,vy_new=%f,term=%f,rdot=%f,rfdot=%f \n",x_new,y_new,vx_new,vy_new,term,rdot,rfdot);

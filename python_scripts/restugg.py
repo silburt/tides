@@ -8,9 +8,10 @@ import math
 import matplotlib.cm as cm
 pi = math.pi
 
-names = ['orbits_TESTP5m_Qpfac20000_migfac0.5.txt','orbits_TESTP5ma_Qpfac100_migfac0.2.txt','orbits_TESTP5mb_Qpfac300_migfac0.5.txt','orbits_TESTP5mc_Qpfac500_migfac0.5.txt','orbits_TESTP5mm_Qpfac100_ei0.10.txt','orbits_TESTP5mma_Qpfac200_ei0.10.txt','orbits_TESTP5mmb_Qpfac175_ei0.10.txt','orbits_TESTP5mmc_Qpfac250_ei0.10.txt',]
+names = ['orbits_TESTP5m_Qpfac20000_migfac0.5.txt','orbits_TESTP5ma_Qpfac100_migfac0.2.txt','orbits_TESTP5mb_Qpfac300_migfac0.5.txt','orbits_TESTP5mc_Qpfac500_migfac0.5.txt','orbits_TESTP5mm_Qpfac100_ei0.10.txt','orbits_TESTP5mma_Qpfac200_ei0.10.txt','orbits_TESTP5mmb_Qpfac175_ei0.10.txt','orbits_TESTP5mmc_Qpfac250_ei0.10.txt']
 Nfiles = len(names)
-colors=['black', 'dimgray', 'darkgray', 'lightgray', 'black', 'dimgray', 'darkgray', 'lightgray']
+colors=['lightgray', 'darkgray', 'dimgray', 'black', 'black', 'dimgray', 'darkgray', 'lightgray']
+coldot=['black','dimgray','darkgray','lightgray']
 
 fig, axes = plt.subplots(nrows=2, ncols=1, sharex=True)
 massr = np.zeros(0)

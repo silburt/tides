@@ -31,7 +31,7 @@ double* term2a;          /**<gold & schlich**/
 double* coeff2;
 double* expmigfac;      /**<exponential migration factor>**/
 int tautide_force_calc=0; /**<switch to calc tau_a and tau_e for tidal forces (post migration)>**/
-char* c;
+char* Keplername;
 int* phi_i;
 int tide_print;         /**<print message when tides are turned on>**/
 char txt_file[80];
