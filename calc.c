@@ -63,7 +63,7 @@ void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, doub
     //migration damping timescale - need min damp time or weird eccentricity effects ensue
     double damp_fac = 3.0;
     t_damp[i] = t_mig[i]/damp_fac; //Need to damp minimum over a libration timescale.
-    *expmigfac = t_damp[i]/log(2000000./tau_a[i]);
+    *expmigfac = t_damp[i]/log(2000000./tau_a[i]);  //exponential migration damping factor
     
     //The amount of distance covered from the exp damp decay is equivalent to t_equiv travelling at tau_a[i].
     //Since we want inner planet to end up at its initial position, need to subtract this from mig_fac
@@ -164,15 +164,6 @@ void calc_tidetau(double* tau_a, double* tau_e, double K, double Qp, double mp, 
     
 }
 
-void printwrite(int i, char* txt_file, double a,double P,double e,double mp,double rp,double Qp,double tau_a,double t_mig,double t_damp,double afac,int p_suppress){
-    
-    if(p_suppress == 0) printf("Planet %i: a=%f,P=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i,a,P,e,mp,rp,Qp,tau_a,t_mig,t_damp,afac);
-    FILE *write;
-    write=fopen(txt_file, "a");
-    fprintf(write, "%.10f,%f,%f,%f,%f,%f\n", mp,rp,P,Qp,tau_a,t_mig+t_damp);
-    fclose(write);
-}
-
 void Qpfac_check(char* sysname, double* Qpfac){
     const int Nsys = 8;
     int proceed = 0;
@@ -184,4 +175,12 @@ void Qpfac_check(char* sysname, double* Qpfac){
         *Qpfac = 1;
         printf("!!** Short tau_e, change Qpfac = 1 for %s **!! \n",sysname);
     }
+}
+
+void calcsemi(double* a, double Ms, double P){
+    double P_SI = P*24.*60.*60.; //Period in seconds
+    double mass = Ms*1.989e30;
+    double G_SI = 6.67e-11;
+    double a3 = P_SI*P_SI*G_SI*mass/(4.*M_PI*M_PI);
+    *a = pow(a3,1./3.)/1.496e11;     //in AU
 }

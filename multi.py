@@ -12,7 +12,7 @@ length=name.shape[0]
 os.system('make')
 
 def execute(sysname):
-    os.system('./nbody '+str(sysname)+' 1 10')
+    os.system('../.rebound '+str(sysname)+' 1 10')
 
 #Main multiprocess execution - Give sysname and letters of outer planets close to resonance
 if __name__== '__main__':

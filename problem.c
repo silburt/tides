@@ -30,9 +30,11 @@ extern int display_wire;
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
-    integrator	= WH;
-    tmax        = input_get_double(argc,argv,"tmax",5000000.);  // in year/(2*pi)
-    c           = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
+    integrator	= WHFAST;
+    integrator_whfast_synchronize_manually = 1;	// Need to call integrator_synchronize() before outputs.
+    
+    tmax        = 500000.;  // in year/(2*pi)
+    Keplername  = "Kepler-326";          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
@@ -42,14 +44,13 @@ void problem_init(int argc, char* argv[]){
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     e_ini       = 0.01; //atof(argv[3]);    //initial eccentricity of the planets
     afac        = 1.03;             //Factor to increase 'a' of OUTER planets by.
-    double iptmig_fac  = atof(argv[2]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
+    double iptmig_fac  = 1;         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double Qpfac = atof(argv[3]);   //multiply Qp by this factor in assignparams.c
-    tide_print = 0;
-    Qpfac_check(c,&Qpfac);          //For special systems, make sure that if Qpfac is set too high, it's reduced.
+    double Qpfac = 1;               //multiply Qp by this factor
+    Qpfac_check(Keplername,&Qpfac); //For special systems, make sure that if Qpfac is set too high, it's reduced.
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -57,53 +58,15 @@ void problem_init(int argc, char* argv[]){
 	init_box();
     
     //Naming
-    char* dir = "runs/orbits_";
-    char* ext = ".txt";
-    strcat(txt_file, dir);
-    strcat(txt_file, c);
-    char* str = "_Qpfac";
-    strcat(txt_file, str);
-    char strQpfac[15];
-    int Qpfactor = (int) Qpfac;
-    sprintf(strQpfac, "%d", Qpfactor);
-    strcat(txt_file, strQpfac);
-    if(tide_force == 1){
-        char* forcestring = "_tideF";   //implementing tides as forces
-        strcat(txt_file, forcestring);
-    }
-    if(K != 100){
-        char strK[15];
-        int Kint = (int) K;
-        sprintf(strK, "%d", Kint);
-        strcat(txt_file, "_K");
-        strcat(txt_file, strK);
-    }
-    if(iptmig_fac != 1){
-        char strmig[15];
-        int migint = (int) round(10*iptmig_fac);
-        sprintf(strmig, "%d", migint);
-        strcat(txt_file, "_migfac0.");
-        strcat(txt_file, strmig);
-    }
-    if(e_ini != 0.01){
-        char strmig[15];
-        int migint = (int) round(100*e_ini);
-        printf("migint = %i \n",migint);
-        sprintf(strmig, "%d", migint);
-        strcat(txt_file, "_ei0.");
-        strcat(txt_file, strmig);
-    }
-    strcat(txt_file, ext);
+    naming(Keplername, txt_file, K, iptmig_fac, e_ini, Qpfac, tide_force);
     
     // Initial vars
-    if(p_suppress == 0) printf("You have chosen: %s \n",c);
-    double Ms,Rs,a,rho,inc,mp,rp,Qp,max_t_mig=0;
-    int char_val, _N;
+    if(p_suppress == 0) printf("You have chosen: %s \n",Keplername);
+    double Ms,Rs,a,mp,rp,Qp,max_t_mig=0, P_temp;
+    int char_val;
     
     //Star & Planet 1
-    double P_temp;
-    readplanets(c,txt_file,&char_val,&_N,&Ms,&Rs,&rho,&inc,&mp,&rp,&P_temp,&dt,timefac,p_suppress);
-    N_ini = _N+1;
+    readplanets(Keplername,txt_file,&char_val,&_N,&Ms,&Rs,&mp,&rp,&P_temp,p_suppress);
     if(mig_forces == 0 && p_suppress == 0) printf("--> Migration is *off* \n");
     if(tides_on == 0 && p_suppress == 0) printf("--> Tides are *off* \n");
     struct particle star; //Star MUST be the first particle added.
@@ -114,6 +77,10 @@ void problem_init(int argc, char* argv[]){
     star.r = Rs;
 	particles_add(star);
     
+    //timestep - units of 2pi*yr (required)
+    dt = 2.*M_PI*P_temp/(365.*timefac);
+    if(p_suppress == 0) printf("The timestep used for this simulation is (2pi*years): %f \n",dt);
+    
     //Arrays, Extra slot for star, calloc sets values to 0 already.
     tau_a  = calloc(sizeof(double),_N+1);   //migration speed of semi-major axis
 	tau_e  = calloc(sizeof(double),_N+1);   //migration (damp) speed of eccentricity
@@ -123,28 +90,22 @@ void problem_init(int argc, char* argv[]){
     t_mig = calloc(sizeof(double),_N+1);
     t_damp = calloc(sizeof(double),_N+1);
     phi_i = calloc(sizeof(int),_N+1);       //phi index (for outputting resonance angles)
-    mu_a = calloc(sizeof(double),_N+1);
-    en = calloc(sizeof(double),_N+1);
-    term1 = calloc(sizeof(double),_N+1);
-    term2a = calloc(sizeof(double),_N+1);
-    coeff2 = calloc(sizeof(double),_N+1);
     if(tide_force == 1){
-        tidetau_a = calloc(sizeof(double),_N+1);
+        //tidetau_a = calloc(sizeof(double),_N+1);
         tidetauinv_e = calloc(sizeof(double),_N+1);
     }
     double P[_N+1];       //array of period values, only needed locally
     P[1] = P_temp;
     
     //planet 1
-    double f=0., w=M_PI/2.;
     calcsemi(&a,Ms,P[1]);      //I don't trust archive values. Make it all consistent
     assignQp(&Qp, Qpfac, rp);
-    migration(c,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
-    struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, w, f);
-    p.r = rp;
+    migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
+    struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, 0, 0.);
     tau_e[1] = tau_a[1]/K;
     assignQp(&Qp, Qpfac, rp);
     p.Qp=Qp;
+    p.r = rp;
     particles_add(p);
     
     //print/writing stuff
@@ -153,15 +114,14 @@ void problem_init(int argc, char* argv[]){
     
     //outer planets (i=0 is star)
     for(int i=2;i<_N+1;i++){
-        extractplanets(&char_val,&rho,&inc,&mp,&rp,&P[i],p_suppress);
+        extractplanets(&char_val,&mp,&rp,&P[i],p_suppress);
         calcsemi(&a,Ms,P[i]);
-        assignQp(&Qp, Qpfac, rp);
-        migration(c,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
+        migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
+        struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, 0, i*M_PI/4.);
         tau_e[i] = tau_a[i]/K;
-        f = i*M_PI/4.;
-        struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, w, f);
-        p.r = rp;
+        assignQp(&Qp, Qpfac, rp);
         p.Qp = Qp;
+        p.r = rp;
         particles_add(p);
         printwrite(i,txt_file,a,P[i],e_ini,mp,rp,Qp,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
     }
@@ -174,11 +134,13 @@ void problem_init(int argc, char* argv[]){
     write=fopen(txt_file, "a");
     fprintf(write, "%f \n",tide_delay_output);
     fclose(write);
+    tide_print = 0;
     
-	problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
-#ifndef INTEGRATOR_WH			// The WH integrator assumes a heliocentric coordinate system.
-	tools_move_to_center_of_momentum();  		
-#endif // INTEGRATOR_WH
+    problem_additional_forces = problem_migration_forces; 	//Set function pointer to add dissipative forces.
+    integrator_force_is_velocitydependent = 1;
+    if (integrator != WH){	// The WH integrator assumes a heliocentric coordinate system.
+        tools_move_to_center_of_momentum();
+    }
 
 }
 
@@ -285,7 +247,7 @@ void problem_migration_forces(){
             tidetauinv_e[i] = 1.0/(2./(9*M_PI)*(1./Qp)*sqrt(a*a*a/com.m/com.m/com.m)*a5r5*m);
             //tidetau_a[i] = tidetau_e[i]*K; //Dan uses a K factor instead.
             
-            if(p_suppress == 0) printf("planet %i: tau_e,=%.1f Myr, tau_a=%.1f Myr, a=%f,e=%f \n",i,1.0/(tidetauinv_e[i]*1e6),tidetau_a[i]/1e6,a,e);
+            if(p_suppress == 0) printf("planet %i: tau_e,=%.1f Myr, a=%f,e=%f \n",i,1.0/(tidetauinv_e[i]*1e6),a,e);
         }
     }
     
@@ -355,7 +317,6 @@ void problem_output(){
             struct particle* par = &(particles[i]);
             const double m = par->m;
             const double mu = G*(com.m + m);
-            mu_a[i] = mu;
             const double rp = par->r*0.00464913;       //Rp from Solar Radii to AU, G=1, [t]=yr/2pi, [m]=m_star
             const double Qp = par->Qp;
             
@@ -391,11 +352,11 @@ void problem_output(){
             double n;
             
             //Test for collision
-            if(N < N_ini && collision_print == 0){
-                printf("\n\n system %s with e_ini=%f,e_now=%f had a collision!! \n\n",c,e_ini,e);
+            if(N < _N+1 && collision_print == 0){
+                printf("\n\n system %s with e_ini=%f,e_now=%f had a collision!! \n\n",Keplername,e_ini,e);
                 FILE *append;
                 append=fopen("python_scripts/Kepler_e_coll.txt", "a");
-                fprintf(append,"%s,%e,%e\n",c,e_ini,t);
+                fprintf(append,"%s,%e,%e\n",Keplername,e_ini,t);
                 fclose(append);
                 collision_print = 1;
             }
@@ -426,7 +387,7 @@ void problem_output(){
                 
                 //Stop program if nan values being produced.
                 if(x_new!=x_new || y_new!=y_new || vx_new!=vx_new ||vy_new!=vy_new){
-                    printf("\n !!Failed run for: %s \n",c);
+                    printf("\n !!Failed run for: %s \n",Keplername);
                     printf("cartesian before: dx=%f,dy=%f,dz=%f,ex=%f,ey=%f,ez=%f,r=%f,vx=%f,vy=%f,com.vx=%f,com.vy=%f,v=%f \n",dx,dy,dz,ex,ey,ez,r,par->vx,par->vy,com.vx,com.vy,v);
                     printf("Orbital elements: mu=%f,e=%f,a=%f,cosf=%.15f,sinf=%.15f,dt=%f,de=%f,da=%f,GM3a3=%f,R5a5=%f \n",mu,e,a,cosf,sinf,dt,de,da,GM3a3,R5a5);
                     printf("\n cartesian after: x_new=%f,y_new=%f,vx_new=%f,vy_new=%f,term=%f,rdot=%f,rfdot=%f \n",x_new,y_new,vx_new,vy_new,term,rdot,rfdot);
@@ -448,7 +409,6 @@ void problem_output(){
             } else {
                 n = sqrt(mu/(a*a*a)); //Still need to calc this for period.
             }
-            en[i] = n;
             
             if(output_var == 1){
                 omega[i] = atan2(ey,ex);
@@ -476,6 +436,8 @@ void problem_output(){
                 while(phi3 >= 2*M_PI) phi3 -= 2*M_PI;
                 while(phi3 < 0.) phi3 += 2*M_PI;
                 
+                integrator_synchronize();
+                
                 //output orbits in txt_file.
                 FILE *append;
                 append=fopen(txt_file, "a");
@@ -484,9 +446,9 @@ void problem_output(){
                 fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3);
                 fclose(append);
                 
-#ifndef INTEGRATOR_WH
-                tools_move_to_center_of_momentum();  	// The WH integrator assumes a heliocentric coordinate system.
-#endif // INTEGRATOR_WH
+                if (integrator != WH){	// The WH integrator assumes a heliocentric coordinate system.
+                    tools_move_to_center_of_momentum();
+                }
             }
         }
 
@@ -505,13 +467,8 @@ void problem_finish(){
     free(t_mig);
     free(t_damp);
     free(phi_i);
-    free(mu_a);
-    free(en);
-    free(term1);
-    free(term2a);
-    free(coeff2);
     if(tide_force == 1){
-        free(tidetau_a);
+        //free(tidetau_a);
         free(tidetauinv_e);
     }
 }

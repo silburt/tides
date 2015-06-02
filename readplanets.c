@@ -8,7 +8,7 @@
 #include "readplanets.h"
 #include "../../src/main.h"
 
-void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* Ms, double* Rs, double* rho, double* inc, double* mp, double* rp, double* P, double* dt, double timefac, int p_suppress){
+void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* Ms, double* Rs, double* mp, double* rp, double* P, int p_suppress){
     FILE *f = fopen("planets.txt", "r");
     char temp[512];
     int line_num = 0, found_result=0, exit=0;
@@ -44,20 +44,14 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
     
     *_N = array[0];                     //number of planets in system
     //*a = array[4];                      //semi-major axis (AU)
-    *rho = array[7];                    //density (g/cm**3)
-    *inc = array[8];                    //inclination
     *Ms = array[11];                    //Stellar mass
     *Rs = array[13];                    //Stellar radius
     *mp = array[15]*3e-6;               //planet mass (SOLAR units)
     *rp = array[18];                    //planet radius (SOLAR units)
     *P = array[1];                      //Period (days)
-
-    //Timestep - units of 2pi*yr (required)
-    *dt = 2.*M_PI*array[1]/(365.*timefac);
-    if(p_suppress == 0) printf("The timestep used for this simulation is (2pi*years): %f \n",*dt);
     
     if(*Ms == 0.){
-        *Ms = pow(*Rs,1.25);
+        *Ms = pow(*Rs,1.00);
         if(p_suppress == 0) printf("--> calculated stellar mass \n");
     }
     
@@ -85,7 +79,7 @@ void readplanets(char* sysname, char* txt_file, int* char_pos, int* _N, double* 
 
 //*******************************************************************************//
 
-void extractplanets(int* char_pos, double* rho, double* inc, double* mp, double* rp, double* P, int p_suppress){
+void extractplanets(int* char_pos, double* mp, double* rp, double* P, int p_suppress){
     FILE *f = fopen("planets.txt", "r");
     char temp[512];
     fseek(f, *char_pos, SEEK_SET);
@@ -110,8 +104,6 @@ void extractplanets(int* char_pos, double* rho, double* inc, double* mp, double*
         i++;
     }
     //*a = array[4];          //semi-major axis (AU)
-    *rho = array[7];        //density (g/cm**3)
-    *inc = array[8];        //inclination
     *mp = array[15]*3e-6;   //planet mass (SOLAR units)
     *rp = array[18];        //planet radius (SOLAR units)
     *P = array[1];          //Period (days)
@@ -129,10 +121,51 @@ void extractplanets(int* char_pos, double* rho, double* inc, double* mp, double*
     
 }
 
-void calcsemi(double* a, double Ms, double P){
-    double P_SI = P*24.*60.*60.; //Period in seconds
-    double mass = Ms*1.989e30;
-    double G_SI = 6.67e-11;
-    double a3 = P_SI*P_SI*G_SI*mass/(4.*M_PI*M_PI);
-    *a = pow(a3,1./3.)/1.496e11;     //in AU
+void naming(char* sysname, char* txt, double K, double iptmig_fac, double e_ini, double Qpfac, int tide_force){
+    char* dir = "runs/orbits_";
+    char* ext = ".txt";
+    strcat(txt, dir);
+    strcat(txt, sysname);
+    char* str = "_Qpfac";
+    strcat(txt, str);
+    char strQpfac[15];
+    int Qpfactor = (int) Qpfac;
+    sprintf(strQpfac, "%d", Qpfactor);
+    strcat(txt, strQpfac);
+    if(tide_force == 1){
+        char* forcestring = "_tideF";   //implementing tides as forces
+        strcat(txt, forcestring);
+    }
+    if(K != 100){
+        char strK[15];
+        int Kint = (int) K;
+        sprintf(strK, "%d", Kint);
+        strcat(txt, "_K");
+        strcat(txt, strK);
+    }
+    if(iptmig_fac != 1){
+        char strmig[15];
+        int migint = (int) round(10*iptmig_fac);
+        sprintf(strmig, "%d", migint);
+        strcat(txt, "_migfac0.");
+        strcat(txt, strmig);
+    }
+    if(e_ini != 0.01){
+        char strmig[15];
+        int migint = (int) round(100*e_ini);
+        printf("migint = %i \n",migint);
+        sprintf(strmig, "%d", migint);
+        strcat(txt, "_ei0.");
+        strcat(txt, strmig);
+    }
+    strcat(txt, ext);
+}
+
+void printwrite(int i, char* txt_file, double a,double P,double e,double mp,double rp,double Qp,double tau_a,double t_mig,double t_damp,double afac,int p_suppress){
+    
+    if(p_suppress == 0) printf("Planet %i: a=%f,P=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i,a,P,e,mp,rp,Qp,tau_a,t_mig,t_damp,afac);
+    FILE *write;
+    write=fopen(txt_file, "a");
+    fprintf(write, "%.10f,%f,%f,%f,%f,%f\n", mp,rp,P,Qp,tau_a,t_mig+t_damp);
+    fclose(write);
 }
