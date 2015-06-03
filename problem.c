@@ -1,6 +1,11 @@
 /**
 Code developed by Ari Silburt to evolve Kepler planets under the influence of tides, with an 
-initial migration to put planets into resonance
+initial migration to put planets into resonance. Updated code to work with newest version of rebound.
+
+Some additional notes:
+ - integrator_whfast_corrector = 0;  //symplectic correctors to make integration much more accurate. Slows integration considerably. Keep = 0
+ - integrator_whfast_synchronize_manually = 0;	// kick/drift/kick (x and vx out of sync). Setting to 0 makes sure x, vx are synchronized at end of timestep. Setting to 1 means manual, i.e. you have to synchronize when using tides, outputting values, i.e. anything where x and vx have to be synchronized! You synchronize them by calling integrator_synchronize();
+ 
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,10 +36,11 @@ void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 3;                // in AU
     integrator	= WHFAST;
-    integrator_whfast_synchronize_manually = 1;	// Need to call integrator_synchronize() before outputs.
+    integrator_whfast_corrector = 0;
+    integrator_whfast_synchronize_manually = 0;
     
-    tmax        = 500000.;  // in year/(2*pi)
-    Keplername  = "Kepler-326";          //Kepler system being investigated, Must be first string after ./nbody!
+    tmax        = 2000000.;  // in year/(2*pi)
+    Keplername  = "Kepler-221";          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
@@ -49,7 +55,7 @@ void problem_init(int argc, char* argv[]){
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double Qpfac = 1;               //multiply Qp by this factor
+    double Qpfac = 5;               //multiply Qp by this factor
     Qpfac_check(Keplername,&Qpfac); //For special systems, make sure that if Qpfac is set too high, it's reduced.
     
 #ifdef OPENGL
@@ -370,8 +376,12 @@ void problem_output(){
                 const double de = -dt*(9.*M_PI*0.5)*Qp*GM3a3*R5a5*e/m;   //Tidal change for e
                 const double da = 2.*a*e*de;                             //Tidal change for a
                 
+                //printf("de=%.15f, da=%.15f \n",de,da);
+                
                 a += da;
                 e += de;
+                
+                integrator_whfast_particles_modified = 1;
                 
                 //Re-update coords.
                 const double r_new = a*(1. - e*e)/(1. + e*cosf);
@@ -436,7 +446,7 @@ void problem_output(){
                 while(phi3 >= 2*M_PI) phi3 -= 2*M_PI;
                 while(phi3 < 0.) phi3 += 2*M_PI;
                 
-                integrator_synchronize();
+                //integrator_synchronize(); //if synchronize_manual = 1, then call this before each output to synchronize x and vx.
                 
                 //output orbits in txt_file.
                 FILE *append;

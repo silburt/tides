@@ -8,29 +8,6 @@ pi = math.pi
 analytics = 1
 arg_true=0
 
-#Concerns:  1) The eccentricity I'm supposed to use is at the libration center. How do I get that?
-#           2) Looks like tau is only > 1 if I do T[1]/T[0], but it's quoted to be the other way around in Delisle (2014). But, since T[i] = tau_e for all intensive purposes = e/(de/dt), and de/dt will be larger for the closer in planet, that means that T[0] < T[1], and therefore tau = T[0]/T[1] < 1. 
-def resbreak2(mp,rp,Qp,a,e,Ms):
-    p=1.0 #For 2:1 res, p = q = 1
-    q=1.0
-    L = (p/(p+q))**(1./3.)*mp[0]/mp[1]
-    tau_a = (e[0]/e[1])**2
-    term = (4 + (p+q)*(1+L))/(4*L - p*(1+L))
-    tau_c = L*tau_a*term
-    T = np.zeros(2)
-    for i in xrange(0,2):
-        rad = rp[i]*0.00464913 #Solar Radii to AU
-        a5R5 = (a[i]/rad)**5
-        a3GM3 = (a[i]/Ms)**1.5 #G = 1
-        T[i] = 2./(9.*pi)*a3GM3*a5R5*mp[i]/Qp[i] #tau_e = e/(de/dt)
-        tau = T[1]/T[0] #This is supposed to be 0/1?? Not 1/0
-    print 'tau values: tau_a=',tau_a,'tau=',tau,'tau_c=',tau_c
-    if tau > tau_a and tau < tau_c:
-        print 'Planets will leave resonance'
-
-def func(x, a, b):
-    return a * np.exp(-b * x)
-
 #time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
 file_name=str(sys.argv[1])
 arg1=int(sys.argv[2])
