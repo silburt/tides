@@ -40,16 +40,17 @@ void problem_init(int argc, char* argv[]){
     integrator_whfast_synchronize_manually = 0;
     
     tmax        = 2000000.;  // in year/(2*pi)
-    Keplername  = "Kepler-221";          //Kepler system being investigated, Must be first string after ./nbody!
+    Keplername  = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
+    double e_in = 0.01;             //Eccentricity of inner planet
+    double e_out= 0.1;              //Eccentricity of all outer planets
     
     /* Migration constants */
-    mig_forces  = 1;                //If ==0, no migration.
+    mig_forces  = 0;                //If ==0, no migration.
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    e_ini       = 0.01; //atof(argv[3]);    //initial eccentricity of the planets
-    afac        = 1.03;             //Factor to increase 'a' of OUTER planets by.
+    afac        = 1.00;             //Factor to increase 'a' of OUTER planets by.
     double iptmig_fac  = 1;         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
     /* Tide constants */
@@ -64,7 +65,7 @@ void problem_init(int argc, char* argv[]){
 	init_box();
     
     //Naming
-    naming(Keplername, txt_file, K, iptmig_fac, e_ini, Qpfac, tide_force);
+    naming(Keplername, txt_file, K, iptmig_fac, e_out, Qpfac, tide_force);
     
     // Initial vars
     if(p_suppress == 0) printf("You have chosen: %s \n",Keplername);
@@ -107,7 +108,7 @@ void problem_init(int argc, char* argv[]){
     calcsemi(&a,Ms,P[1]);      //I don't trust archive values. Make it all consistent
     assignQp(&Qp, Qpfac, rp);
     migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
-    struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, 0, 0.);
+    struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_in, 0, 0.);
     tau_e[1] = tau_a[1]/K;
     assignQp(&Qp, Qpfac, rp);
     p.Qp=Qp;
@@ -116,20 +117,20 @@ void problem_init(int argc, char* argv[]){
     
     //print/writing stuff
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
-    printwrite(1,txt_file,a,P[1],e_ini,mp,rp,Qp,tau_a[1],t_mig[1],t_damp[1],afac,p_suppress);
+    printwrite(1,txt_file,a,P[1],e_in,mp,rp,Qp,tau_a[1],t_mig[1],t_damp[1],afac,p_suppress);
     
     //outer planets (i=0 is star)
     for(int i=2;i<_N+1;i++){
         extractplanets(&char_val,&mp,&rp,&P[i],p_suppress);
         calcsemi(&a,Ms,P[i]);
         migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
-        struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, 0, i*M_PI/4.);
+        struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_out, 0, i*M_PI/4.);
         tau_e[i] = tau_a[i]/K;
         assignQp(&Qp, Qpfac, rp);
         p.Qp = Qp;
         p.r = rp;
         particles_add(p);
-        printwrite(i,txt_file,a,P[i],e_ini,mp,rp,Qp,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
+        printwrite(i,txt_file,a,P[i],e_out,mp,rp,Qp,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
     }
     
     //tidal delay
@@ -356,16 +357,6 @@ void problem_output(){
             double const coswf = dx*rinv;
             double a = r*(1. + e*cosf)/(1. - e*e);
             double n;
-            
-            //Test for collision
-            if(N < _N+1 && collision_print == 0){
-                printf("\n\n system %s with e_ini=%f,e_now=%f had a collision!! \n\n",Keplername,e_ini,e);
-                FILE *append;
-                append=fopen("python_scripts/Kepler_e_coll.txt", "a");
-                fprintf(append,"%s,%e,%e\n",Keplername,e_ini,t);
-                fclose(append);
-                collision_print = 1;
-            }
             
             //Tides
             if(tide_go == 1){//For TESTP5m need && i==1

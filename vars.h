@@ -31,7 +31,6 @@ int* phi_i;
 int tide_print;         /**<print message when tides are turned on>**/
 char txt_file[80];
 int N_ini;              /**<initial number of planets - i.e. was there a collision?>**/
-double e_ini;           /**<initial eccentricity of planets>**/
 int collision_print = 0;/**<message to print if there's a collision>**/
 
 double* tidetauinv_e;   /**<1/tau_e if calculating tides as forces via Papaloizou & Larwood>**/
