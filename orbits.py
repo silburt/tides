@@ -8,6 +8,14 @@ pi = math.pi
 analytics = 1
 arg_true=0
 
+def e_eq(a1,a2,m1,m2,e2):
+    ep_c = (1 - e2*e2)**0.5
+    num = (5./4.)*(a1/a2)*e2/(ep_c*ep_c)
+    den = (a1/a2)**0.5 *(m1/m2)/ep_c
+    result = num/abs(1.0 - den)
+    print 'e_eq of inner planet is:',result
+    return result
+
 #time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
 file_name=str(sys.argv[1])
 arg1=int(sys.argv[2])
@@ -44,10 +52,7 @@ for i in range(0,N):
 header = fos.readline()
 header = header.split(",")
 tide_delay = float(header[0])
-#tide_delay=80000
 
-#Load numerical data
-#names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Libration Timescale (order of mag.)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','G/G0 - 1']
 names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','2ea(de/dt) - (da/dt)',"-3.2(mu')aen(sinphi)","2ea(de/dt) - (da/dt) - 3.2(mu')aen(sinphi)",'Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','G/G0 - 1']
 colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
@@ -80,20 +85,6 @@ if arg2==11:
             if(abs(p[-1,3]/(2*q[-1,3]) - 1) < 0.06):
                 plt.plot(p[i_tide:-1,arg1], p[i_tide:-1,3]/q[i_tide:-1,3] - 2., 'o'+colors[inc], label='P$_{'+str(i+1)+',ctlg}$ ='+str(round(P[i],2))+' d, P$_{'+str(j+1)+',ctlg}$='+str(round(P[j],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
                 inc += 1
-
-elif arg2==12:
-    q=data[arg1+1::N]
-    length=len(q[:,8])
-    x = np.zeros(length)
-    y = np.zeros(length)
-    for j in xrange(0,length):
-        R = q[j,2]
-        x[j]=R*math.cos(q[j,8])
-        y[j]=R*math.sin(q[j,8])
-    gradient = q[:,0]/q[-1,0] #normalize time between 0 and 1
-    plt.scatter(x[arg4:arg3], y[arg4:arg3], c=gradient[arg4:arg3], cmap=cm.rainbow, lw=0, label='t$_{max}$ = '+str(round(q[-1,0]/1000000.))+' Myr', alpha = 0.7)
-    plt.axhline(0, color='black')
-    plt.axvline(0, color='black')
 else:
     for i in range(0,N): #range(0,N) only goes to N-1
         p=data[i::N]
@@ -110,16 +101,19 @@ else:
 #Analytics - plot tidal e - assumes that 'a' is constant, which to first order is true.
 if arg2==2 and analytics==1:
     time = np.arange(0,p[-1,0],p[-1,0]/200.)
+    a = np.zeros(N)
+    e = np.zeros(N)
     for i in range(0,N):
         p=data[i::N]
-        a=np.median(p[i_tide:f_tide,1])
+        a[i]=np.median(p[i_tide:f_tide,1])
         rad = rp[i]*0.00464913 #Solar Radii to AU
-        R5a5 = (rad/a)**5
-        GM3a3 = (Ms/a)**1.5
+        R5a5 = (rad/a[i])**5
+        GM3a3 = (Ms/a[i])**1.5
         if mp[i] > 0.0:
             edot_e = -(9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
             t_delay = tide_delay     #delay time before tidal exponential decay starts
-            e_t = np.e**(edot_e*(time - t_delay))*np.median(p[i_tide:f_tide,2]) #p[i,2] is a constant of integration, initial e.
+            e[i] = np.median(p[i_tide:f_tide,2]) #p[i,2] is a constant of integration, initial e.
+            e_t = np.e**(edot_e*(time - t_delay))*e[i]
             if i == 0:
                 plt.plot(time[0:arg3], e_t[0:arg3], 'k-.', linewidth=3, label='theoretical e(t)')
             else:
@@ -128,41 +122,12 @@ if arg2==2 and analytics==1:
             print 'tau_e(planet '+str(i+1)+') = '+str(round(tau/1000000.,0))+' Myr'
         #print 'tau_e(planet '+str(i+1)+') = '+str(round(tau,0))+' Years'
     print 't(simulation)   = '+str(p[-1,0]/1000000.)+' Myr'
+    eq = e_eq(a[0],a[1],mp[0],mp[1],e[1])
+    plt.plot([time[0],time[arg3]], [eq,eq], label='e$_{eq,inner}$', linewidth=3)
 
-#Analytics - plot tidal a - this assumes though that eccentricity is constant, which is
-#            totally not true. So in the end this plot is false.
-if arg2==1 and analytics == 10000:
-    time = np.arange(0,p[-1,0],p[-1,0]/200.)
-    for i in range(0,N):
-        p=data[i::N]
-        e   = p[1,2]
-        rad = rp[i]*0.00464913 #Solar Radii to AU
-        a0  = p[1,1]**(13./2.)
-        GM3mp = (1/mp[i])*(Ms*Ms*Ms)**0.5
-        Rp5 = rad**5
-        term = -(117.*pi/2.)*Qp[i]*GM3mp*Rp5*e*e
-        a_t = (term*time + a0)**(2./13.)
-        if i==1:
-            plt.plot(time, a_t, 'k-.', linewidth=3, label='theoretical a(t)')
-        else:
-            plt.plot(time, a_t, 'k-.', linewidth=3)
-
-#de = -dt*(9.*pi*0.5)*Qp*GM3a3*R5a5*e/mp
-#plt.yscale('log')
-#plt.xscale('log')
-#plt.ylim([9.8,10.1])
-#range=0.05
-if arg2==2 and analytics == 1:
-    plt.ylim([0.0,0.25])
 plt.xlim([p[arg4,0],p[arg3,0]])
 plt.title(''+name)
-if arg2==12:
-    plt.xlabel('e*cos$\phi$')
-    plt.ylabel('e*sin$\phi$')
-    cbar = plt.colorbar()
-    cbar.set_label('t/t$_{max}$')
-else:
-    plt.xlabel('' + names[arg1])
-    plt.ylabel('' + names[arg2])
+plt.xlabel('' + names[arg1])
+plt.ylabel('' + names[arg2])
 plt.legend(loc='upper right',prop={'size':10})
 plt.show()

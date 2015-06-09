@@ -39,13 +39,13 @@ void problem_init(int argc, char* argv[]){
     integrator_whfast_corrector = 0;
     integrator_whfast_synchronize_manually = 0;
     
-    tmax        = 2000000.;  // in year/(2*pi)
+    tmax        = 20000000.;  // in year/(2*pi)
     Keplername  = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
     double e_in = 0.01;             //Eccentricity of inner planet
-    double e_out= 0.1;              //Eccentricity of all outer planets
+    double e_out= 0.2;              //Mardling assumes that e_outer >> e_inner
     
     /* Migration constants */
     mig_forces  = 0;                //If ==0, no migration.
@@ -56,7 +56,7 @@ void problem_init(int argc, char* argv[]){
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double Qpfac = 5;               //multiply Qp by this factor
+    double Qpfac = 100;               //multiply Qp by this factor
     Qpfac_check(Keplername,&Qpfac); //For special systems, make sure that if Qpfac is set too high, it's reduced.
     
 #ifdef OPENGL
@@ -134,7 +134,7 @@ void problem_init(int argc, char* argv[]){
     }
     
     //tidal delay
-    if(max_t_mig < 50000)tide_delay = 80000.; else tide_delay = max_t_mig + 30000.;    //Have at least 30,000 years grace before turning on tides.
+    if(max_t_mig < 10000)tide_delay = 10000.; else tide_delay = max_t_mig + 10000.;
     double tide_delay_output = 0;
     if(tides_on == 1) tide_delay_output = tide_delay;
     FILE *write;

@@ -1,9 +1,5 @@
- orbits_test_tides_wh.txt - first successful run with tides for a test planet with a=0.057217,mp=0.000030,rp=0.018300,Qp=0.010000, star: Rs=1.000000, Ms=1.000000. Completed with no errors, and the tidal forces are pretty close (but not exactly) to the theoretical prediction.
+TESTP5Amaury - General test - two planets (not in resonance), m_outer=10, m_inner = 5, e_outer=0.1, e_inner=0.01. Let them both evolve under tides and see what happens. Inner planet has Earth-like tidal k/Q response. Qpfac = 100, and t = 20 Myr, so total simulated time is T = 2 Gyr
 
-orbits_test_tides_noda - the ‘da’ part of the tide is turned off, but still getting the deviation. WHYYYYYY??!!!??!!
+TESTP5Amaurygas - same as above, except inner planet has a larger radius and Neptune like k/Q factor. 
 
-orbits_de_noda - outputting various quantities like de, a, GM5a5, Rp5a5 over time, to track the evolution of these variables over time. ‘a’ has occasional but very chaotic changes. 
-
-orbits_nodeda - no de or da effect of tides, but still doing the cartesian->orbital->cartesian. Had an (a_new - a_old > 6.5e-14) stop condition, but never happened. So the variations are small, but seem to be consistently rising. 
-
-orbits_3test_danode - no de/dt, only da/dt. Checking to see if theory matches observations for the da/dt part of the tides, which it does. 
+TESTP5innerP - Single planet system of just the inner planet evolving under tides to show that it evolves correctly under tides. 
