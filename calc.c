@@ -77,7 +77,7 @@ void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, doub
     */
 }
 
-void assignQp(double* Qp, double Qpfac, double rp){
+void assignk2Q(double* k2, double* Q, double k2fac, double rp){
     /*
      Q (Goldreich & Soter, 1966):
      Mercury <  190
@@ -105,13 +105,17 @@ void assignQp(double* Qp, double Qpfac, double rp){
     
     //Assign Qp = k2/Q
     if(rp > 2*0.009156 && rp < 0.1){//Lee/Fabrycky/Lin distringuish Rp > 2R_E as mini-Neptune vs. Super-Earth
-        *Qp = Qpfac*1./(2.2e4); //Lowest Neptune value (Lee/Fabrycky/Lin 2013)
+        *k2 = k2fac*0.1;
+        *Q = 2.2e4;            //Lowest Neptune value (Lee/Fabrycky/Lin 2013)
     } else if(rp >= 0.1){
-        *Qp = Qpfac*1./(5.4e4); //Lowest Saturn value (Lee/Fabrycky/Lin 2013)
+        *k2 = k2fac*0.379;
+        *Q = 5.4e4;            //Lowest Saturn value (Lee/Fabrycky/Lin 2013)
     } else if(rp <0.005){
-        *Qp = Qpfac*10000.;
+        *k2 = k2fac*10000.;     //test particle
+        *Q = 1;
     } else{
-        *Qp = Qpfac*1./40.;   //lowest Earth value (Lee/Fabrycky/Lin 2013)
+        *k2 = k2fac*0.25;
+        *Q = 40.;              //lowest Earth value (Lee/Fabrycky/Lin 2013)
     }
 }
 
@@ -164,15 +168,15 @@ void calc_tidetau(double* tau_a, double* tau_e, double K, double Qp, double mp, 
     
 }
 
-void Qpfac_check(char* sysname, double* Qpfac){
+void k2fac_check(char* sysname, double* k2fac){
     const int Nsys = 8;
     int proceed = 0;
     char systems[8][15]={"Kepler-32", "Kepler-83", "Kepler-221", "Kepler-267", "Kepler-272", "Kepler-326", "Kepler-327", "Kepler-331"};
     for(int i=0;i<Nsys;i++){
-        if(strcmp(sysname, systems[i]) == 0 && *Qpfac > 20) proceed = 1;
+        if(strcmp(sysname, systems[i]) == 0 && *k2fac > 20) proceed = 1;
     }
     if(proceed == 1){
-        *Qpfac = 1;
+        *k2fac = 1;
         printf("!!** Short tau_e, change Qpfac = 1 for %s **!! \n",sysname);
     }
 }

@@ -39,13 +39,13 @@ void problem_init(int argc, char* argv[]){
     integrator_whfast_corrector = 0;
     integrator_whfast_synchronize_manually = 0;
     
-    tmax        = 20000000.;  // in year/(2*pi)
+    tmax        = 1.;  // in year/(2*pi)
     Keplername  = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
-    double e_in = 0.01;             //Eccentricity of inner planet
-    double e_out= 0.2;              //Mardling assumes that e_outer >> e_inner
+    double e_in = 0.001;            //Eccentricity of inner planet
+    double e_out= 0.001;              //Mardling assumes that e_outer >> e_inner
     
     /* Migration constants */
     mig_forces  = 0;                //If ==0, no migration.
@@ -56,8 +56,8 @@ void problem_init(int argc, char* argv[]){
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double Qpfac = 100;               //multiply Qp by this factor
-    Qpfac_check(Keplername,&Qpfac); //For special systems, make sure that if Qpfac is set too high, it's reduced.
+    double k2fac = 1;               //multiply k2 by this factor
+    k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -65,11 +65,11 @@ void problem_init(int argc, char* argv[]){
 	init_box();
     
     //Naming
-    naming(Keplername, txt_file, K, iptmig_fac, e_out, Qpfac, tide_force);
+    naming(Keplername, txt_file, K, iptmig_fac, e_out, k2fac, tide_force);
     
     // Initial vars
     if(p_suppress == 0) printf("You have chosen: %s \n",Keplername);
-    double Ms,Rs,a,mp,rp,Qp,max_t_mig=0, P_temp;
+    double Ms,Rs,a,mp,rp,k2,Q,max_t_mig=0, P_temp;
     int char_val;
     
     //Star & Planet 1
@@ -106,31 +106,33 @@ void problem_init(int argc, char* argv[]){
     
     //planet 1
     calcsemi(&a,Ms,P[1]);      //I don't trust archive values. Make it all consistent
-    assignQp(&Qp, Qpfac, rp);
-    migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
+    assignk2Q(&k2, &Q, k2fac, rp);
+    if(mig_forces==1)migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
     struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_in, 0, 0.);
     tau_e[1] = tau_a[1]/K;
-    assignQp(&Qp, Qpfac, rp);
-    p.Qp=Qp;
+    assignk2Q(&k2, &Q, k2fac, rp);
+    p.Q=Q;
+    p.k2 = k2;
     p.r = rp;
     particles_add(p);
     
     //print/writing stuff
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
-    printwrite(1,txt_file,a,P[1],e_in,mp,rp,Qp,tau_a[1],t_mig[1],t_damp[1],afac,p_suppress);
+    printwrite(1,txt_file,a,P[1],e_in,mp,rp,k2/Q,tau_a[1],t_mig[1],t_damp[1],afac,p_suppress);
     
     //outer planets (i=0 is star)
     for(int i=2;i<_N+1;i++){
         extractplanets(&char_val,&mp,&rp,&P[i],p_suppress);
         calcsemi(&a,Ms,P[i]);
-        migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
+        if(mig_forces==1)migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
         struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_out, 0, i*M_PI/4.);
         tau_e[i] = tau_a[i]/K;
-        assignQp(&Qp, Qpfac, rp);
-        p.Qp = Qp;
+        assignk2Q(&k2, &Q, k2fac, rp);
+        p.Q = Q;
+        p.k2 = k2;
         p.r = rp;
         particles_add(p);
-        printwrite(i,txt_file,a,P[i],e_out,mp,rp,Qp,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
+        printwrite(i,txt_file,a,P[i],e_out,mp,rp,k2/Q,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
     }
     
     //tidal delay
@@ -232,7 +234,8 @@ void problem_migration_forces(){
             const double m = par->m;
             const double mu = G*(com.m + m);
             const double rp = par->r*0.00464913;       //Rp from Solar Radii to AU
-            const double Qp = par->Qp;
+            const double k2 = par->k2;
+            const double Q = par->Q;
             
             const double dvx = par->vx-com.vx;
             const double dvy = par->vy-com.vy;
@@ -251,7 +254,7 @@ void problem_migration_forces(){
             const double a = -mu/( v*v - 2.*mu/r );			// semi major axis, AU
             double a5r5 = pow(a/rp, 5);
             
-            tidetauinv_e[i] = 1.0/(2./(9*M_PI)*(1./Qp)*sqrt(a*a*a/com.m/com.m/com.m)*a5r5*m);
+            tidetauinv_e[i] = 1.0/(2./(9*M_PI)*(Q/k2)*sqrt(a*a*a/com.m/com.m/com.m)*a5r5*m);
             //tidetau_a[i] = tidetau_e[i]*K; //Dan uses a K factor instead.
             
             if(p_suppress == 0) printf("planet %i: tau_e,=%.1f Myr, a=%f,e=%f \n",i,1.0/(tidetauinv_e[i]*1e6),a,e);
@@ -325,7 +328,8 @@ void problem_output(){
             const double m = par->m;
             const double mu = G*(com.m + m);
             const double rp = par->r*0.00464913;       //Rp from Solar Radii to AU, G=1, [t]=yr/2pi, [m]=m_star
-            const double Qp = par->Qp;
+            const double k2 = par->k2;
+            const double Q = par->Q;
             
             const double dvx = par->vx-com.vx;
             const double dvy = par->vy-com.vy;
@@ -337,14 +341,16 @@ void problem_output(){
             const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
             const double r = sqrt ( dx*dx + dy*dy + dz*dz );
             const double vr = (dx*dvx + dy*dvy + dz*dvz)/r;
-            const double rinv = 1/r;            //some extra terms to speed up code
             const double muinv = 1./mu;
-            const double term1 = v*v-mu*rinv;
+            const double term1 = v*v-mu/r;
             const double term2 = r*vr;
             const double ex = muinv*( term1*dx - term2*dvx );
             const double ey = muinv*( term1*dy - term2*dvy );
             const double ez = muinv*( term1*dz - term2*dvz );
             double e = sqrt( ex*ex + ey*ey + ez*ez );   // eccentricity
+            const double e2 = e*e;
+            double w = acos(ex/e);  //assumes 0 inclination!!
+            if(ey < 0.) w = 2.*M_PI - w;
             
             // true anomaly + periapse (wiki, Fund. of Astrodyn. and App., by Vallado, 2007)
             const double rdote = dx*ex + dy*ey + dz*ez;
@@ -353,26 +359,48 @@ void problem_output(){
             if(cosf <= -1.) cosf = -1.;
             double sinf = sqrt(1. - cosf*cosf);
             if(vr < 0.) sinf *= -1.;
-            double const sinwf = dy*rinv;
-            double const coswf = dx*rinv;
-            double a = r*(1. + e*cosf)/(1. - e*e);
+            //double const sinwf = dy/r;
+            //double const coswf = dx/r;
+            
+            double a = r*(1. + e*cosf)/(1. - e2);
             double n;
             
             //Tides
             if(tide_go == 1){//For TESTP5m need && i==1
                 const double a2 = a*a;
+                const double a3 = a2*a;
                 const double rp2 = rp*rp;
-                const double R5a5 = rp2*rp2*rp/(a2*a2*a);
-                const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a2*a));
-                const double de = -dt*(9.*M_PI*0.5)*Qp*GM3a3*R5a5*e/m;   //Tidal change for e
-                const double da = 2.*a*e*de;                             //Tidal change for a
+                const double R5a5 = rp2*rp2*rp/(a3*a2);
+                const double GM3a3 = sqrt(G*com.m*com.m*com.m/a3);
+                const double de = -dt*(21*0.5)*(k2/Q)*GM3a3*R5a5*e/m;       //Tidal change for e, others use 21/2, not 9pi/2
+                const double da = 2.*a*e*de;                                //Tidal change for a
                 
-                //printf("de=%.15f, da=%.15f \n",de,da);
+                const double e2inv = 1./(1. - e2);
+                const double f2e = 1./(1. - 1./e2);
+                const double f2e5 = f2e*f2e*f2e*f2e*f2e;
+                const double f2 = f2e5*(1. + 1.5*e2 + 0.125*e2*e2);
+                n = sqrt(mu/a3);
+                double n3 = n*n*n;
+                double const c2 = 1.013e-10;     //speed of light squared
+                const double dw_t = dt*15*0.5*k2*R5a5*(m/com.m)*f2*n;       //tidal change for w
+                const double dw_r = dt*k2*0.5*R5a5*n3*a3*e2inv*e2inv/(G*m);  //rotational change for w
+                const double dw_GR = 3*n3*e2inv*a2*c2;
+                //printf("dw = %.16f, %.13f, %.13f \n", dw_t, dw_r, dw_GR);
                 
+                //tidal evolution
                 a += da;
                 e += de;
                 
-                integrator_whfast_particles_modified = 1;
+                //tidal + rotational
+                w += dw_t + dw_r + dw_GR;
+                
+                integrator_whfast_particles_modified = 1;           //what does this do again??
+                
+                double const cosw = cos(w);
+                double sinw = sqrt(1. - cosw*cosw);
+                if(ey < 0.) sinw *= -1;
+                double const coswf = cosw*cosf - sinw*sinf;
+                double const sinwf = sinw*cosf + sinf*cosw;
                 
                 //Re-update coords.
                 const double r_new = a*(1. - e*e)/(1. + e*cosf);
@@ -407,13 +435,11 @@ void problem_output(){
                     tide_print = 1;
                 }
                 
-            } else {
-                n = sqrt(mu/(a*a*a)); //Still need to calc this for period.
-            }
-            
+            } else {n = sqrt(mu/(a*a*a));} //Still need to calc this for period.
+
+            //output stuff
             if(output_var == 1){
-                omega[i] = atan2(ey,ex);
-                if(ey < 0.) omega[i] += 2*M_PI;
+                omega[i] = w;
                 double cosE = (a - r)/(a*e);
                 double E;
                 if(cosf > 1. || cosf < -1.){
