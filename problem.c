@@ -39,12 +39,12 @@ void problem_init(int argc, char* argv[]){
     integrator_whfast_corrector = 0;
     integrator_whfast_synchronize_manually = 0;
     
-    tmax        = 10000000.;  // in year/(2*pi)
+    tmax        = 20000000.;  // in year/(2*pi)
     Keplername  = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
-    double e_in = 0.01;            //Eccentricity of inner planet
+    double e_in = 0.05;            //Eccentricity of inner planet
     double e_out= 0.4;              //Mardling assumes that e_outer >> e_inner
     
     /* Migration constants */
@@ -56,7 +56,7 @@ void problem_init(int argc, char* argv[]){
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double k2fac = 1000;               //multiply k2 by this factor
+    double k2fac = 1;               //multiply k2 by this factor
     k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     
 #ifdef OPENGL
@@ -385,7 +385,7 @@ void problem_output(){
                 const double dw_t = dt*15*0.5*k2*R5a5*(m/com.m)*f2*n;       //tidal change for w
                 const double dw_r = dt*k2*0.5*R5a5*n3*a3*e2inv*e2inv/(G*m);  //rotational change for w
                 const double dw_GR = 3*n3*e2inv*a2*c2;
-                //printf("dw_t = %.16f, %.13f, %f,%.15f,%f,%f \n", dw_t, f2, k2, R5a5, (m/com.m),n);
+                //printf("dw_t = %.16f, %.13f, %.13f, \n", dw_t, dw_r, dw_GR);
                 
                 //tidal evolution
                 a += da;
