@@ -39,24 +39,24 @@ void problem_init(int argc, char* argv[]){
     integrator_whfast_corrector = 0;
     integrator_whfast_synchronize_manually = 0;
     
-    tmax        = 2000000.;  // in year/(2*pi)
-    Keplername  = "Kepler-221";          //Kepler system being investigated, Must be first string after ./nbody!
+    tmax        = 10000000.;  // in year/(2*pi)
+    Keplername  = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
-    mig_forces  = 1;                //If ==0, no migration.
+    mig_forces  = atoi(argv[2]);                //If ==0, no migration.
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    e_ini       = 0.01; //atof(argv[3]);    //initial eccentricity of the planets
-    afac        = 1.03;             //Factor to increase 'a' of OUTER planets by.
+    e_ini       = atof(argv[3]);    //atof(argv[3]);    //initial eccentricity of the planets
+    afac        = atof(argv[4]);    //Factor to increase 'a' of OUTER planets by.
     double iptmig_fac  = 1;         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double Qpfac = 5;               //multiply Qp by this factor
-    Qpfac_check(Keplername,&Qpfac); //For special systems, make sure that if Qpfac is set too high, it's reduced.
+    double k2fac = 50;               //multiply k2 by this factor
+    k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -64,11 +64,11 @@ void problem_init(int argc, char* argv[]){
 	init_box();
     
     //Naming
-    naming(Keplername, txt_file, K, iptmig_fac, e_ini, Qpfac, tide_force);
+    naming(Keplername, txt_file, K, iptmig_fac, e_ini, k2fac, tide_force);
     
     // Initial vars
     if(p_suppress == 0) printf("You have chosen: %s \n",Keplername);
-    double Ms,Rs,a,mp,rp,Qp,max_t_mig=0, P_temp;
+    double Ms,Rs,a,mp,rp,k2,Q,max_t_mig=0, P_temp;
     int char_val;
     
     //Star & Planet 1
@@ -105,31 +105,33 @@ void problem_init(int argc, char* argv[]){
     
     //planet 1
     calcsemi(&a,Ms,P[1]);      //I don't trust archive values. Make it all consistent
-    assignQp(&Qp, Qpfac, rp);
     migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
     struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, 0, 0.);
     tau_e[1] = tau_a[1]/K;
-    assignQp(&Qp, Qpfac, rp);
-    p.Qp=Qp;
+    assignk2Q(&k2, &Q, k2fac, rp);
+    p.Q=Q;
+    p.k2=k2;
     p.r = rp;
     particles_add(p);
     
     //print/writing stuff
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
-    printwrite(1,txt_file,a,P[1],e_ini,mp,rp,Qp,tau_a[1],t_mig[1],t_damp[1],afac,p_suppress);
+    printwrite(1,txt_file,a,P[1],e_ini,mp,rp,k2/Q,tau_a[1],t_mig[1],t_damp[1],afac,p_suppress);
     
     //outer planets (i=0 is star)
     for(int i=2;i<_N+1;i++){
         extractplanets(&char_val,&mp,&rp,&P[i],p_suppress);
         calcsemi(&a,Ms,P[i]);
         migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
+        printf("phi_i = %d, i=%d\n",phi_i[i], i);
         struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, 0, i*M_PI/4.);
         tau_e[i] = tau_a[i]/K;
-        assignQp(&Qp, Qpfac, rp);
-        p.Qp = Qp;
+        assignk2Q(&k2, &Q, k2fac, rp);
+        p.Q = Q;
+        p.k2 = k2;
         p.r = rp;
         particles_add(p);
-        printwrite(i,txt_file,a,P[i],e_ini,mp,rp,Qp,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
+        printwrite(i,txt_file,a,P[i],e_ini,mp,rp,k2/Q,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
     }
     
     //tidal delay
@@ -231,7 +233,7 @@ void problem_migration_forces(){
             const double m = par->m;
             const double mu = G*(com.m + m);
             const double rp = par->r*0.00464913;       //Rp from Solar Radii to AU
-            const double Qp = par->Qp;
+            const double Qp = par->k2/(par->Q);
             
             const double dvx = par->vx-com.vx;
             const double dvy = par->vy-com.vy;
@@ -324,7 +326,7 @@ void problem_output(){
             const double m = par->m;
             const double mu = G*(com.m + m);
             const double rp = par->r*0.00464913;       //Rp from Solar Radii to AU, G=1, [t]=yr/2pi, [m]=m_star
-            const double Qp = par->Qp;
+            const double Qp = par->k2/(par->Q);
             
             const double dvx = par->vx-com.vx;
             const double dvy = par->vy-com.vy;
@@ -375,8 +377,6 @@ void problem_output(){
                 const double GM3a3 = sqrt(G*com.m*com.m*com.m/(a2*a));
                 const double de = -dt*(9.*M_PI*0.5)*Qp*GM3a3*R5a5*e/m;   //Tidal change for e
                 const double da = 2.*a*e*de;                             //Tidal change for a
-                
-                //printf("de=%.15f, da=%.15f \n",de,da);
                 
                 a += da;
                 e += de;
@@ -435,9 +435,9 @@ void problem_output(){
                 lambda[i] = MA + omega[i];
                 double phi = 0., phi2 = 0., phi3 = 0.;     //resonant angles
                 if(i>1){//tailored for 2:1 resonance, between inner/outer planet
-                    phi = 2.*lambda[i] - lambda[i-phi_i[i-1]] - omega[i-phi_i[i-1]];
-                    phi2 = 2.*lambda[i] - lambda[i-phi_i[i-1]] - omega[i];
-                    phi3 = omega[i-phi_i[i-1]] - omega[i];
+                    phi = 2.*lambda[i] - lambda[i-phi_i[i]] - omega[i-phi_i[i]];
+                    phi2 = 2.*lambda[i] - lambda[i-phi_i[i]] - omega[i];
+                    phi3 = omega[i-phi_i[i]] - omega[i];
                 }
                 while(phi >= 2*M_PI) phi -= 2*M_PI;
                 while(phi < 0.) phi += 2*M_PI;

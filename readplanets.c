@@ -152,10 +152,8 @@ void naming(char* sysname, char* txt, double K, double iptmig_fac, double e_ini,
     }
     if(e_ini != 0.01){
         char strmig[15];
-        int migint = (int) round(100*e_ini);
-        printf("migint = %i \n",migint);
-        sprintf(strmig, "%d", migint);
-        strcat(txt, "_ei0.");
+        sprintf(strmig, "%.2f", e_ini);
+        strcat(txt, "_ei");
         strcat(txt, strmig);
     }
     strcat(txt, ext);

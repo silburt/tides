@@ -91,6 +91,8 @@ elif arg2==12:
         x[j]=R*math.cos(q[j,8])
         y[j]=R*math.sin(q[j,8])
     gradient = q[:,0]/q[-1,0] #normalize time between 0 and 1
+    if arg4 < i_tide:
+        arg4 = i_tide
     plt.scatter(x[arg4:arg3], y[arg4:arg3], c=gradient[arg4:arg3], cmap=cm.rainbow, lw=0, label='t$_{max}$ = '+str(round(q[-1,0]/1000000.))+' Myr', alpha = 0.7)
     plt.axhline(0, color='black')
     plt.axvline(0, color='black')
@@ -129,6 +131,10 @@ if arg2==2 and analytics==1:
         #print 'tau_e(planet '+str(i+1)+') = '+str(round(tau,0))+' Years'
     print 't(simulation)   = '+str(p[-1,0]/1000000.)+' Myr'
 
+#Analytics - confirm t^(1/3) evolution of Delta:
+#if arg2==11 and analytics==1:
+#    time = np.arange(0,p[-1,0],p[-1,0]/200.)
+
 #Analytics - plot tidal a - this assumes though that eccentricity is constant, which is
 #            totally not true. So in the end this plot is false.
 if arg2==1 and analytics == 10000:
@@ -154,7 +160,6 @@ if arg2==1 and analytics == 10000:
 #range=0.05
 if arg2==2 and analytics == 1:
     plt.ylim([0.0,0.25])
-plt.xlim([p[arg4,0],p[arg3,0]])
 plt.title(''+name)
 if arg2==12:
     plt.xlabel('e*cos$\phi$')
@@ -162,6 +167,7 @@ if arg2==12:
     cbar = plt.colorbar()
     cbar.set_label('t/t$_{max}$')
 else:
+    plt.xlim([p[arg4,0],p[arg3,0]])
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])
 plt.legend(loc='upper right',prop={'size':10})
