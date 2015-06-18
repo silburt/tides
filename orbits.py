@@ -39,16 +39,16 @@ N = int(header[3])
 rp = np.zeros(N)
 mp = np.zeros(N)
 P = np.zeros(N)
-Qp = np.zeros(N)
-mig = np.zeros(N)
+k2 = np.zeros(N)
+Q = np.zeros(N)
 for i in range(0,N):
     header = fos.readline()
     header = header.split(",")
     mp[i] = float(header[0])
     rp[i] = float(header[1])
     P[i] = float(header[2])
-    Qp[i] = float(header[3])
-    mig[i] = float(header[5])
+    k2[i] = float(header[3])
+    Q[i] = float(header[4])
 header = fos.readline()
 header = header.split(",")
 tide_delay = float(header[0])
@@ -58,7 +58,7 @@ colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
 
 #Figure out array index where eccentricity has settled (i.e. post migration)
-ini = np.amax(mig)
+ini = 0
 fini = tide_delay
 i_tide = 0
 f_tide = 0
@@ -91,10 +91,7 @@ else:
         plt.plot(p[arg4:arg3,arg1], p[arg4:arg3,arg2], 'o'+colors[i], label='m$_{'+str(i+1)+'}$='+str(round(100*mp[i]/(3*10**(-6)))/100.)+' m$_{earth}$', markeredgecolor='none')
         if arg2==3:
             plt.plot([p[arg4,0],p[arg3,0]], [P[i], P[i]], label='P$_{catalog}$', color='black', linewidth=2)
-    mig_fac = 1.25
-    max_mig = max(mig)
     if analytics == 1:
-        plt.plot([max_mig, max_mig], [min(data[arg4:arg3,arg2]),max(data[arg4:arg3,arg2])], label='migration ends now!', color='red', linewidth=2)
         plt.plot([tide_delay, tide_delay], [min(data[:,arg2]),max(data[:,arg2])], label='tides turned on now!', color='red', linestyle='dashed', linewidth=2)
 
 
@@ -110,7 +107,7 @@ if arg2==2 and analytics==1:
         R5a5 = (rad/a[i])**5
         GM3a3 = (Ms/a[i])**1.5
         if mp[i] > 0.0:
-            edot_e = -(9.*pi/2.)*Qp[i]*GM3a3*R5a5/mp[i]
+            edot_e = -(9.*pi/2.)*(k2[i]/Q[i])*GM3a3*R5a5/mp[i]
             t_delay = tide_delay     #delay time before tidal exponential decay starts
             e[i] = np.median(p[i_tide:f_tide,2]) #p[i,2] is a constant of integration, initial e.
             e_t = np.e**(edot_e*(time - t_delay))*e[i]

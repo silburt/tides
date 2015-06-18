@@ -44,8 +44,8 @@ void problem_init(int argc, char* argv[]){
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
-    double e_in = 0.05;            //Eccentricity of inner planet
-    double e_out= 0.4;              //Mardling assumes that e_outer >> e_inner
+    double e_in = 0.02;            //Eccentricity of inner planet
+    double e_out= 0.2;              //Mardling assumes that e_outer >> e_inner
     
     /* Migration constants */
     mig_forces  = 0;                //If ==0, no migration.
@@ -56,7 +56,7 @@ void problem_init(int argc, char* argv[]){
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double k2fac = 1;               //multiply k2 by this factor
+    double k2fac = 1;              //multiply k2 by this factor
     k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     
 #ifdef OPENGL
@@ -118,7 +118,7 @@ void problem_init(int argc, char* argv[]){
     
     //print/writing stuff
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
-    printwrite(1,txt_file,a,P[1],e_in,mp,rp,k2/Q,tau_a[1],t_mig[1],t_damp[1],afac,p_suppress);
+    printwrite(1,txt_file,a,P[1],e_in,mp,rp,k2,Q,tau_a[1],t_mig[1],t_damp[1],afac,p_suppress);
     
     //outer planets (i=0 is star)
     for(int i=2;i<_N+1;i++){
@@ -132,7 +132,7 @@ void problem_init(int argc, char* argv[]){
         p.k2 = k2;
         p.r = rp;
         particles_add(p);
-        printwrite(i,txt_file,a,P[i],e_out,mp,rp,k2/Q,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
+        printwrite(i,txt_file,a,P[i],e_out,mp,rp,k2,Q,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
     }
     
     //tidal delay

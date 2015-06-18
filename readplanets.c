@@ -129,8 +129,7 @@ void naming(char* sysname, char* txt, double K, double iptmig_fac, double e_ini,
     char* str = "_k2fac";
     strcat(txt, str);
     char strk2fac[15];
-    int k2factor = (int) k2fac;
-    sprintf(strk2fac, "%d", k2factor);
+    sprintf(strk2fac, "%.2f", k2fac);
     strcat(txt, strk2fac);
     if(tide_force == 1){
         char* forcestring = "_tideF";   //implementing tides as forces
@@ -161,11 +160,11 @@ void naming(char* sysname, char* txt, double K, double iptmig_fac, double e_ini,
     strcat(txt, ext);
 }
 
-void printwrite(int i, char* txt_file, double a,double P,double e,double mp,double rp,double Qp,double tau_a,double t_mig,double t_damp,double afac,int p_suppress){
+void printwrite(int i, char* txt_file, double a,double P,double e,double mp,double rp,double k2, double Q,double tau_a,double t_mig,double t_damp,double afac,int p_suppress){
     
-    if(p_suppress == 0) printf("Planet %i: a=%f,P=%f,e=%f,mp=%f,rp=%f,Qp=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i,a,P,e,mp,rp,Qp,tau_a,t_mig,t_damp,afac);
+    if(p_suppress == 0) printf("Planet %i: a=%f,P=%f,e=%f,mp=%f,rp=%f,k2=%f,Q=%f,a'/a=%f,t_mig=%f,t_damp=%f,afac=%f, \n",i,a,P,e,mp,rp,k2,Q,tau_a,t_mig,t_damp,afac);
     FILE *write;
     write=fopen(txt_file, "a");
-    fprintf(write, "%.10f,%f,%f,%f,%f,%f\n", mp,rp,P,Qp,tau_a,t_mig+t_damp);
+    fprintf(write, "%.10f,%f,%f,%f,%f,%f,%f\n", mp,rp,P,k2,Q,tau_a,t_mig+t_damp);
     fclose(write);
 }
