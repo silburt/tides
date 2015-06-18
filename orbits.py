@@ -177,7 +177,6 @@ if arg2==1 and analytics == 10000:
 #range=0.05
 if arg2==2 and analytics == 1:
     plt.ylim([0.0,0.25])
-plt.xlim([p[arg4,0],p[arg3,0]])
 plt.title(''+name)
 if arg2==12:
     plt.xlabel('e*cos$\phi$')
@@ -185,6 +184,7 @@ if arg2==12:
     cbar = plt.colorbar()
     cbar.set_label('t/t$_{max}$')
 else:
+    plt.xlim([p[arg4,0],p[arg3,0]])
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])
 plt.legend(loc='upper right',prop={'size':10})
