@@ -39,12 +39,12 @@ void problem_init(int argc, char* argv[]){
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     e_ini       = 0.01; //atof(argv[3]);    //initial eccentricity of the planets
     afac        = 1.03;             //Factor to increase 'a' of OUTER planets by.
-    double iptmig_fac  = atof(argv[3]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
+    double iptmig_fac  = 1;         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
-    tide_force = atoi(argv[2]);                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double Qpfac = atof(argv[4]);             //multiply Qp by this factor in assignparams.c
+    tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
+    double Qpfac = 1;             //multiply Qp by this factor in assignparams.c
     tide_print = 0;
     Qpfac_check(c,&Qpfac);          //For special systems, make sure that if Qpfac is set too high, it's reduced.
     
@@ -232,12 +232,12 @@ void problem_migration_forces(){
                     const double a = -mu/( v*v - 2.*mu/r );			// semi major axis, AU
                     
                     //TESTP5m*********************** to get them all starting off in line together
-                    /*
+                    
                     if(a < 0.091432 && t > 500 && i==2){
                         mig_forces = 0;
                         if(p_suppress == 0) printf("\n\n **migration loop off (abrupt) at t=%f** \n\n",t);
                     }
-                    */
+                    
                     
                     const double prefac1 = 1./(1.-e*e) /tau_e[i]/1.5;
                     const double prefac2 = 1./(r*h) * sqrt(mu/a/(1.-e*e))  /tau_e[i]/1.5;
@@ -472,9 +472,9 @@ void problem_output(){
                 lambda[i] = MA + omega[i];
                 double phi = 0., phi2 = 0., phi3 = 0.;     //resonant angles
                 if(i>1){//tailored for 2:1 resonance, between inner/outer planet
-                    phi = 2.*lambda[i] - lambda[i-phi_i[i-1]] - omega[i-phi_i[i-1]];
-                    phi2 = 2.*lambda[i] - lambda[i-phi_i[i-1]] - omega[i];
-                    phi3 = omega[i-phi_i[i-1]] - omega[i];
+                    phi = 2.*lambda[i] - lambda[i-phi_i[i]] - omega[i-phi_i[i]];
+                    phi2 = 2.*lambda[i] - lambda[i-phi_i[i]] - omega[i];
+                    phi3 = omega[i-phi_i[i]] - omega[i];
                 }
                 while(phi >= 2*M_PI) phi -= 2*M_PI;
                 while(phi < 0.) phi += 2*M_PI;
