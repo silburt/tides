@@ -156,7 +156,7 @@ if arg2==1 and analytics == 10000:
 #de = -dt*(9.*pi*0.5)*Qp*GM3a3*R5a5*e/mp
 #plt.yscale('log')
 #plt.xscale('log')
-#plt.ylim([9.8,10.1])
+#plt.ylim([7.98,8.03])
 #range=0.05
 if arg2==2 and analytics == 1:
     plt.ylim([0.0,0.25])
@@ -170,5 +170,5 @@ else:
     plt.xlim([p[arg4,0],p[arg3,0]])
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])
-plt.legend(loc='upper right',prop={'size':10})
+#plt.legend(loc='lower right',prop={'size':10})
 plt.show()

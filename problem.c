@@ -46,7 +46,7 @@ void problem_init(int argc, char* argv[]){
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
-    mig_forces  = atoi(argv[2]);                //If ==0, no migration.
+    mig_forces  = atoi(argv[2]);    //If ==0, no migration.
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     e_ini       = atof(argv[3]);    //atof(argv[3]);    //initial eccentricity of the planets
     afac        = atof(argv[4]);    //Factor to increase 'a' of OUTER planets by.
