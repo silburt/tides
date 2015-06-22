@@ -47,9 +47,9 @@ med_e_dyn = 0.3 #from Kepler_ei_col.py
 linestyles=['solid','dashed','dotted','dashdot']
 
 plt.plot([1.0,1.0],[0,y_lim], 'r--', linewidth=2)
-p = plt.axvspan(1.0, max+5, facecolor='red', alpha=0.4, label = 'Unfeasible Eccentricity')
+p = plt.axvspan(1.0, max+5, facecolor='red', alpha=0.4, label = 'Unfeasible region')
 plt.plot([med_e_dyn,med_e_dyn],[0,y_lim], 'b--', linewidth = 2)
-p = plt.axvspan(med_e_dyn, 1.0, facecolor='b', alpha=0.4, label = '$e_{i,50}$ (Stability)')
+p = plt.axvspan(med_e_dyn, 1.0, facecolor='b', alpha=0.4, label = 'Unstable region')
 
 #parameters
 T_arr = [1e9,5e9,10e9,-1]      #length of time a system has to achieve current delta spacing
@@ -113,7 +113,7 @@ for k in xrange(0,N_T):
         Tstr = 'infinity'
     else:
         Tstr = str(T_arr[k]/1e9)+' Gyr'
-    plt.hist(e_i[:,k], color='black', alpha = 0.8, linewidth=2, linestyle=linestyles[k], bins=np.arange(0., max + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = '$e_{min}$, T='+Tstr)
+    plt.hist(e_i[:,k], color='black', alpha = 0.8, linewidth=2, linestyle=linestyles[k], bins=np.arange(0., max + binwidth, binwidth), histtype='step',cumulative='true', normed='true', label = 'T='+Tstr)
 
 plt.ylim([0,y_lim])
 plt.xlim([0.001,max-50])
@@ -121,6 +121,6 @@ plt.xscale('log')
 plt.xlabel('$e_{i,min}$', fontsize=16)
 plt.ylabel('cdf, counts='+str(N_sys/2), fontsize=16)
 #plt.title('Minimum Eccentricity Required by Inner Planet Given $\Delta$ and t='+str(T/1e9)+' Gyr')
-plt.legend(loc='upper left',prop={'size':12})
+plt.legend(loc='upper left',prop={'size':13})
 plt.show()
 

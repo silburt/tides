@@ -29,6 +29,7 @@ int tautide_force_calc=0; /**<switch to calc tau_a and tau_e for tidal forces (p
 char* Keplername;
 int* phi_i;
 int tide_print;         /**<print message when tides are turned on>**/
+int repuls_v_tugg_on = 0;
 char txt_file[80];
 int N_ini;              /**<initial number of planets - i.e. was there a collision?>**/
 double e_ini;           /**<initial eccentricity of planets>**/

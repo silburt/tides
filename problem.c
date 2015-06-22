@@ -39,7 +39,7 @@ void problem_init(int argc, char* argv[]){
     integrator_whfast_corrector = 0;
     integrator_whfast_synchronize_manually = 0;
     
-    tmax        = 10000000.;  // in year/(2*pi)
+    tmax        = 20000000.;  // in year/(2*pi)
     Keplername  = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -55,7 +55,7 @@ void problem_init(int argc, char* argv[]){
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double k2fac = 50;               //multiply k2 by this factor
+    double k2fac = 100;               //multiply k2 by this factor
     k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     
 #ifdef OPENGL
@@ -135,7 +135,7 @@ void problem_init(int argc, char* argv[]){
     }
     
     //tidal delay
-    if(max_t_mig < 50000)tide_delay = 80000.; else tide_delay = max_t_mig + 30000.;    //Have at least 30,000 years grace before turning on tides.
+    if(max_t_mig < 20000)tide_delay = 20000.; else tide_delay = max_t_mig + 20000.;    //Have at least 30,000 years grace before turning on tides.
     double tide_delay_output = 0;
     if(tides_on == 1) tide_delay_output = tide_delay;
     FILE *write;
@@ -354,8 +354,8 @@ void problem_output(){
             if(cosf <= -1.) cosf = -1.;
             double sinf = sqrt(1. - cosf*cosf);
             if(vr < 0.) sinf *= -1.;
-            double const sinwf = dy*rinv;
-            double const coswf = dx*rinv;
+            double sinwf = dy*rinv;
+            double coswf = dx*rinv;
             double a = r*(1. + e*cosf)/(1. - e*e);
             double n;
             
@@ -382,6 +382,17 @@ void problem_output(){
                 e += de;
                 
                 integrator_whfast_particles_modified = 1;
+                
+                //Test repulsion vs. tugging (change w to put planets out of res)
+                if(repuls_v_tugg_on == 0 && i==1 && p_suppress == 0){
+                    repuls_v_tugg_on = 1;
+                    double angle_change = 179.97*(M_PI/180.);
+                    double costemp = coswf;
+                    double sintemp = sinwf;
+                    coswf = costemp*cos(angle_change) - sintemp*sin(angle_change);
+                    sinwf = sintemp*cos(angle_change) - costemp*sin(angle_change);
+                    printf("\n  ***Testing Repulsion vs. tugging. Planets put out of resonance.*** \n");
+                }
                 
                 //Re-update coords.
                 const double r_new = a*(1. - e*e)/(1. + e*cosf);
