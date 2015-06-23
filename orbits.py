@@ -48,7 +48,7 @@ tide_delay = float(header[0])
 
 #Load numerical data
 #names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','Resonant Angle (phi = 2*X2 - X1 - w1)','Resonant Angle2 (phi2 = 2*X2 - X1 - w2)','Libration Timescale (order of mag.)','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','G/G0 - 1']
-names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','2ea(de/dt) - (da/dt)',"-3.2(mu')aen(sinphi)","2ea(de/dt) - (da/dt) - 3.2(mu')aen(sinphi)",'Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','Delta_Yanqin']
+names=['time (years)','Semi-Major Axis (AU)','Eccentricity','Period (Days)','arg. of peri','Mean Anomaly','Eccentric Anomaly','Mean Longitude (lambda)','phi1','phi2','phi3','Period Ratio (P$_{i+1}$/P$_{i}$) - j/(j+1)','Resonance Plot','Delta_Yanqin']
 colors=['b','g','m','r','c','y']
 data = np.loadtxt(fos, delimiter="	")
 
@@ -107,18 +107,25 @@ elif arg2==13:
                 plt.plot(p[i_tide:-1,arg1], p[i_tide:-1,3]/(2*q[i_tide:-1,3]) - 1., 'o'+colors[inc], label='P$_{'+str(i+1)+',ctlg}$ ='+str(round(P[i],2))+' d, P$_{'+str(j+1)+',ctlg}$='+str(round(P[j],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
                 inc += 1
                 time = np.arange(0,p[-1,0],p[-1,0]/200.)
-                k2Qterm = Qp[j]**(1./3.)
-                mterm = (mp[j]*1e6*(1./30.))**(1./3.)
-                rterm = (rp[j]*109.17/2.)**(5./3.)
-                Msterm = Ms**(-8./3.)
-                Pterm = (P[j]/5.)**(-13./9.)
                 a2=np.median(p[i_tide:f_tide,1])
                 a1=np.median(q[i_tide:f_tide,1])
+                rad = rp[j]*0.00464913 #Solar Radii to AU
+                R5a5 = (rad/a1)**5
+                GM3a3 = (Ms/a1)**1.5
+                edot_e = (9.*pi/2.)*Qp[j]*GM3a3*R5a5/mp[j]
                 B=(mp[i]/mp[j])*(a2/a1)**0.5
-                Bterm = (2*B + 2*B*B)**(1./3.)
-                Delta_mig3 = (0.08*k2Qterm*mterm*rterm*Msterm*Pterm*Bterm)**3 *(time/5e9)
-                Delta_0 = P[i]/(2*P[j]) - 1
-                Delta = (Delta_mig3 + Delta_0**3)**(1./3.)
+                D = 36*mp[j]*mp[j]*B*(1+B)*1.4161
+                Delta = 4*10**(-5)*time**(1./3.) #Generic
+                #Delta = (D*time*edot_e)**(1./3.)    #Lee et al.
+                #k2Qterm = Qp[j]**(1./3.)
+                #mterm = (mp[j]*1e6*(1./30.))**(1./3.)
+                #rterm = (rp[j]*109.17/2.)**(5./3.)
+                #Msterm = Ms**(-8./3.)
+                #Pterm = (P[j]/5.)**(-13./9.)
+                #Bterm = (2*B + 2*B*B)**(1./3.)
+                #Delta_mig3 = (0.006*k2Qterm*mterm*rterm*Msterm*Pterm*Bterm)**3 *(time/5e9)
+                #Delta_0 = p[i_tide,3]/(2*q[i_tide,3]) - 1
+                #Delta = (Delta_mig3 + Delta_0**3)**(1./3.)     #Lithwick & Wu
                 plt.plot(time[0:arg3], Delta[0:arg3], 'k-.', linewidth=3, label='theoretical e(t)')
 #******************************
 else:
@@ -174,15 +181,14 @@ if arg2==1 and analytics == 10000:
         else:
             plt.plot(time, a_t, 'k-.', linewidth=3)
 
-#de = -dt*(9.*pi*0.5)*Qp*GM3a3*R5a5*e/mp
-#plt.yscale('log')
-#plt.xscale('log')
-#plt.ylim([7.99, 8.03])
-#plt.ylim([7.95, 7.98])
+#plt.ylim([9.9, 10.05])
+#plt.ylim([4.9, 5.1])
+
+#plt.ylim([7.95, 8.05])
 #plt.ylim([3.95,4.01])
 #range=0.05
 if arg2==2 and analytics == 1:
-    plt.ylim([0.0,0.3])
+    plt.ylim([0.0,0.2])
 plt.title(''+name)
 if arg2==12:
     plt.xlabel('e*cos$\phi$')
@@ -193,5 +199,5 @@ else:
     plt.xlim([p[arg4,0],p[arg3,0]])
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])
-plt.legend(loc='upper right',prop={'size':10})
+#plt.legend(loc='upper right',prop={'size':10})
 plt.show()

@@ -39,29 +39,31 @@ void problem_init(int argc, char* argv[]){
     integrator_whfast_corrector = 0;
     integrator_whfast_synchronize_manually = 0;
     
-    tmax        = 20000000.;  // in year/(2*pi)
+    tmax        = 50000000.;  // in year/(2*pi)
     Keplername  = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
-    mig_forces  = atoi(argv[2]);    //If ==0, no migration.
+    mig_forces  = 1;                //If ==0, no migration.
     K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    e_ini       = atof(argv[3]);    //atof(argv[3]);    //initial eccentricity of the planets
-    afac        = atof(argv[4]);    //Factor to increase 'a' of OUTER planets by.
+    e_ini       = 0.001;             //atof(argv[3]);    //initial eccentricity of the planets
+    afac        = 1.01;             //Factor to increase 'a' of OUTER planets by.
     double iptmig_fac  = 1;         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double k2fac = 100;               //multiply k2 by this factor
+    double k2fac = 300;   //multiply k2 by this factor
     k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     
 #ifdef OPENGL
 	display_wire 	= 1;			
 #endif 	// OPENGL
 	init_box();
+    
+    printf("%f k2fac \n \n \n",k2fac);
     
     //Naming
     naming(Keplername, txt_file, K, iptmig_fac, e_ini, k2fac, tide_force);
@@ -123,7 +125,6 @@ void problem_init(int argc, char* argv[]){
         extractplanets(&char_val,&mp,&rp,&P[i],p_suppress);
         calcsemi(&a,Ms,P[i]);
         migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
-        printf("phi_i = %d, i=%d\n",phi_i[i], i);
         struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, 0, i*M_PI/4.);
         tau_e[i] = tau_a[i]/K;
         assignk2Q(&k2, &Q, k2fac, rp);
@@ -206,12 +207,12 @@ void problem_migration_forces(){
                     const double a = -mu/( v*v - 2.*mu/r );			// semi major axis, AU
                     
                     //TESTP5m*********************** to get them all starting off in line together
-                    /*
+                    /**
                     if(a < 0.091432 && t > 500 && i==2){
                         mig_forces = 0;
                         if(p_suppress == 0) printf("\n\n **migration loop off (abrupt) at t=%f** \n\n",t);
                     }
-                    */
+                    **/
                     
                     const double prefac1 = 1./(1.-e*e) /tau_e[i]/1.5;
                     const double prefac2 = 1./(r*h) * sqrt(mu/a/(1.-e*e))  /tau_e[i]/1.5;
@@ -383,16 +384,17 @@ void problem_output(){
                 
                 integrator_whfast_particles_modified = 1;
                 
+                /*
                 //Test repulsion vs. tugging (change w to put planets out of res)
                 if(repuls_v_tugg_on == 0 && i==1 && p_suppress == 0){
                     repuls_v_tugg_on = 1;
-                    double angle_change = 179.97*(M_PI/180.);
+                    double angle_change = 0.34*(M_PI/180.);
                     double costemp = coswf;
                     double sintemp = sinwf;
                     coswf = costemp*cos(angle_change) - sintemp*sin(angle_change);
                     sinwf = sintemp*cos(angle_change) - costemp*sin(angle_change);
                     printf("\n  ***Testing Repulsion vs. tugging. Planets put out of resonance.*** \n");
-                }
+                }*/
                 
                 //Re-update coords.
                 const double r_new = a*(1. - e*e)/(1. + e*cosf);

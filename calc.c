@@ -20,7 +20,7 @@ void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, doub
     double mig_fac = 1.0;   //automating length of tidal delay/migration
     double Pfac = 2.*M_PI/365.; //converts period to yr/2pi
     double mintau_a = 5000.; //minimum a'/a
-    double mintau_fac = 6.0; //absolute min is 3.75 (Gold&Schlich), but use 6 to be safe
+    double mintau_fac = 6.; //absolute min is 3.75 (Gold&Schlich), but use 6 to be safe
     double min_rel_speed = 0.6;    //was 0.75
     double a_f = a; //default - if no resonance, migrate back to starting position
     int special_flag = 0; //for some special cases, do not reduce t_mig of inner planet

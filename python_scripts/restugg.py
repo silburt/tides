@@ -8,7 +8,8 @@ import math
 import matplotlib.cm as cm
 pi = math.pi
 
-names = ['orbits_TESTP5m_Qpfac20000_migfac0.5.txt','orbits_TESTP5ma_Qpfac100_migfac0.2.txt','orbits_TESTP5mb_Qpfac300_migfac0.5.txt','orbits_TESTP5mc_Qpfac500_migfac0.5.txt','orbits_TESTP5mm_Qpfac100_ei0.10.txt','orbits_TESTP5mma_Qpfac200_ei0.10.txt','orbits_TESTP5mmb_Qpfac175_ei0.10.txt','orbits_TESTP5mmc_Qpfac250_ei0.10.txt',]
+#names = ['orbits_TESTP5m_Qpfac20000_migfac0.5.txt','orbits_TESTP5ma_Qpfac100_migfac0.2.txt','orbits_TESTP5mb_Qpfac300_migfac0.5.txt','orbits_TESTP5mc_Qpfac500_migfac0.5.txt','orbits_TESTP5mm_Qpfac100_ei0.10.txt','orbits_TESTP5mma_Qpfac200_ei0.10.txt','orbits_TESTP5mmb_Qpfac175_ei0.10.txt','orbits_TESTP5mmc_Qpfac250_ei0.10.txt',]
+names = ['orbits_TESTP4i_Qpfac300_migfac0.9.txt', 'orbits_TESTP4i_Qpfac300_ei0.0.txt']
 Nfiles = len(names)
 colors=['black', 'dimgray', 'darkgray', 'lightgray', 'black', 'dimgray', 'darkgray', 'lightgray']
 
@@ -73,8 +74,11 @@ for i in xrange(0,Nfiles):
     print 'completed file', i
 
 axes[0].set_xlim([p[f_tide,0],p[-1,0]])
-axes[1].set_ylim([4.94,5.06])
-axes[0].set_ylim([10.0,10.12])
+#axes[1].set_ylim([4.94,5.06])
+#axes[0].set_ylim([10.0,10.12])
+axes[1].set_ylim([3.95,4.00])
+axes[0].set_ylim([7.92, 8.02])
+
 axes[1].set_xlabel('time (years)', fontsize=13)
 fig.text(0.05, 0.3, 'Inner Planet $P$ (days)', ha='center', va='center', rotation='vertical', fontsize=13)
 fig.text(0.05, 0.7, 'Outer Planet $P$ (days)', ha='center', va='center', rotation='vertical', fontsize=13)
