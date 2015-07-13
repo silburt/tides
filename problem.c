@@ -47,15 +47,16 @@ void problem_init(int argc, char* argv[]){
     
     /* Migration constants */
     mig_forces  = 1;                //If ==0, no migration.
-    K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
-    e_ini       = 0.001;             //atof(argv[3]);    //initial eccentricity of the planets
-    afac        = 1.01;             //Factor to increase 'a' of OUTER planets by.
-    double iptmig_fac  = 1;         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
+    K           = atof(argv[2]);              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
+    e_ini       = atof(argv[3]);             //atof(argv[3]);    //initial eccentricity of the planets
+    afac        = atof(argv[4]);             //Factor to increase 'a' of OUTER planets by.
+    double iptmig_fac  = atof(argv[5]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
+    double Cin = atof(argv[6]);
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double k2fac = 300;   //multiply k2 by this factor
+    double k2fac = atof(argv[7]);   //multiply k2 by this factor
     k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     
 #ifdef OPENGL
@@ -107,7 +108,7 @@ void problem_init(int argc, char* argv[]){
     
     //planet 1
     calcsemi(&a,Ms,P[1]);      //I don't trust archive values. Make it all consistent
-    migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
+    migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress, Cin);
     struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, 0, 0.);
     tau_e[1] = tau_a[1]/K;
     assignk2Q(&k2, &Q, k2fac, rp);
@@ -124,7 +125,7 @@ void problem_init(int argc, char* argv[]){
     for(int i=2;i<_N+1;i++){
         extractplanets(&char_val,&mp,&rp,&P[i],p_suppress);
         calcsemi(&a,Ms,P[i]);
-        migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
+        migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress, Cin);
         struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_ini, 0, i*M_PI/4.);
         tau_e[i] = tau_a[i]/K;
         assignk2Q(&k2, &Q, k2fac, rp);
@@ -371,7 +372,7 @@ void problem_output(){
             }
             
             //Tides
-            if(tide_go == 1){//For TESTP5m need && i==1
+            if(tide_go == 1 && i==1){//For TESTP5m need && i==1
                 const double a2 = a*a;
                 const double rp2 = rp*rp;
                 const double R5a5 = rp2*rp2*rp/(a2*a2*a);

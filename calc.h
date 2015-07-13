@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 
-void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, double *expmigfac, int* phi_i, double* max_t_mig, double* P, int i, double RT, double Ms, double mp, double iptmig_fac, double a, double afac, int p_suppress);
+void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, double *expmigfac, int* phi_i, double* max_t_mig, double* P, int i, double RT, double Ms, double mp, double iptmig_fac, double a, double afac, int p_suppress, double mintau_fac);
 
 void assignk2Q(double* k2, double* Q, double k2fac, double rp);
 

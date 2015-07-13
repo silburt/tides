@@ -4,6 +4,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 import math
 import matplotlib.cm as cm
+import matplotlib.gridspec as gridspec
 pi = math.pi
 analytics = 1
 arg_true=0
@@ -80,7 +81,6 @@ if arg2==11:
             if(abs(p[-1,3]/(q[-1,3]) - 2) < 0.06):
                 plt.plot(p[i_tide:-1,arg1], p[i_tide:-1,3]/q[i_tide:-1,3] - 2., 'o'+colors[inc], label='P$_{'+str(i+1)+',ctlg}$ ='+str(round(P[i],2))+' d, P$_{'+str(j+1)+',ctlg}$='+str(round(P[j],2))+' d, m$_{'+str(i+1)+'}$/m$_{'+str(j+1)+'}$='+str(round(mp[i]/mp[j],3)),markeredgecolor='none', markersize=3)
                 inc += 1
-
 elif arg2==12:
     q=data[arg1+1::N]
     length=len(q[:,8])
@@ -96,8 +96,51 @@ elif arg2==12:
     plt.scatter(x[arg4:arg3], y[arg4:arg3], c=gradient[arg4:arg3], cmap=cm.rainbow, lw=0, label='t$_{max}$ = '+str(round(q[-1,0]/1000000.))+' Myr', alpha = 0.7)
     plt.axhline(0, color='black')
     plt.axvline(0, color='black')
+    plt.xlabel('e*cos$\phi$')
+    plt.ylabel('e*sin$\phi$')
+    cbar = plt.colorbar()
+    cbar.set_label('t/t$_{max}$')
 
-elif arg2==13:
+elif arg2==14:  #full plot of many things
+    q=data[arg1+1::N]
+    plt.figure(figsize=(14,6))
+    gs = gridspec.GridSpec(3,2)
+    plt.subplot(gs[0,0])
+    plt.scatter(q[i_tide:arg3,0], q[i_tide:arg3,2])
+    plt.xlim([0,q[-1,0]])
+    plt.title(''+name)
+    plt.ylabel('R $\propto$ e2')    #planet 2 eccentricity
+    plt.subplot(gs[1,0])
+    plt.scatter(q[i_tide:arg3,0], q[i_tide:arg3,8])
+    plt.xlim([0,q[-1,0]])
+    plt.ylim([-0.2,6.5])
+    plt.ylabel('Resonant Angle $\phi$')
+    plt.xlabel('time (years)')
+    plt.subplot(gs[2,0])
+    plt.scatter(q[i_tide:arg3,0], q[i_tide:arg3,3])
+    plt.xlim([0,q[-1,0]])
+    plt.ylabel('P2 Period (days)')  #planet 2 Period
+    plt.xlabel('time (years)')
+    plt.subplot(gs[:,1])
+    length=len(q[:,8])
+    x = np.zeros(length)
+    y = np.zeros(length)
+    for j in xrange(0,length):
+        R = q[j,2]
+        x[j]=R*math.cos(q[j,8])
+        y[j]=R*math.sin(q[j,8])
+    gradient = q[:,0]/q[-1,0] #normalize time between 0 and 1
+    if arg4 < i_tide:
+        arg4 = i_tide
+    plt.scatter(x[arg4:arg3], y[arg4:arg3], c=gradient[arg4:arg3], cmap=cm.rainbow, lw=0, label='t$_{max}$ = '+str(round(q[-1,0]/1000000.))+' Myr', alpha = 0.7)
+    plt.axhline(0, color='black')
+    plt.axvline(0, color='black')
+    plt.xlabel('e*cos$\phi$')
+    plt.ylabel('e*sin$\phi$')
+    cbar = plt.colorbar()
+    cbar.set_label('t/t$_{max}$')
+
+elif arg2==13:  #Delta growth over time
     inc=0
     for i in xrange(1,N):   #outer
         p=data[i::N]
@@ -184,18 +227,13 @@ if arg2==1 and analytics == 10000:
 #plt.ylim([9.9, 10.05])
 #plt.ylim([4.9, 5.1])
 
-#plt.ylim([7.95, 8.05])
 #plt.ylim([3.95,4.01])
 #range=0.05
 if arg2==2 and analytics == 1:
     plt.ylim([0.0,0.2])
-plt.title(''+name)
-if arg2==12:
-    plt.xlabel('e*cos$\phi$')
-    plt.ylabel('e*sin$\phi$')
-    cbar = plt.colorbar()
-    cbar.set_label('t/t$_{max}$')
-else:
+    plt.title(''+name)
+if arg2 != 12 and arg2 != 14:
+    #plt.ylim([8.03, 8.12])
     plt.xlim([p[arg4,0],p[arg3,0]])
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])
