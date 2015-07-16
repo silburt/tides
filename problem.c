@@ -39,7 +39,7 @@ void problem_init(int argc, char* argv[]){
     integrator_whfast_corrector = 0;
     integrator_whfast_synchronize_manually = 0;
     
-    tmax        = 50000000.;  // in year/(2*pi)
+    tmax        = 10000000.;  // in year/(2*pi)
     Keplername  = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
@@ -51,12 +51,14 @@ void problem_init(int argc, char* argv[]){
     e_ini       = atof(argv[3]);             //atof(argv[3]);    //initial eccentricity of the planets
     afac        = atof(argv[4]);             //Factor to increase 'a' of OUTER planets by.
     double iptmig_fac  = atof(argv[5]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
-    double Cin = atof(argv[6]);
+    double Cin = atof(argv[6]);             //migration speed of outer planet inwards. Nominal is 6
     
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
     double k2fac = atof(argv[7]);   //multiply k2 by this factor
+    inner_only = 1;                 //allow only the inner planet to evolve under tidal influence
+    
     k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     
 #ifdef OPENGL
@@ -105,6 +107,8 @@ void problem_init(int argc, char* argv[]){
     }
     double P[_N+1];       //array of period values, only needed locally
     P[1] = P_temp;
+    
+    if(inner_only == 1) planets_with_tides = 1; else planets_with_tides = _N+1;
     
     //planet 1
     calcsemi(&a,Ms,P[1]);      //I don't trust archive values. Make it all consistent
@@ -314,7 +318,7 @@ void problem_inloop(){
 void problem_output(){
     //conditions for entering loops
     int output_var=0;
-    if(output_check(tmax/100000.)) output_var = 1; //Used to be 100,000
+    if(output_check(tmax/10000.)) output_var = 1; //Used to be 100,000
     else if(t < tide_delay && output_check(100.)) output_var = 1; //used to be 100
     int tide_go = 0;
     if(tides_on == 1 && tide_force == 0 && t > tide_delay) tide_go = 1;
@@ -323,6 +327,9 @@ void problem_output(){
     if(output_var == 1 || tide_go == 1){
         //Calculate Orbital Elements
         struct particle com = particles[0];
+        double r_nrgy[N];     //calculating energy of particle
+        double v2_nrgy[N];
+        double m_nrgy[N];
         for(int i=1;i<N;i++){
             struct particle* par = &(particles[i]);
             const double m = par->m;
@@ -371,8 +378,13 @@ void problem_output(){
                 collision_print = 1;
             }
             
+            //Energy calculation - values may be updated via tides, but probably won't matter
+            r_nrgy[i] = r;
+            v2_nrgy[i] = v*v;
+            m_nrgy[i] = m;
+            
             //Tides
-            if(tide_go == 1 && i==1){//For TESTP5m need && i==1
+            if(tide_go == 1 && i<=planets_with_tides){
                 const double a2 = a*a;
                 const double rp2 = rp*rp;
                 const double R5a5 = rp2*rp2*rp/(a2*a2*a);
@@ -408,6 +420,7 @@ void problem_output(){
                 const double rfdot = term*(1. + e*cosf);
                 const double vx_new = rdot*coswf - rfdot*sinwf + com.vx;
                 const double vy_new = rdot*sinwf + rfdot*coswf + com.vy;
+                // ******NOTE NO VZ_NEW CURRENTLY. NEED THIS FOR PLANETESIMALS
                 
                 //Stop program if nan values being produced.
                 if(x_new!=x_new || y_new!=y_new || vx_new!=vx_new ||vy_new!=vy_new){
@@ -460,6 +473,18 @@ void problem_output(){
                 while(phi3 >= 2*M_PI) phi3 -= 2*M_PI;
                 while(phi3 < 0.) phi3 += 2*M_PI;
                 
+                //Calculate total Energy and ang. mom. of the system
+                double Etot = 0;
+                double L = 0;
+                if(i==N-1){//Total energy, wait till array values are filled.
+                    for(int j=1;j<N;j++){
+                        Etot += 0.5*m*v2_nrgy[j];  //kinetic
+                        Etot -= com.m*m/r_nrgy[j];    //star-planet potential
+                        for(int k=1;k<j;k++) Etot -= m_nrgy[k]*m_nrgy[j]/(r_nrgy[k] - r_nrgy[j]); //interaction potential
+                    }
+                }
+                L = sqrt(G*com.m*a*(1-e*e));
+                
                 //integrator_synchronize(); //if synchronize_manual = 1, then call this before each output to synchronize x and vx.
                 
                 //output orbits in txt_file.
@@ -467,7 +492,7 @@ void problem_output(){
                 append=fopen(txt_file, "a");
                 //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
                 //               eccentric anomaly, mean longitude, resonant angle, de/dt, phi1     phi2     phi3
-                fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3);
+                fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3,L,Etot);
                 fclose(append);
                 
                 if (integrator != WH){	// The WH integrator assumes a heliocentric coordinate system.

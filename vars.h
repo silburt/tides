@@ -34,6 +34,8 @@ char txt_file[80];
 int N_ini;              /**<initial number of planets - i.e. was there a collision?>**/
 double e_ini;           /**<initial eccentricity of planets>**/
 int collision_print = 0;/**<message to print if there's a collision>**/
+int inner_only = 0;     /**<allow only the inner planet to evolve under tidal influence >**/
+int planets_with_tides;
 
 double* tidetauinv_e;   /**<1/tau_e if calculating tides as forces via Papaloizou & Larwood>**/
 double* tidetau_a;

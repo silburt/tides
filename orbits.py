@@ -101,46 +101,8 @@ elif arg2==12:
     cbar = plt.colorbar()
     cbar.set_label('t/t$_{max}$')
 
-elif arg2==14:  #full plot of many things
-    q=data[arg1+1::N]
-    plt.figure(figsize=(14,6))
-    gs = gridspec.GridSpec(3,2)
-    plt.subplot(gs[0,0])
-    plt.scatter(q[i_tide:arg3,0], q[i_tide:arg3,2])
-    plt.xlim([0,q[-1,0]])
-    plt.title(''+name)
-    plt.ylabel('R $\propto$ e2')    #planet 2 eccentricity
-    plt.subplot(gs[1,0])
-    plt.scatter(q[i_tide:arg3,0], q[i_tide:arg3,8])
-    plt.xlim([0,q[-1,0]])
-    plt.ylim([-0.2,6.5])
-    plt.ylabel('Resonant Angle $\phi$')
-    plt.xlabel('time (years)')
-    plt.subplot(gs[2,0])
-    plt.scatter(q[i_tide:arg3,0], q[i_tide:arg3,3])
-    plt.xlim([0,q[-1,0]])
-    plt.ylabel('P2 Period (days)')  #planet 2 Period
-    plt.xlabel('time (years)')
-    plt.subplot(gs[:,1])
-    length=len(q[:,8])
-    x = np.zeros(length)
-    y = np.zeros(length)
-    for j in xrange(0,length):
-        R = q[j,2]
-        x[j]=R*math.cos(q[j,8])
-        y[j]=R*math.sin(q[j,8])
-    gradient = q[:,0]/q[-1,0] #normalize time between 0 and 1
-    if arg4 < i_tide:
-        arg4 = i_tide
-    plt.scatter(x[arg4:arg3], y[arg4:arg3], c=gradient[arg4:arg3], cmap=cm.rainbow, lw=0, label='t$_{max}$ = '+str(round(q[-1,0]/1000000.))+' Myr', alpha = 0.7)
-    plt.axhline(0, color='black')
-    plt.axvline(0, color='black')
-    plt.xlabel('e*cos$\phi$')
-    plt.ylabel('e*sin$\phi$')
-    cbar = plt.colorbar()
-    cbar.set_label('t/t$_{max}$')
-
 elif arg2==13:  #Delta growth over time
+    Delta_choice = 'Lee'
     inc=0
     for i in xrange(1,N):   #outer
         p=data[i::N]
@@ -157,19 +119,117 @@ elif arg2==13:  #Delta growth over time
                 GM3a3 = (Ms/a1)**1.5
                 edot_e = (9.*pi/2.)*Qp[j]*GM3a3*R5a5/mp[j]
                 B=(mp[i]/mp[j])*(a2/a1)**0.5
-                D = 36*mp[j]*mp[j]*B*(1+B)*1.4161
-                Delta = 4*10**(-5)*time**(1./3.) #Generic
-                #Delta = (D*time*edot_e)**(1./3.)    #Lee et al.
-                #k2Qterm = Qp[j]**(1./3.)
-                #mterm = (mp[j]*1e6*(1./30.))**(1./3.)
-                #rterm = (rp[j]*109.17/2.)**(5./3.)
-                #Msterm = Ms**(-8./3.)
-                #Pterm = (P[j]/5.)**(-13./9.)
-                #Bterm = (2*B + 2*B*B)**(1./3.)
-                #Delta_mig3 = (0.006*k2Qterm*mterm*rterm*Msterm*Pterm*Bterm)**3 *(time/5e9)
-                #Delta_0 = p[i_tide,3]/(2*q[i_tide,3]) - 1
-                #Delta = (Delta_mig3 + Delta_0**3)**(1./3.)     #Lithwick & Wu
-                plt.plot(time[0:arg3], Delta[0:arg3], 'k-.', linewidth=3, label='theoretical e(t)')
+                if Delta_choice == 'Lee':
+                    D = 36*mp[j]*mp[j]*B*(1+B)*1.4161
+                    Delta = (D*time*edot_e)**(1./3.) - 0.035   #Lee et al.
+                    labell = 'Lee et al., $t^{1/3}$ growth'
+                elif Delta_choice == 'Yanqin':
+                    k2Qterm = Qp[j]**(1./3.)
+                    mterm = (mp[j]*1e6*(1./30.))**(1./3.)
+                    rterm = (rp[j]*109.17/2.)**(5./3.)
+                    Msterm = Ms**(-8./3.)
+                    Pterm = (P[j]/5.)**(-13./9.)
+                    Bterm = (2*B + 2*B*B)**(1./3.)
+                    Delta_mig3 = (0.006*k2Qterm*mterm*rterm*Msterm*Pterm*Bterm)**3 *(time/5e9)
+                    Delta_0 = p[i_tide,3]/(2*q[i_tide,3]) - 1
+                    Delta = (Delta_mig3 + Delta_0**3)**(1./3.) #Lithwick & Wu
+                    labell = 'Lithwick & Wu, $t^{1/3}$ growth'
+                else:
+                    Delta = 1*10**(-5)*time**(1./3.) #Generic
+                plt.plot(time[0:arg3], Delta[0:arg3], 'k-.', linewidth=3, label=labell)
+
+elif arg2==14:  #full plot of many things
+    p=data[arg1::N]
+    q=data[arg1+1::N]
+    Myr = 1e6
+    plt.figure(figsize=(14,6))
+    gs = gridspec.GridSpec(3,2)
+    plt.suptitle(''+name+', Orbital Properties', fontsize=14)
+    plt.subplot(gs[0,0])
+    plt.scatter(q[f_tide:arg3,0]/Myr, q[f_tide:arg3,2])
+    plt.xlim([0,q[-1,0]/Myr])
+    plt.ylim([0,max(q[:,2])])
+    plt.ylabel('R $\propto$ e$_{out}$')    #planet 2 eccentricity
+    plt.subplot(gs[1,0])
+    res_angle = 8       #8 = phi1, 9=phi2, 10=phi3
+    plt.scatter(q[f_tide:arg3,0]/Myr, q[f_tide:arg3,res_angle])
+    plt.xlim([0,q[-1,0]/Myr])
+    plt.ylim([-0.2,6.5])
+    plt.ylabel('Resonant Angle $\phi_'+str(res_angle - 7)+'$')
+    plt.xlabel('time (years)')
+    plt.subplot(gs[2,0])
+    plt.scatter(q[f_tide:arg3,0]/Myr, q[f_tide:arg3,3])
+    plt.xlim([0,q[-1,0]/Myr])
+    plt.ylabel('P$_{out}$ Period (days)')  #planet 2 Period
+    plt.xlabel('time (years)')
+    plt.subplot(gs[:,1])
+    length=len(q[:,res_angle])
+    x = np.zeros(length)
+    y = np.zeros(length)
+    for j in xrange(0,length):
+        R = q[j,2]
+        x[j]=R*math.cos(q[j,res_angle])
+        y[j]=R*math.sin(q[j,res_angle])
+    gradient = q[:,0]/q[-1,0] #normalize time between 0 and 1
+    if arg4 < i_tide:
+        arg4 = i_tide
+    plt.scatter(x[arg4:arg3], y[arg4:arg3], c=gradient[arg4:arg3], cmap=cm.rainbow, lw=0, label='t$_{max}$ = '+str(round(q[-1,0]/1000000.))+' Myr, m$_{in}$ ='+str(round(333333*mp[0],2))+' m$_{\oplus}$, m$_{out}$='+str(round(333333*mp[1],2))+' m$_{\oplus}$', alpha = 0.7)
+    plt.axhline(0, color='black')
+    plt.axvline(0, color='black')
+    plt.xlabel('e*cos$\phi_'+str(res_angle - 7)+'$')
+    plt.ylabel('e*sin$\phi_'+str(res_angle - 7)+'$')
+    cbar = plt.colorbar()
+    cbar.set_label('t/t$_{max}$')
+
+elif arg2==15:
+    p=data[arg1::N]
+    q=data[arg1+1::N]
+    length=len(q[:,0])
+    Myr = 1e6
+    Ltot = np.zeros(length)
+    L1 = np.zeros(length)
+    L2 = np.zeros(length)
+    for j in xrange(0,length):
+        L1[j] = p[j,11]
+        L2[j] = q[j,11]
+        Ltot[j] = L1[j] + L2[j]
+        #r = np.zeros(N)
+        #v2 = np.zeros(N)
+        #a = np.zeros(N)
+        #e = np.zeros(N)
+        #a[0] = p[j,1]
+        #a[1] = q[j,1]
+        #e[0] = p[j,2]
+        #e[1] = q[j,2]
+        #L1[j]=np.sqrt(Ms*a[0]*(1 - e[0]*e[0]))
+        #L2[j]=np.sqrt(Ms*a[1]*(1 - e[1]*e[1]))
+        #Ltot[j] = L1[j] + L2[j]
+    plt.figure(figsize=(14,6))
+    gs = gridspec.GridSpec(3,2)
+    plt.suptitle(''+name+', Energy & Momentum', fontsize=14)
+    plt.subplots_adjust(wspace=0.3)
+    plt.subplot(gs[0,0])
+    plt.plot(q[i_tide:arg3,0]/Myr, L1[i_tide:arg3], 'r--')
+    plt.ylabel('L$_{inner}$')
+    plt.subplot(gs[1,0])
+    plt.plot(q[i_tide:arg3,0]/Myr, L2[i_tide:arg3], 'k--')
+    plt.ylabel('L$_{outer}$')
+    plt.subplot(gs[2,0])
+    plt.plot(q[f_tide:arg3,0]/Myr, Ltot[f_tide:arg3])
+    plt.ylabel('L$_{tot}$')
+    plt.xlabel('time (Myr)')
+    plt.subplot(gs[0,1])
+    plt.plot(q[f_tide:arg3,0]/Myr, q[f_tide:arg3,12], label='m$_{in}$ ='+str(round(333333*mp[0],2))+' m$_{\oplus}$, m$_{out}$='+str(round(333333*mp[1],2))+' m$_{\oplus}$')
+    plt.ylabel('E$_{tot}$')
+    plt.subplot(gs[1,1])
+    plt.scatter(q[i_tide:arg3,0]/Myr, q[i_tide:arg3,3])
+    plt.xlim([0,q[-1,0]])
+    plt.ylabel('P$_{out}$ Period (days)')  #planet 2 Period
+    plt.subplot(gs[2,1])
+    plt.plot(p[i_tide:-1,0]/Myr, q[i_tide:-1,3]/p[i_tide:-1,3] - 2.)
+    plt.ylabel('$\Delta$')  #planet 2 Period
+    plt.xlabel('time (Myr)')
+
 #******************************
 else:
     for i in range(0,N): #range(0,N) only goes to N-1
@@ -232,10 +292,10 @@ if arg2==1 and analytics == 10000:
 if arg2==2 and analytics == 1:
     plt.ylim([0.0,0.2])
     plt.title(''+name)
-if arg2 != 12 and arg2 != 14:
+if arg2 != 12 and arg2 < 14:
     #plt.ylim([8.03, 8.12])
     plt.xlim([p[arg4,0],p[arg3,0]])
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])
-#plt.legend(loc='upper right',prop={'size':10})
+plt.legend(loc='upper left',prop={'size':10})
 plt.show()
