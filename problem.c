@@ -39,15 +39,15 @@ void problem_init(int argc, char* argv[]){
     integrator_whfast_corrector = 0;
     integrator_whfast_synchronize_manually = 0;
     
-    tmax        = 10000000.;  // in year/(2*pi)
+    tmax        = atof(argv[2]);    // in year/(2*pi)
     Keplername  = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
-    double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
+    double timefac = 25.0;          //Number of kicks per orbital period (of closest planet)
     
     /* Migration constants */
     mig_forces  = 1;                //If ==0, no migration.
-    K           = atof(argv[2]);              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
+    K           = 100;              //tau_a/tau_e ratio. I.e. Lee & Peale (2002)
     e_ini       = atof(argv[3]);             //atof(argv[3]);    //initial eccentricity of the planets
     afac        = atof(argv[4]);             //Factor to increase 'a' of OUTER planets by.
     double iptmig_fac  = atof(argv[5]);         //reduction factor of inner planet's t_mig (lower value = more eccentricity)
@@ -59,7 +59,7 @@ void problem_init(int argc, char* argv[]){
     double k2fac = atof(argv[7]);   //multiply k2 by this factor
     inner_only = 1;                 //allow only the inner planet to evolve under tidal influence
     
-    k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
+    //k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -213,12 +213,12 @@ void problem_migration_forces(){
                     
                     //TESTP5m*********************** to get them all starting off in line together
                     /**
-                    if(a < 0.091432 && t > 500 && i==2){
+                    //if(a < 0.091432 && t > 500 && i==2){
+                    if(a < 0.078 && t > 500 && i==2){
                         mig_forces = 0;
                         if(p_suppress == 0) printf("\n\n **migration loop off (abrupt) at t=%f** \n\n",t);
                     }
                     **/
-                    
                     const double prefac1 = 1./(1.-e*e) /tau_e[i]/1.5;
                     const double prefac2 = 1./(r*h) * sqrt(mu/a/(1.-e*e))  /tau_e[i]/1.5;
                     p->ax += -dvx*prefac1 + (hy*dz-hz*dy)*prefac2;
@@ -346,8 +346,8 @@ void problem_output(){
             
             const double v = sqrt ( dvx*dvx + dvy*dvy + dvz*dvz );
             const double r = sqrt ( dx*dx + dy*dy + dz*dz );
-            const double vr = (dx*dvx + dy*dvy + dz*dvz)/r;
-            const double rinv = 1/r;            //some extra terms to speed up code
+            const double rinv = 1./r;            //some extra terms to speed up code
+            const double vr = (dx*dvx + dy*dvy + dz*dvz)*rinv;
             const double muinv = 1./mu;
             const double term1 = v*v-mu*rinv;
             const double term2 = r*vr;
