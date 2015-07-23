@@ -300,14 +300,14 @@ if arg2==1 and analytics == 10000:
 #plt.ylim([3.95,4.01])
 #range=0.05
 if arg2 != 12 and arg2 < 14:
-    if arg2 == 3:
+    #if arg2 == 3:
         #plt.ylim([7.95, 8.03])
         #plt.ylim([8.03, 8.15])
-        plt.ylim([3.95, 4.0])
+        #plt.ylim([0.012, 0.02])
     plt.xlim([p[arg4,0],p[arg3,0]])
     plt.xlabel('' + names[arg1])
     plt.ylabel('' + names[arg2])
-    plt.legend(loc='upper left',prop={'size':10})
+    plt.legend(loc='upper right',prop={'size':10})
 if arg2==2 and analytics == 1:
     plt.ylim([0.0,0.2])
     plt.title(''+name)

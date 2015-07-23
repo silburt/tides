@@ -57,7 +57,7 @@ void problem_init(int argc, char* argv[]){
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
     double k2fac = atof(argv[7]);   //multiply k2 by this factor
-    inner_only = 1;                 //allow only the inner planet to evolve under tidal influence
+    inner_only = 0;                 //if =1, allow only the inner planet to evolve under tidal influence
     
     //k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     

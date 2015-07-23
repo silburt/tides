@@ -54,7 +54,7 @@ p = plt.axvspan(med_e_dyn, 1.0, facecolor='b', alpha=0.4, label = 'Unstable regi
 #parameters
 T_arr = [1e9,5e9,10e9,-1]      #length of time a system has to achieve current delta spacing
 N_T = len(T_arr)
-mig_out = 1.00          #(a_i/a_f)_outer planet - an assumption
+mig_out = 1.0          #(a_i/a_f)_outer planet - an assumption
 
 arg1='2'
 arg2='1'
