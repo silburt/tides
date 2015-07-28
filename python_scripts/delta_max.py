@@ -81,12 +81,12 @@ while i < N_sys:
     dt = 0
     while exit != 1:    #now get initial values, before tides are turned on.
         f_mig = float(lines[N+1])  #migration finished
-        if f_mig == 20000:
+        if f_mig < 20000:
             lower = 15000
             upper = 20000
         else:
-            lower = f_mig
-            upper = f_mig + 20000
+            lower = f_mig - 20000
+            upper = f_mig
         tempin = lines[inc_in]
         temp_in = tempin.split("\t")
         tt = float(temp_in[0])
@@ -112,7 +112,7 @@ while i < N_sys:
             P0_out = np.append(P0_out, P_out)
             #a_fin_th = a_in*math.exp(-e_in**2 + e_fin**2)   #theoretical final 'a' values (inner planet)
             #a_fout_th = a_out*math.exp(-e_out**2 + e_fout**2) #theoretical final 'a' values (outer planet)
-            a_fin_th = a_in*math.exp(-e_in**2)
+            a_fin_th = a_in*math.exp(-e_in**2 + e_fin**2)
             a_fout_th = a_out*math.exp(0)
             Dth = (a_fout_th/a_fin_th)**1.5 - 2.0           #Period ratio, delta_theory
             D = np.append(D, Dth)
@@ -124,9 +124,9 @@ while i < N_sys:
             daout = np.append(daout, a_fout/a_out)
             #print a_fout_th, a_fin_th, a_fout, a_fin, (a_fout_th/a_fin_th)**1.5, (a_fout/a_fin)**1.5
             #print e_in, e_fin, e_out, e_fout, Dth, Dnum, (Dnum - Dth)/Dnum, (a_fin_th - a_fin)/a_fin, (a_fout_th - a_fout)/a_fout, f_mig
-            #print e_in, e_fin, a_in, a_in - a_fin, a_fin - a_fin_th, '(outer)',e_out, e_fout, a_out, a_out - a_fout, a_fout_th - a_fout
-            #print i,(Dnum - Dth), Dnum, Dth, N
-            print i,Dnum - delta[i/2], Dnum, delta[i/2]
+            #print '(inner)',e_in, e_fin, a_in, a_in - a_fin, a_fin - a_fin_th, '(outer)',e_out, e_fout, a_out, a_out - a_fout, a_fout_th - a_fout
+            print i,(Dnum - Dth), Dnum, Dth, N#, a_fout/a_out
+            #print i,Dnum - delta[i/2], Dnum, delta[i/2]
             exit = 1
         inc_in += N
         inc_out += N
@@ -151,7 +151,7 @@ plt.hist(Dnumarr - delta, color='black', linestyle='dashed',linewidth=2, bins=np
 #plt.plot([0,0],[0,1.25], 'r--', linewidth=2, label='Explainable Via Tides')
 plt.plot([0,0],[0,1.25], 'r--', linewidth=2)
 
-plt.xlim([-0.07,0.05])
+plt.xlim([-0.065,0.025])
 plt.ylim([0,1.05])
 plt.xlabel('$d\Delta$', fontsize=16)
 plt.ylabel('cdf, counts='+str(N_sys/2), fontsize=16)
