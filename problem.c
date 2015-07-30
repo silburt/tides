@@ -44,8 +44,8 @@ void problem_init(int argc, char* argv[]){
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
-    double e_in = 0.02;            //Eccentricity of inner planet
-    double e_out= 0.2;              //Mardling assumes that e_outer >> e_inner
+    double e_in = 0.1;            //Eccentricity of inner planet
+    double e_out= atof(argv[3]);              //Mardling assumes that e_outer >> e_inner
     
     /* Migration constants */
     mig_forces  = 0;                //If ==0, no migration.
@@ -56,8 +56,8 @@ void problem_init(int argc, char* argv[]){
     /* Tide constants */
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
-    double k2fac = 1;              //multiply k2 by this factor
-    k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
+    double k2fac = atof(argv[2]);              //multiply k2 by this factor
+    //k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     
 #ifdef OPENGL
 	display_wire 	= 1;			
@@ -136,7 +136,8 @@ void problem_init(int argc, char* argv[]){
     }
     
     //tidal delay
-    if(max_t_mig < 10000)tide_delay = 10000.; else tide_delay = max_t_mig + 10000.;
+    tide_delay = 0;
+    //if(max_t_mig < 20000)tide_delay = 20000.; else tide_delay = max_t_mig + 10000.;
     double tide_delay_output = 0;
     if(tides_on == 1) tide_delay_output = tide_delay;
     FILE *write;
@@ -347,10 +348,10 @@ void problem_output(){
             const double ex = muinv*( term1*dx - term2*dvx );
             const double ey = muinv*( term1*dy - term2*dvy );
             const double ez = muinv*( term1*dz - term2*dvz );
-            double e = sqrt( ex*ex + ey*ey + ez*ez );   // eccentricity
-            const double e2 = e*e;
-            double w = acos(ex/e);  //assumes 0 inclination!!
-            if(ey < 0.) w = 2.*M_PI - w;
+            double e2 = ex*ex + ey*ey + ez*ez ;
+            double e = sqrt(e2); // eccentricity
+            double w;
+            if(ey >= 0.) w = acos(ex/e); else w = 2.*M_PI - acos(ex/e);//assumes 0 inclination!!
             
             // true anomaly + periapse (wiki, Fund. of Astrodyn. and App., by Vallado, 2007)
             const double rdote = dx*ex + dy*ey + dz*ez;
@@ -364,6 +365,7 @@ void problem_output(){
             
             double a = r*(1. + e*cosf)/(1. - e2);
             double n;
+            double dw_t=0, dw_r=0, dw_GR=0;
             
             //Tides
             if(tide_go == 1){//For TESTP5m need && i==1
@@ -375,24 +377,27 @@ void problem_output(){
                 const double de = -dt*(21*0.5)*(k2/Q)*GM3a3*R5a5*e/m;       //Tidal change for e, others use 21/2, not 9pi/2
                 const double da = 2.*a*e*de;                                //Tidal change for a
                 
-                const double e2inv = 1./(1. - e2);
-                const double f2e = 1./(1. - 1./e2);
-                const double f2e5 = f2e*f2e*f2e*f2e*f2e;
-                const double f2 = f2e5*(1. + 1.5*e2 + 0.125*e2*e2);
-                n = sqrt(mu/a3);
-                double n3 = n*n*n;
-                double const c2 = 1.013e-10;     //speed of light squared
-                const double dw_t = dt*15*0.5*k2*R5a5*(m/com.m)*f2*n;       //tidal change for w
-                const double dw_r = dt*k2*0.5*R5a5*n3*a3*e2inv*e2inv/(G*m);  //rotational change for w
-                const double dw_GR = 3*n3*e2inv*a2*c2;
                 //printf("dw_t = %.16f, %.13f, %.13f, \n", dw_t, dw_r, dw_GR);
                 
                 //tidal evolution
                 a += da;
                 e += de;
                 
-                //tidal + rotational
-                w += dw_t + dw_r + dw_GR;
+                //tidal + rotational + GR for inner planet
+                //if(i==1){
+                const double e2inv = 1./(1. - e2);
+                const double f2e = 1./(1. - 1./e2);
+                const double f2e5 = f2e*f2e*f2e*f2e*f2e;
+                const double f2 = f2e5*(1. + 1.5*e2 + 0.125*e2*e2);
+                n = sqrt(mu/a3);
+                double n3 = n*n*n;
+                double const c2inv = 9.871e-9;     //inv speed of light squared
+                dw_t = dt*15*0.5*k2*R5a5*(m/com.m)*f2*n;        //tidal change for w
+                dw_r = dt*0.5*k2*R5a5*n3*a3*e2inv*e2inv/(G*m);  //rotational change for w
+                dw_GR = dt*3*n3*e2inv*a2*c2inv;                 //GR change for w
+                w += dw_t + dw_GR + dw_r;
+                //}
+
                 
                 integrator_whfast_particles_modified = 1;           //what does this do again??
                 
@@ -465,11 +470,12 @@ void problem_output(){
                 
                 //integrator_synchronize(); //if synchronize_manual = 1, then call this before each output to synchronize x and vx.
                 
+                
                 //output orbits in txt_file.
-                FILE *append;
-                append=fopen(txt_file, "a");
                 //output order = time(yr/2pi),a(AU),e,P(days),arg. of peri., mean anomaly,
                 //               eccentric anomaly, mean longitude, resonant angle, de/dt, phi1     phi2     phi3
+                FILE *append;
+                append=fopen(txt_file, "a");
                 fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3);
                 fclose(append);
                 

@@ -8,13 +8,19 @@ pi = math.pi
 analytics = 1
 arg_true=0
 
-def e_eq(a1,a2,m1,m2,e2):
-    ep_c = (1 - e2*e2)**0.5
-    num = (5./4.)*(a1/a2)*e2/(ep_c*ep_c)
-    den = (a1/a2)**0.5 *(m1/m2)/ep_c
-    result = num/abs(1.0 - den)
-    print 'e_eq of inner planet is:',result
-    return result
+def e_eq(m1,m2,Ms,data,N,length):
+    eq = np.zeros(length)
+    i=0
+    while i < length:
+        a1 = data[i,1]
+        e2 = data[i+1,2]
+        a2 = data[i+1,1]
+        ep_c = np.sqrt(1 - e2*e2)
+        num = (5./4.)*(a1/a2)*e2/(ep_c*ep_c)
+        den = np.sqrt(a1/a2)*(m1/m2)/ep_c
+        eq[i] = num/abs(1.0 - den)
+        i += N
+    return eq
 
 #time, a, e, i, Omega (long. of asc. node), omega, l (mean longitude), P, f
 file_name=str(sys.argv[1])
@@ -119,10 +125,13 @@ if arg2==2 and analytics==1:
             print 'tau_e(planet '+str(i+1)+') = '+str(round(tau/1000000.,0))+' Myr'
         #print 'tau_e(planet '+str(i+1)+') = '+str(round(tau,0))+' Years'
     print 't(simulation)   = '+str(p[-1,0]/1000000.)+' Myr'
-    eq = e_eq(a[0],a[1],mp[0],mp[1],e[1])
-    plt.plot([time[0],time[arg3]], [eq,eq], label='e$_{eq,inner}$', linewidth=3)
+    arr_len = len(p[:,0])
+    eq = e_eq(mp[0],mp[1],Ms,data,N,arr_len)
+    plt.plot(p[0:arg3], eq[0:arg3], 'o', color = 'yellow', markeredgecolor='none', ms = 2)
 
 plt.xlim([p[arg4,0],p[arg3,0]])
+#plt.ylim([0.03,0.05])
+#plt.ylim([0.29,0.31]))
 plt.title(''+name)
 plt.xlabel('' + names[arg1])
 plt.ylabel('' + names[arg2])

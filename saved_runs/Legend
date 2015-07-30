@@ -1,5 +1,0 @@
-TESTP5Amaury - General test - two planets (not in resonance), m_outer=10, m_inner = 5, e_outer=0.1, e_inner=0.01. Let them both evolve under tides and see what happens. Inner planet has Earth-like tidal k/Q response. Qpfac = 100, and t = 20 Myr, so total simulated time is T = 2 Gyr
-
-TESTP5Amaurygas - same as above, except inner planet has a larger radius and Neptune like k/Q factor. 
-
-TESTP5innerP - Single planet system of just the inner planet evolving under tides to show that it evolves correctly under tides. 
