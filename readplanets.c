@@ -121,7 +121,7 @@ void extractplanets(int* char_pos, double* mp, double* rp, double* P, int p_supp
     
 }
 
-void naming(char* sysname, char* txt, double K, double iptmig_fac, double e_ini, double Qfac, int tide_force){
+void naming(char* sysname, char* txt, double K, double iptmig_fac, double e_ini, double Qfac, double k2fac, int tide_force){
     char* dir = "runs/orbits_";
     char* ext = ".txt";
     strcat(txt, dir);
@@ -131,6 +131,11 @@ void naming(char* sysname, char* txt, double K, double iptmig_fac, double e_ini,
     char strQfac[15];
     sprintf(strQfac, "%.2f", Qfac);
     strcat(txt, strQfac);
+    char* strk2 = "_k2fac";
+    strcat(txt, strk2);
+    char strk2fac[15];
+    sprintf(strk2fac, "%.2f", k2fac);
+    strcat(txt, strk2fac);
     if(tide_force == 1){
         char* forcestring = "_tideF";   //implementing tides as forces
         strcat(txt, forcestring);

@@ -77,7 +77,7 @@ void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, doub
     */
 }
 
-void assignk2Q(double* k2, double* Q, double Qfac, double rp){
+void assignk2Q(double* k2, double k2fac, double* Q, double Qfac, double rp){
     /*
      Q (Goldreich & Soter, 1966):
      Mercury <  190
@@ -114,7 +114,8 @@ void assignk2Q(double* k2, double* Q, double Qfac, double rp){
         *k2 = 0.25;
         *Q = 10.;              //lowest Earth value (Lee/Fabrycky/Lin 2013)
     }
-    *Q /= Qfac;
+    *k2 *= k2fac;   //change the k2 by k2fac
+    *Q /= Qfac;     //decrease the Q value, i.e. decrease the tidal timescale. 
 }
 
 //Calculate tidal tau_a=a/a', tau_e=e/e' for Paploizou & Larwood (2000) version of tides.

@@ -44,8 +44,8 @@ void problem_init(int argc, char* argv[]){
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
-    double e_in = 0.1;            //Eccentricity of inner planet
-    double e_out= atof(argv[3]);              //Mardling assumes that e_outer >> e_inner
+    double e_in = 0.1;              //Eccentricity of inner planet
+    double e_out= atof(argv[4]);    //Mardling assumes that e_outer >> e_inner
     
     /* Migration constants */
     mig_forces  = 0;                //If ==0, no migration.
@@ -57,6 +57,7 @@ void problem_init(int argc, char* argv[]){
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
     double Qfac = atof(argv[2]);    //multiply Q by this factor
+    double k2fac = atof(argv[3]);   //multiply k2 by this factor
     //k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     
 #ifdef OPENGL
@@ -65,7 +66,7 @@ void problem_init(int argc, char* argv[]){
 	init_box();
     
     //Naming
-    naming(Keplername, txt_file, K, iptmig_fac, e_out, Qfac, tide_force);
+    naming(Keplername, txt_file, K, iptmig_fac, e_out, Qfac, k2fac, tide_force);
     
     // Initial vars
     if(p_suppress == 0) printf("You have chosen: %s \n",Keplername);
@@ -106,11 +107,10 @@ void problem_init(int argc, char* argv[]){
     
     //planet 1
     calcsemi(&a,Ms,P[1]);      //I don't trust archive values. Make it all consistent
-    assignk2Q(&k2, &Q, Qfac, rp);
     if(mig_forces==1)migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
     struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_in, 0, 0.);
     tau_e[1] = tau_a[1]/K;
-    assignk2Q(&k2, &Q, Qfac, rp);
+    assignk2Q(&k2, k2fac, &Q, Qfac, rp);
     p.Q=Q;
     p.k2 = k2;
     p.r = rp;
@@ -127,7 +127,7 @@ void problem_init(int argc, char* argv[]){
         if(mig_forces==1)migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
         struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_out, 0, i*M_PI/4.);
         tau_e[i] = tau_a[i]/K;
-        assignk2Q(&k2, &Q, Qfac, rp);
+        assignk2Q(&k2, k2fac, &Q, Qfac, rp);
         p.Q = Q;
         p.k2 = k2;
         p.r = rp;

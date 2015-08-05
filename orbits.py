@@ -134,7 +134,7 @@ if arg2==2 and analytics==1:
     plt.plot(p[0:arg3], eq[0:arg3], 'o', color = 'yellow', markeredgecolor='none', ms = 2)
 
 plt.xlim([p[arg4,0],p[arg3,0]])
-#plt.ylim([0,0.02])
+#plt.ylim([0,0.1])
 #plt.ylim([0.29,0.31]))
 plt.title(''+name)
 plt.xlabel('' + names[arg1])
