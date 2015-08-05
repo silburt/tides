@@ -39,7 +39,7 @@ void problem_init(int argc, char* argv[]){
     integrator_whfast_corrector = 0;
     integrator_whfast_synchronize_manually = 0;
     
-    tmax        = 20000000.;  // in year/(2*pi)
+    tmax        = 10000000.;  // in year/(2*pi)
     Keplername  = argv[1];          //Kepler system being investigated, Must be first string after ./nbody!
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance

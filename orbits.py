@@ -10,15 +10,19 @@ arg_true=0
 
 def e_eq(m1,m2,Ms,data,N,length):
     eq = np.zeros(length)
+    c=10065 #speed of light AU/(yr/2pi)
+    G=1
     i=0
     while i < length:
         a1 = data[i,1]
         e2 = data[i+1,2]
         a2 = data[i+1,1]
         ep_c = np.sqrt(1 - e2*e2)
-        num = (5./4.)*(a1/a2)*e2/(ep_c*ep_c)
+        n1_sq = (G*(Ms + m1))/(a1*a1*a1)
+        gamma = (4*a1*a1*n1_sq/(c*c))*(Ms/m2)*((a2/a1)**3)
+        num = (5.0/4.0)*(a1/a2)*e2/(ep_c*ep_c)
         den = np.sqrt(a1/a2)*(m1/m2)/ep_c
-        eq[i] = num/abs(1.0 - den)
+        eq[i] = num/abs(1.0 - den + gamma*ep_c**3)
         i += N
     return eq
 
@@ -130,7 +134,7 @@ if arg2==2 and analytics==1:
     plt.plot(p[0:arg3], eq[0:arg3], 'o', color = 'yellow', markeredgecolor='none', ms = 2)
 
 plt.xlim([p[arg4,0],p[arg3,0]])
-#plt.ylim([0.03,0.05])
+#plt.ylim([0,0.02])
 #plt.ylim([0.29,0.31]))
 plt.title(''+name)
 plt.xlabel('' + names[arg1])
