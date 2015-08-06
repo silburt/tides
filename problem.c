@@ -384,7 +384,7 @@ void problem_output(){
                 e += de;
                 
                 //tidal + rotational + GR for inner planet
-                //if(i==1){
+                //if(i==1){ //maybe this has something to do with the small discrepancy between e_eq and my numerical results!
                 const double e2inv = 1./(1. - e2);
                 const double f2e = 1./(1. - 1./e2);
                 const double f2e5 = f2e*f2e*f2e*f2e*f2e;
