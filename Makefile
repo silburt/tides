@@ -12,7 +12,7 @@ all:
 	# Compile
 	$(MAKE) -C ../../src/
 	# Copy result
-	cp ../../src/rebound .
+	cp ../../src/rebound2 .
 
 clean:
 	$(MAKE) -C ../../src/ clean

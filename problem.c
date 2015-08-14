@@ -34,7 +34,7 @@ extern int display_wire;
 
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
-	boxsize 	= 3;                // in AU
+	boxsize 	= 20;                // in AU
     integrator	= WHFAST;
     integrator_whfast_corrector = 0;
     integrator_whfast_synchronize_manually = 0;
@@ -44,8 +44,8 @@ void problem_init(int argc, char* argv[]){
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
-    double e_in = 0.1;              //Eccentricity of inner planet
-    double e_out= atof(argv[4]);    //Mardling assumes that e_outer >> e_inner
+    double e_in = atof(argv[4]);              //Eccentricity of inner planet
+    double e_out= atof(argv[5]);    //Mardling assumes that e_outer >> e_inner
     
     /* Migration constants */
     mig_forces  = 0;                //If ==0, no migration.
@@ -384,21 +384,19 @@ void problem_output(){
                 e += de;
                 
                 //tidal + rotational + GR for inner planet
-                //if(i==1){ //maybe this has something to do with the small discrepancy between e_eq and my numerical results!
-                const double e2inv = 1./(1. - e2);
-                const double f2e = 1./(1. - 1./e2);
-                const double f2e5 = f2e*f2e*f2e*f2e*f2e;
-                const double f2 = f2e5*(1. + 1.5*e2 + 0.125*e2*e2);
-                n = sqrt(mu/a3);
-                double n3 = n*n*n;
-                double const c2inv = 9.871e-9;     //inv speed of light squared
-                dw_t = dt*15*0.5*k2*R5a5*(m/com.m)*f2*n;        //tidal change for w
-                dw_r = dt*0.5*k2*R5a5*n3*a3*e2inv*e2inv/(G*m);  //rotational change for w
-                dw_GR = dt*3*n3*e2inv*a2*c2inv;                 //GR change for w
-                w += dw_t + dw_GR + dw_r;
-                //}
-
-                
+                if(i==1){
+                    const double e2inv = 1./(1. - e2);
+                    const double f2e = 1./(1. - 1./e2);
+                    const double f2e5 = f2e*f2e*f2e*f2e*f2e;
+                    const double f2 = f2e5*(1. + 1.5*e2 + 0.125*e2*e2);
+                    n = sqrt(mu/a3);
+                    double n3 = n*n*n;
+                    double const c2inv = 9.8709e-9;     //inv speed of light squared
+                    dw_t = dt*15*0.5*k2*R5a5*(m/com.m)*f2*n;        //tidal change for w
+                    dw_r = dt*0.5*k2*R5a5*n3*a3*e2inv*e2inv/(G*m);  //rotational change for w
+                    dw_GR = dt*3*n3*e2inv*a2*c2inv;                 //GR change for w
+                    w += dw_GR + dw_r + dw_t;
+                }
                 integrator_whfast_particles_modified = 1;           //what does this do again??
                 
                 double const cosw = cos(w);
@@ -476,7 +474,7 @@ void problem_output(){
                 //               eccentric anomaly, mean longitude, resonant angle, de/dt, phi1     phi2     phi3
                 FILE *append;
                 append=fopen(txt_file, "a");
-                fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],phi,phi2,phi3);
+                fprintf(append,"%e\t%.10e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",t,a,e,365./n,omega[i],MA,E,lambda[i],dw_t,dw_r,dw_GR);
                 fclose(append);
                 
                 if (integrator != WH){	// The WH integrator assumes a heliocentric coordinate system.
