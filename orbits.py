@@ -13,12 +13,10 @@ def e_eq(m1,m2,Ms,inner,outer,length):
     c=10065.2 #speed of light AU/(yr/2pi)
     G=1
     i=0
-    length = 10
     while i < length:   #tailored for 2 planet systems!!
         a1 = inner[i,1]
         e2 = outer[i,2]
         a2 = outer[i,1]
-        print a1,a2,e2
         ep_c = np.sqrt(1.0 - e2*e2)
         n1_sq = (G*(Ms + m1))/(a1*a1*a1)
         gamma = (4*a1*a1*n1_sq/(c*c))*(Ms/m2)*((a2/a1)**3)
@@ -139,7 +137,7 @@ if arg2==2 and analytics==1:
 
 #plt.xlim([p[arg4,0],p[arg3,0]])
 #plt.xlim([5800000,6600000])
-plt.ylim([0.04,0.08])
+#plt.ylim([0.04,0.08])
 #plt.ylim([0,1500])
 plt.title(''+name)
 plt.xlabel('' + names[arg1])

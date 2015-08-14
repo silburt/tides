@@ -32,6 +32,8 @@ void problem_migration_forces();
 extern int display_wire;
 #endif 	// OPENGL
 
+int full_apsis_ev;
+
 void problem_init(int argc, char* argv[]){
     /* Setup constants */
 	boxsize 	= 20;                // in AU
@@ -44,8 +46,8 @@ void problem_init(int argc, char* argv[]){
     p_suppress  = 0;                //If = 1, suppress all print statements
     double RT   = 0.06;             //Resonance Threshold - if abs(P2/2*P1 - 1) < RT, then close enough to resonance
     double timefac = 20.0;          //Number of kicks per orbital period (of closest planet)
-    double e_in = atof(argv[4]);              //Eccentricity of inner planet
-    double e_out= atof(argv[5]);    //Mardling assumes that e_outer >> e_inner
+    double e_in = atof(argv[3]);              //Eccentricity of inner planet
+    double e_out= atof(argv[4]);    //Mardling assumes that e_outer >> e_inner
     
     /* Migration constants */
     mig_forces  = 0;                //If ==0, no migration.
@@ -57,7 +59,9 @@ void problem_init(int argc, char* argv[]){
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
     double Qfac = atof(argv[2]);    //multiply Q by this factor
-    double k2fac = atof(argv[3]);   //multiply k2 by this factor
+    double k2fac = 1;               //multiply k2 by this factor
+    
+    full_apsis_ev = atoi(argv[5]);
     //k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
     
 #ifdef OPENGL
@@ -384,19 +388,19 @@ void problem_output(){
                 e += de;
                 
                 //tidal + rotational + GR for inner planet
-                if(i==1){
-                    const double e2inv = 1./(1. - e2);
-                    const double f2e = 1./(1. - 1./e2);
-                    const double f2e5 = f2e*f2e*f2e*f2e*f2e;
-                    const double f2 = f2e5*(1. + 1.5*e2 + 0.125*e2*e2);
-                    n = sqrt(mu/a3);
-                    double n3 = n*n*n;
-                    double const c2inv = 9.8709e-9;     //inv speed of light squared
+                const double e2inv = 1./(1. - e2);
+                const double f2e = 1./(1. - 1./e2);
+                const double f2e5 = f2e*f2e*f2e*f2e*f2e;
+                const double f2 = f2e5*(1. + 1.5*e2 + 0.125*e2*e2);
+                n = sqrt(mu/a3);
+                double n3 = n*n*n;
+                double const c2inv = 9.8709e-9;     //inv speed of light squared
+                if(full_apsis_ev == 1){
                     dw_t = dt*15*0.5*k2*R5a5*(m/com.m)*f2*n;        //tidal change for w
                     dw_r = dt*0.5*k2*R5a5*n3*a3*e2inv*e2inv/(G*m);  //rotational change for w
-                    dw_GR = dt*3*n3*e2inv*a2*c2inv;                 //GR change for w
-                    w += dw_GR + dw_r + dw_t;
                 }
+                dw_GR = dt*3*n3*e2inv*a2*c2inv;                 //GR change for w
+                w += dw_GR + dw_r + dw_t;
                 integrator_whfast_particles_modified = 1;           //what does this do again??
                 
                 double const cosw = cos(w);
