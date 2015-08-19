@@ -12,7 +12,7 @@ thresh=0.06
 
 #path = '../saved_runs/round26_May8Qpfac200_tideF/'
 #ext = '_Qpfac200_tideF_migfac0.8'
-path = '../saved_runs/round27_May8Qpfac200/'
+path = '../saved_runs/tides/round27_May8Qpfac200/'
 ext = '_Qpfac200_migfac0.8'
 #path = '../saved_runs/round28_July22Qpfac100/'
 #ext = '_Qpfac100_migfac0.8'
