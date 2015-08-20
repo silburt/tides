@@ -59,7 +59,7 @@ void problem_init(int argc, char* argv[]){
     tides_on = 1;                   //If ==0, then no tidal torques on planets.
     tide_force = 0;                 //if ==1, implement tides as *forces*, not as e' and a'.
     double Qfac = atof(argv[2]);    //multiply Q by this factor
-    double k2fac = 1;               //multiply k2 by this factor
+    double k2val = 1;               //This is the k2value for the planet. 0 < k2val < 1.5! Right now all k2s are the same!!!
     
     full_apsis_ev = atoi(argv[5]);
     //k2fac_check(Keplername,&k2fac); //For special systems, make sure that if k2fac is set too high, it's reduced.
@@ -70,11 +70,11 @@ void problem_init(int argc, char* argv[]){
 	init_box();
     
     //Naming
-    naming(Keplername, txt_file, K, iptmig_fac, e_out, Qfac, k2fac, tide_force);
+    naming(Keplername, txt_file, K, iptmig_fac, e_out, Qfac, k2val, tide_force);
     
     // Initial vars
     if(p_suppress == 0) printf("You have chosen: %s \n",Keplername);
-    double Ms,Rs,a,mp,rp,k2,Q,max_t_mig=0, P_temp;
+    double Ms,Rs,a,mp,rp,Q,max_t_mig=0, P_temp;
     int char_val;
     
     //Star & Planet 1
@@ -114,15 +114,15 @@ void problem_init(int argc, char* argv[]){
     if(mig_forces==1)migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[1], 0, &max_t_mig, P, 1, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
     struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_in, 0, 0.);
     tau_e[1] = tau_a[1]/K;
-    assignk2Q(&k2, k2fac, &Q, Qfac, rp);
+    assignQ(&Q, Qfac, rp);
     p.Q=Q;
-    p.k2 = k2;
+    p.k2 = k2val;
     p.r = rp;
     particles_add(p);
     
     //print/writing stuff
     printf("System Properties: # planets=%d, Rs=%f, Ms=%f \n",_N, Rs, Ms);
-    printwrite(1,txt_file,a,P[1],e_in,mp,rp,k2,Q,tau_a[1],t_mig[1],t_damp[1],afac,p_suppress);
+    printwrite(1,txt_file,a,P[1],e_in,mp,rp,k2val,Q,tau_a[1],t_mig[1],t_damp[1],afac,p_suppress);
     
     //outer planets (i=0 is star)
     for(int i=2;i<_N+1;i++){
@@ -131,12 +131,12 @@ void problem_init(int argc, char* argv[]){
         if(mig_forces==1)migration(Keplername,tau_a, t_mig, t_damp, &expmigfac[i], &phi_i[i], &max_t_mig, P, i, RT, Ms, mp, iptmig_fac, a, afac, p_suppress);
         struct particle p = tools_init_orbit2d(Ms, mp, a*afac, e_out, 0, i*M_PI/4.);
         tau_e[i] = tau_a[i]/K;
-        assignk2Q(&k2, k2fac, &Q, Qfac, rp);
+        assignQ(&Q, Qfac, rp);
         p.Q = Q;
-        p.k2 = k2;
+        p.k2 = k2val;
         p.r = rp;
         particles_add(p);
-        printwrite(i,txt_file,a,P[i],e_out,mp,rp,k2,Q,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
+        printwrite(i,txt_file,a,P[i],e_out,mp,rp,k2val,Q,tau_a[i],t_mig[i],t_damp[i],afac,p_suppress);
     }
     
     //tidal delay
@@ -394,7 +394,7 @@ void problem_output(){
                 const double f2 = f2e5*(1. + 1.5*e2 + 0.125*e2*e2);
                 n = sqrt(mu/a3);
                 double n3 = n*n*n;
-                double const c2inv = 9.8709e-9;     //inv speed of light squared
+                double const c2inv = 9.8709e-9;     //inv speed of light squared in AU/(yr/2pi)
                 if(full_apsis_ev == 1){
                     dw_t = dt*15*0.5*k2*R5a5*(m/com.m)*f2*n;        //tidal change for w
                     dw_r = dt*0.5*k2*R5a5*n3*a3*e2inv*e2inv/(G*m);  //rotational change for w

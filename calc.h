@@ -13,7 +13,7 @@
 
 void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, double *expmigfac, int* phi_i, double* max_t_mig, double* P, int i, double RT, double Ms, double mp, double iptmig_fac, double a, double afac, int p_suppress);
 
-void assignk2Q(double* k2, double k2fac, double* Q, double Qfac, double rp);
+void assignQ(double* Q, double Qfac, double rp);
 
 void calc_tidetau(double* tau_a, double* tau_e, double K, double Qp, double mp, double rp, double Ms, double e_default, double a_default, char* sysname, int i, int p_suppress);
 

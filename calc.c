@@ -77,7 +77,7 @@ void migration(char* sysname, double* tau_a, double* t_mig, double* t_damp, doub
     */
 }
 
-void assignk2Q(double* k2, double k2fac, double* Q, double Qfac, double rp){
+void assignQ(double* Q, double Qfac, double rp){
     /*
      Q (Goldreich & Soter, 1966):
      Mercury <  190
@@ -104,17 +104,18 @@ void assignk2Q(double* k2, double k2fac, double* Q, double Qfac, double rp){
      */
     
     //Assign Qp = k2/Q
-    if(rp > 2*0.009156 && rp < 0.1){//Lee/Fabrycky/Lin distringuish Rp > 2R_E as mini-Neptune vs. Super-Earth. 
-        *k2 = 0.1;
+    
+    if(rp > 2*0.009156 && rp < 0.1){//Lee/Fabrycky/Lin distringuish Rp > 2R_E as mini-Neptune vs. Super-Earth.
+        //*k2 = 0.1;
         *Q = 2.2e4;            //Lowest Neptune value (Lee/Fabrycky/Lin 2013)
     } else if(rp >= 0.1){
-        *k2 = 0.379;
+        //*k2 = 0.379;
         *Q = 5.4e4;            //Lowest Saturn value (Lee/Fabrycky/Lin 2013)
     } else{
-        *k2 = 0.25;
-        *Q = 10.;              //lowest Earth value (Lee/Fabrycky/Lin 2013)
+        //*k2 = 0.25;
+        *Q = 40.;              //lowest Earth value (Lee/Fabrycky/Lin 2013)
     }
-    *k2 *= k2fac;   //change the k2 by k2fac
+    
     *Q /= Qfac;     //decrease the Q value, i.e. decrease the tidal timescale. 
 }
 

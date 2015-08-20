@@ -133,14 +133,14 @@ if arg2==2 and analytics==1:
     q=data[1::2]
     arr_len = len(p[:,0])
     eq = e_eq(mp[0],mp[1],Ms,p,q,arr_len)
-    plt.plot(p[0:arg3,0], eq[0:arg3], 'o', color = 'yellow', markeredgecolor='none', ms = 2)
+    plt.plot(p[0:arg3,0], eq[0:arg3], 'o', color = 'orange', markeredgecolor='none', ms = 2)
 
 #plt.xlim([p[arg4,0],p[arg3,0]])
-#plt.xlim([5800000,6600000])
-#plt.ylim([0.04,0.08])
+#plt.xlim([0,5000000])
+plt.ylim([0,0.1])
 #plt.ylim([0,1500])
 plt.title(''+name)
 plt.xlabel('' + names[arg1])
 plt.ylabel('' + names[arg2])
-plt.legend(loc='upper left',prop={'size':10})
+#plt.legend(loc='upper left',prop={'size':10})
 plt.show()
