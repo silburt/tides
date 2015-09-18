@@ -21,7 +21,7 @@ data_bank=[('WASP-53',0.85,0.81,0.04106,2.13,1.074,3.39,0.829,16),
            ('HAT-P-13',1.22,1.56,0.04275,0.851,1.28,1.189,0.691,15.2), #0.4383
            ('KELT-6',1.126,1.529,0.080,0.442,1.18,2.39,0.21,3.71)]
 #                           M       R      a1        m1        r1         a2        e2        m2
-param_values = [(-1,-1),(0.5,2.0),(1,1),(0.5,1.75),(0.1,10.0),(0.5,2.0),(0.6,2.0),(0.3,1.2),(0.25,4.0)]
+param_values = [(-1,-1),(0.5,2.0),(1,1),(0.5,1.75),(0.1,10.0),(0.5,2.0),(0.6,2.0),(-0.15,0.15),(0.25,4.0)]
 param_names = ['dummy','M$_*$','R$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
 param_units = ['dummy','M$_{\odot}$','R$_{\odot}$','AU','M$_J$','R$_J$','AU','','M$_J$']
 
@@ -82,7 +82,10 @@ fig.text(0.5, 0.95, name+varying_name, ha='center', va='center', rotation='horiz
 #loop
 for j in xrange(0,num_points_param):
     factor[j] = j*(max_param-min_param)/num_points_param + min_param   #==1 if vp_index = -1
-    params[vp_index] *= factor[j]
+    if vp_index == 7:
+        params[vp_index] += factor[j]
+    else:
+        params[vp_index] *= factor[j]
     M = params[1]*S2kg_M        #star
     a1 = params[3]*AU2m_a       #inner planet, convert to meters from AU,
     m1 = params[4]*J2kg_M       #inner planet, convert to kg from Jupiter mass
@@ -90,7 +93,10 @@ for j in xrange(0,num_points_param):
     a2 = params[6]*AU2m_a       #outer planet, convert to meters from AU,
     e2 = params[7]              #outer planet, eccentricity
     m2 = params[8]*J2kg_M       #outer planet, convert to kg from Jupiter mass
-    params[vp_index] /= factor[j]
+    if vp_index == 7:
+        params[vp_index] -= factor[j]
+    else:
+        params[vp_index] /= factor[j]
     ec2_inv = 1.0/(1.0 - e2*e2)
     alpha = a1/a2
     alpha3 = alpha**3
@@ -116,7 +122,7 @@ for j in xrange(0,num_points_param):
         numerator = 2*(wc_s - wb_s - wb_GR)*a5R5
         denominator = 15*(M/m1)*f2*nb + nb_3*ab_3*eb2_inv*eb2_inv/(G*m1)
         k2val = numerator/denominator
-        if k2val <= 1.5 and k2val >= 0:
+        if k2val >= 0 and k2val <=1.5:
             k2b = np.append(k2b,k2val)
             eb = np.append(eb,e1)
     #colors, naming and plotting
@@ -141,6 +147,7 @@ a[0].scatter([k2_of_half_e[j]],[half_e[j]],s=10, color='black',label='k2 of half
 maxspan=max(span)
 a[0].set_xlim([0,1.5])
 a[0].set_ylim([0,max(half_e) + maxspan/1.5])
+#a[0].set_ylim([0,0.01])
 a[0].set_xlabel('k$_{2,in}$', fontsize=15)
 a[0].set_ylabel('e$_{in}$', fontsize=15)
 if max_param - min_param != 0:
@@ -159,12 +166,19 @@ if name == 'HAT-P-13' and Batygin_fit == 1 and vp_index == 1:
 
 #plot span and k2_half(e_inner) as a function of the varied parameter.
 gradient = k2_of_half_e
-pc = a[1].scatter(factor, span, c=gradient, cmap=cm.coolwarm, lw=0, label='k2 of half e', alpha = 0.7)
+pc = a[1].scatter(factor, span, c=gradient, cmap=cm.coolwarm, lw=0, label='k2 of half e', alpha = 0.9, vmin=0, vmax=0.5)
 cbar = fig.colorbar(pc)
 cbar.set_label('k2 of half-max(e$_{in}$)')
-a[1].set_xlim([0,max(factor)*1.1])
+if vp_index == 7:
+    a[1].set_xlim([min_param - 0.01, max_param+0.01])
+else:
+    a[1].set_xlim([0,max_param*1.1])
 a[1].set_ylim([0,maxspan+0.005])
 a[1].set_ylabel('Span = max(e$_{in}$) - min(e$_{in}$)', fontsize=15)
-a[1].set_xlabel('factor ('+param_names[vp_index]+')', fontsize=15)
+if vp_index == 7:
+    a[1].set_xlabel('factor ('+param_names[vp_index]+'$_{,fac}$ + '+param_names[vp_index]+')', fontsize=15)
+else:
+    a[1].set_xlabel('factor ('+param_names[vp_index]+'$_{,fac}$ * '+param_names[vp_index]+')', fontsize=15)
+#a[1].set_xscale('log')
 
 plt.show()
