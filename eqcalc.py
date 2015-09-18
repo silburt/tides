@@ -1,10 +1,11 @@
-#The purpose of this macro is to calculate the (instantaneous) equilibrium eccentricity of a planet, which is eq. 36 from Mardling (2007).
+#The purpose of this macro is to calculate the "equilibrium eccentricity" (inner planet's eccentricity) of a planet based on Eq. 15 from Batygin (2009). Also, the option is here to calculate level curves as a function of a 3rd varying parameter, e.g. see how the e_inner vs. k2_inner relationship changes if inner planet mass is varied as well.
 
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import math
 import colorsys
+import matplotlib.cm as cm
 
 #ini
 name = 'HAT-P-13'        #default system
@@ -19,9 +20,10 @@ data_bank=[('WASP-53',0.85,0.81,0.04106,2.13,1.074,3.39,0.829,16),
            ('WASP-81',1.07,1.28,0.03908,0.725,1.422,2.441,0.5667,57.3),
            ('HAT-P-13',1.22,1.56,0.04275,0.851,1.28,1.189,0.691,15.2), #0.4383
            ('KELT-6',1.126,1.529,0.080,0.442,1.18,2.39,0.21,3.71)]
-#                 M    R     a1     m1   r1    a2   e2   m2
-param_values = [(0.5,2.0),(1,1),(0.5,2.0),(0.5,2.0),(0.5,2.0),(0.5,2.0),(0.5,2.0),(0.5,2.0)]
-param_names = ['M','R','a1','m1','r1','a2','e2','m2']
+#                           M       R      a1        m1        r1         a2        e2        m2
+param_values = [(-1,-1),(0.5,2.0),(1,1),(0.5,1.75),(0.1,10.0),(0.5,2.0),(0.6,2.0),(0.3,1.2),(0.25,4.0)]
+param_names = ['dummy','M$_*$','R$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
+param_units = ['dummy','M$_{\odot}$','R$_{\odot}$','AU','M$_J$','R$_J$','AU','','M$_J$']
 
 for i in xrange(0,len(data_bank)):
     if name == data_bank[i][0]:
@@ -54,21 +56,33 @@ if vp_index == -1:  #don't vary a 3rd parameter
     num_points_param = 1
     min_param = 1
     max_param = 1
-    vp_index = 0    #just so that an array index error doesn't occur
+    vp_index = 1    #just so that an array index error doesn't occur
+    varying_name = ''
 else:
-    num_points_param = 50
+    num_points_param = 30
     min_param = param_values[vp_index][0]
     max_param = param_values[vp_index][1]
-    varying_name = ', Varying '+str(param_names[vp_index]+'='+str(params[vp_index]))
+    varying_name = ', Varying '+str(param_names[vp_index])+'='+str(params[vp_index])+str(param_units[vp_index])
 
 #e1 boundaries/# points
 num_points_e = 500
 max_e = 0.1
 
+#arrays
+k2_of_half_e = np.zeros(num_points_param)
+half_e = np.zeros(num_points_param)
+span = np.zeros(num_points_param)
+factor = np.zeros(num_points_param)
+
+#multiple figures plotting
+fig, a = plt.subplots(nrows=1, ncols=2, figsize=(15,8))
+fig.subplots_adjust(left=0.075, right=0.94)
+fig.text(0.5, 0.95, name+varying_name, ha='center', va='center', rotation='horizontal', fontsize=20)
+
 #loop
 for j in xrange(0,num_points_param):
-    factor = j*max_param/num_points_param + min_param   #==1 if vp_index = -1
-    params[vp_index] *= factor
+    factor[j] = j*(max_param-min_param)/num_points_param + min_param   #==1 if vp_index = -1
+    params[vp_index] *= factor[j]
     M = params[1]*S2kg_M        #star
     a1 = params[3]*AU2m_a       #inner planet, convert to meters from AU,
     m1 = params[4]*J2kg_M       #inner planet, convert to kg from Jupiter mass
@@ -76,7 +90,7 @@ for j in xrange(0,num_points_param):
     a2 = params[6]*AU2m_a       #outer planet, convert to meters from AU,
     e2 = params[7]              #outer planet, eccentricity
     m2 = params[8]*J2kg_M       #outer planet, convert to kg from Jupiter mass
-    params[vp_index] /= factor
+    params[vp_index] /= factor[j]
     ec2_inv = 1.0/(1.0 - e2*e2)
     alpha = a1/a2
     alpha3 = alpha**3
@@ -88,8 +102,8 @@ for j in xrange(0,num_points_param):
     term1 = (1 + 4*e2*e2)*ec2_inv
     a5R5 = (a1/r1)**5 #tidal terms
     a_c2 = (a1/c)**2
-    eb = np.zeros(num_points_e)     #reset values
-    k2b = np.zeros(num_points_e)
+    eb = np.zeros(0)     #reset values
+    k2b = np.zeros(0)
     for i in xrange(0,num_points_e):
         e1 = max_e*i/num_points_e+1e-5
         e1_2 = e1*e1
@@ -101,25 +115,40 @@ for j in xrange(0,num_points_param):
         wc_s = 0.75*nc*(m1/M)*alpha*alpha*ec2_inv*ec2_inv*(1 - 1.25*alpha*(e1/e2)*term1*cosdw)
         numerator = 2*(wc_s - wb_s - wb_GR)*a5R5
         denominator = 15*(M/m1)*f2*nb + nb_3*ab_3*eb2_inv*eb2_inv/(G*m1)
-        k2b[i] = numerator/denominator
-        eb[i] = e1
+        k2val = numerator/denominator
+        if k2val <= 1.5 and k2val >= 0:
+            k2b = np.append(k2b,k2val)
+            eb = np.append(eb,e1)
     #colors, naming and plotting
     labels = ''
     if float(j)/10 - j/10 == 0:
-        labels = param_names[vp_index]+'_new = m1 *'+str(factor)
+        labels = param_names[vp_index]+' new ='+param_names[vp_index]+'*'+str(factor[j])
     (red,green,blue) = colorsys.hsv_to_rgb(0.85*float(j)/num_points_param, 1, 1)
-    if min(k2b) < 1.5:  #make sure there's actually useable values
-        plt.plot(k2b,eb,color=(red,green,blue),label=labels)
+    if len(k2b) > 0:  #make sure there's actually useable values
+        a[0].plot(k2b,eb,color=(red,green,blue),label=labels)
+        maximum = max(eb)
+        minimum = min(eb)
+        span[j] = maximum - minimum
+        half = 0.5*(maximum - minimum) + minimum
+        for k in xrange(0,num_points_e):
+            if half <= eb[k]:
+                half_e[j] = half
+                k2_of_half_e[j] = k2b[k]
+                break
+        a[0].scatter([k2_of_half_e[j]],[half_e[j]],s=10, color='black')
+a[0].scatter([k2_of_half_e[j]],[half_e[j]],s=10, color='black',label='k2 of half-max(e$_{in}$)')
 
-plt.xlim([0,1.5])
-plt.xlabel('k$_{2,b}$', fontsize=15)
-plt.ylabel('e$_b$', fontsize=15)
-plt.title(name+varying_name)
-plt.legend(loc='upper left',prop={'size':10})
+maxspan=max(span)
+a[0].set_xlim([0,1.5])
+a[0].set_ylim([0,max(half_e) + maxspan/1.5])
+a[0].set_xlabel('k$_{2,in}$', fontsize=15)
+a[0].set_ylabel('e$_{in}$', fontsize=15)
+if max_param - min_param != 0:
+    a[0].legend(loc='upper right',prop={'size':10})
 
 #eq.16 - fit
 Batygin_fit = 0
-if name == 'HAT-P-13' and Batygin_fit == 1:
+if name == 'HAT-P-13' and Batygin_fit == 1 and vp_index == 1:
     k2_fit = np.zeros(num_points_e)
     e_fit = np.zeros(num_points_e)
     for i in xrange(0,num_points_e):
@@ -127,6 +156,15 @@ if name == 'HAT-P-13' and Batygin_fit == 1:
         e_fit[i] = 0.0334 - 0.0985*k2 + 0.188*k2*k2 - 0.184*k2*k2*k2 + 0.069*k2*k2*k2*k2
         k2_fit[i] = k2
     plt.plot(k2_fit,e_fit, 'r',label='Batygin fit')
-    plt.legend(loc='upper left',prop={'size':10})
+
+#plot span and k2_half(e_inner) as a function of the varied parameter.
+gradient = k2_of_half_e
+pc = a[1].scatter(factor, span, c=gradient, cmap=cm.coolwarm, lw=0, label='k2 of half e', alpha = 0.7)
+cbar = fig.colorbar(pc)
+cbar.set_label('k2 of half-max(e$_{in}$)')
+a[1].set_xlim([0,max(factor)*1.1])
+a[1].set_ylim([0,maxspan+0.005])
+a[1].set_ylabel('Span = max(e$_{in}$) - min(e$_{in}$)', fontsize=15)
+a[1].set_xlabel('factor ('+param_names[vp_index]+')', fontsize=15)
 
 plt.show()
