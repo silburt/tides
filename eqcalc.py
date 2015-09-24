@@ -7,6 +7,28 @@ import math
 #import colorsys
 import matplotlib.cm as cm
 
+def safety_first(params):    #check for overstepping any bounds
+    if params[3] > params[6]:
+        print '!ERROR! a1 > a2, reduce parameter space. Exiting.'
+        print 'a1=',params[3], 'a2=',params[6]
+        exit()
+    if params[1] > 10 or params[1] < 0.1:
+        print '!ERROR! M < 0.1 or M > 10. Reduce parameter space. Exiting.'
+        print 'M=',params[1]
+        exit()
+    if params[7] > 0.99:
+        print '!ERROR! e > 1, reduce parameter space. Exiting.'
+        print 'e=',params[7]
+        exit()
+    if params[5] > 2:   #in Jupiter radii
+        print '!ERROR! Rp_inner > 2R_Jupiter, reduce parameter space. Exiting.'
+        print 'Rp=',params[5]
+        exit()
+    if params[4] > 20 or params[8] > 20:    #in Jupiter masses
+        print '!ERROR! mp_inner or mp_outer > 20M_Jupiter, reduce parameter space. Exiting.'
+        print 'm1=',params[4], 'm2=',params[8]
+        exit()
+
 def masterloop(num_points_param, params, min_param, max_param, vp_index, contours):
     if contours == 1: #default values - D for default
         k2_of_half_e_D, half_e_D, factor_D, span_k2_D = masterloop(1, params, 1, 1, vp_index, 0)
@@ -25,6 +47,7 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
         a2 = params[6]*AU2m_a       #outer planet, convert to meters from AU,
         e2 = params[7]              #outer planet, eccentricity
         m2 = params[8]*J2kg_M       #outer planet, convert to kg from Jupiter mass
+        safety_first(params)
         params[vp_index] /= factor[j]
         ec2_inv = 1.0/(1.0 - e2*e2)
         alpha = a1/a2
@@ -94,10 +117,10 @@ vp_index = int(sys.argv[2])     #1 = M, 2 = R, 3 = a1, etc.
 #            name      M    R     a1     m1   r1    a2   e2   m2
 data_bank=[('WASP-53',0.85,0.81,0.04106,2.13,1.074,3.39,0.829,16),
            ('WASP-81',1.07,1.28,0.03908,0.725,1.422,2.441,0.5667,57.3),
-           ('HAT-P-13',1.22,1.56,0.04275,0.851,1.28,1.189,0.691,15.2), #0.4383
+           ('HAT-P-13',1.22,1.56,0.04275,0.851,1.28,1.189,0.691,15.2),
            ('KELT-6',1.126,1.529,0.080,0.442,1.18,2.39,0.21,3.71)]
 #                           M       R      a1        m1        r1         a2        e2        m2
-param_values = [(-1,-1),(0.5,2.0),(1,1),(0.5,1.75),(0.1,10.0),(0.5,2.0),(0.6,2.0),(0.75,1.15),(0.25,4.0)]
+param_values = [(-1,-1),(0.1,2.0),(1,1),(0.5,1.75),(0.1,10.0),(0.5,2.0),(0.5,2.0),(0.75,1.2),(0.1,20.0)]
 param_names = ['dummy','M$_*$','R$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
 param_units = ['dummy','M$_{\odot}$','R$_{\odot}$','AU','M$_J$','R$_J$','AU','','M$_J$']
 
@@ -126,17 +149,23 @@ fig.subplots_adjust(left=0.075, right=0.94)
 varying_name = ''
 
 #*****MAIN LOOP**************
-num_points_par = 30
-min_par = param_values[vp_index][0]
-max_par = param_values[vp_index][1]
-varying_name = ', Varying '+str(param_names[vp_index])+'='+str(params[vp_index])+str(param_units[vp_index])
-k2_of_half_e, half_e, factor, span_k2 = masterloop(num_points_par, params, min_par, max_par, vp_index, 1)
+contour = 1
+if contour == 1:
+    num_points_par = 30
+    min_par = param_values[vp_index][0]
+    max_par = param_values[vp_index][1]
+    varying_name = ', Varying '+str(param_names[vp_index])+'='+str(params[vp_index])+str(param_units[vp_index])
+else:
+    num_points_par = 30
+    min_par = 1
+    max_par = 1
+k2_of_half_e, half_e, factor, span_k2 = masterloop(num_points_par, params, min_par, max_par, vp_index, contour)
 
 #making figures look prettay
 fig.text(0.5, 0.95, name+varying_name, ha='center', va='center', rotation='horizontal', fontsize=20)
 maxspank2=max(span_k2)
 a[0].set_xlim([0,1.5])
-a[0].set_ylim([0,max(half_e) + maxspank2/1.5])
+a[0].set_ylim([0,2*max(half_e)])
 a[0].set_xlabel('k$_{2,in}$', fontsize=15)
 a[0].set_ylabel('e$_{in}$', fontsize=15)
 if max_par - min_par != 0:
@@ -144,7 +173,7 @@ if max_par - min_par != 0:
 
 #plot span and k2_half(e_inner) as a function of the varied parameter.
 #a[1].set_xlim([0,max_par*1.1])
-#a[1].set_ylim([0,maxspan+0.005])
+#a[1].set_ylim([0,maxspank2+0.005])
 a[1].set_ylabel('Span_k2$_{norm.}$ = k2$_{half(e)}$(e$_{in,max}$ - e$_{in,min}$) / span_k2$_{default}$', fontsize=15)
 a[1].set_xlabel('factor ('+param_names[vp_index]+'$_{,fac}$ )', fontsize=15)
 #a[1].set_xscale('log')
