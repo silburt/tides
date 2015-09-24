@@ -1,23 +1,28 @@
 #The purpose of this macro is to calculate the "equilibrium eccentricity" (inner planet's eccentricity) of a planet based on Eq. 15 from Batygin (2009). Also, the option is here to calculate level curves as a function of a 3rd varying parameter, e.g. see how the e_inner vs. k2_inner relationship changes if inner planet mass is varied as well.
+#eqcalc_ratios.py builds off of eqcalc.py since it *strictly* calculates various ratios - rp/a, mp/M, etc.
 
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-#import colorsys
+import colorsys
 import matplotlib.cm as cm
+
+def ratio_choice(M, a1, m1, r1, a2, e2, m2, vp_index, factor):
+    if vp_index == 0: #rp/a
+        r1 *= factor
+    if vp_index == 1:
+        m1 *= factor
+    return M, a1, m1, r1, a2, e2, m2
 
 def masterloop(num_points_param, params, min_param, max_param, vp_index, contours):
     if contours == 1: #default values - D for default
-        k2_of_half_e_D, half_e_D, factor_D, span_k2_D = masterloop(1, params, 1, 1, vp_index, 0)
+        k2_of_half_e_D, half_e_D, factor_D, span_D = masterloop(1, params, 1, 1, vp_index, 0)
     k2_of_half_e = np.zeros(num_points_param)   #arrays
     half_e = np.zeros(num_points_param)
-    span_k2 = np.zeros(num_points_param)
+    span = np.zeros(num_points_param)
     factor = np.zeros(num_points_param)
-    colourwheel = cm.rainbow(np.linspace(0, 1, num_points_param))
     for j in xrange(0,num_points_param):
-        factor[j] = j*(max_param-min_param)/num_points_param + min_param   #==1 if vp_index = -1
-        params[vp_index] *= factor[j]
         M = params[1]*S2kg_M        #star
         a1 = params[3]*AU2m_a       #inner planet, convert to meters from AU,
         m1 = params[4]*J2kg_M       #inner planet, convert to kg from Jupiter mass
@@ -25,7 +30,8 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
         a2 = params[6]*AU2m_a       #outer planet, convert to meters from AU,
         e2 = params[7]              #outer planet, eccentricity
         m2 = params[8]*J2kg_M       #outer planet, convert to kg from Jupiter mass
-        params[vp_index] /= factor[j]
+        factor[j] = j*(max_param-min_param)/num_points_param + min_param
+        M, a1, m1, r1, a2, e2, m2 = ratio_choice(M, a1, m1, r1, a2, e2, m2, vp_index, factor[j])
         ec2_inv = 1.0/(1.0 - e2*e2)
         alpha = a1/a2
         alpha3 = alpha**3
@@ -58,34 +64,33 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
         labels = ''
         if float(j)/10 - j/10 == 0:
             labels = param_names[vp_index]+' new ='+param_names[vp_index]+'*'+str(factor[j])
-        #(red,green,blue) = colorsys.hsv_to_rgb(0.85*float(j)/num_points_param, 1, 1)
+        (red,green,blue) = colorsys.hsv_to_rgb(0.85*float(j)/num_points_param, 1, 1)
         if len(k2b) > 0:  #make sure there's actually useable values
             if contours == 0:
                 colours = 'black'
                 labels = 'default curve'
             else:
-                colours = colourwheel[j]
-                #colours = (red,green,blue)
+                colours = (red,green,blue)
             a[0].plot(k2b,eb,color=colours,label=labels)
             maximum = max(eb)
             minimum = min(eb)
+            span[j] = maximum - minimum
             half = 0.5*(maximum - minimum) + minimum
             for k in xrange(0,num_points_e):
                 if half <= eb[k]:
                     half_e[j] = half
                     k2_of_half_e[j] = k2b[k]
-                    span_k2[j] = (maximum - minimum)*k2_of_half_e[j]
                     break
             a[0].scatter([k2_of_half_e[j]],[half_e[j]],s=10, color='black')
     if contours == 1:
-        #this is for the label
         a[0].scatter([k2_of_half_e[j]],[half_e[j]],s=10, color='black',label='k2 of half-max(e$_{in}$)')
         #plot span vs. factor
         gradient = k2_of_half_e
-        pc = a[1].scatter(factor, span_k2/span_k2_D[0], c=gradient, cmap=cm.rainbow, lw=0, label='k2 of half e', alpha = 0.9, vmin=min(k2_of_half_e), vmax=max(k2_of_half_e))
+        norm_span = span/span_D[0]
+        pc = a[1].scatter(factor, norm_span, c=gradient, cmap=cm.coolwarm, lw=0, label='k2 of half e', alpha = 0.9, vmin=0, vmax=0.5)
         cbar = fig.colorbar(pc)
         cbar.set_label('k2 of half-max(e$_{in}$)')
-    return k2_of_half_e, half_e, factor, span_k2
+    return k2_of_half_e, half_e, factor, span
 
 #ini args
 name = str(sys.argv[1])
@@ -96,10 +101,10 @@ data_bank=[('WASP-53',0.85,0.81,0.04106,2.13,1.074,3.39,0.829,16),
            ('WASP-81',1.07,1.28,0.03908,0.725,1.422,2.441,0.5667,57.3),
            ('HAT-P-13',1.22,1.56,0.04275,0.851,1.28,1.189,0.691,15.2), #0.4383
            ('KELT-6',1.126,1.529,0.080,0.442,1.18,2.39,0.21,3.71)]
-#                           M       R      a1        m1        r1         a2        e2        m2
-param_values = [(-1,-1),(0.5,2.0),(1,1),(0.5,1.75),(0.1,10.0),(0.5,2.0),(0.6,2.0),(0.75,1.15),(0.25,4.0)]
-param_names = ['dummy','M$_*$','R$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
-param_units = ['dummy','M$_{\odot}$','R$_{\odot}$','AU','M$_J$','R$_J$','AU','','M$_J$']
+#              (rp/a)_in, m_in/M*
+param_values = [(0.5,2),(0.1,10)]
+param_names = ['(rp/a)$_{in}$','m$_in$/M_*']
+param_units = ['','']
 
 for i in xrange(0,len(data_bank)):
     if name == data_bank[i][0]:
@@ -130,13 +135,13 @@ num_points_par = 30
 min_par = param_values[vp_index][0]
 max_par = param_values[vp_index][1]
 varying_name = ', Varying '+str(param_names[vp_index])+'='+str(params[vp_index])+str(param_units[vp_index])
-k2_of_half_e, half_e, factor, span_k2 = masterloop(num_points_par, params, min_par, max_par, vp_index, 1)
+k2_of_half_e, half_e, factor, span = masterloop(num_points_par, params, min_par, max_par, vp_index,1)
 
 #making figures look prettay
 fig.text(0.5, 0.95, name+varying_name, ha='center', va='center', rotation='horizontal', fontsize=20)
-maxspank2=max(span_k2)
+maxspan=max(span)
 a[0].set_xlim([0,1.5])
-a[0].set_ylim([0,max(half_e) + maxspank2/1.5])
+a[0].set_ylim([0,max(half_e) + maxspan/1.5])
 a[0].set_xlabel('k$_{2,in}$', fontsize=15)
 a[0].set_ylabel('e$_{in}$', fontsize=15)
 if max_par - min_par != 0:
@@ -145,7 +150,7 @@ if max_par - min_par != 0:
 #plot span and k2_half(e_inner) as a function of the varied parameter.
 #a[1].set_xlim([0,max_par*1.1])
 #a[1].set_ylim([0,maxspan+0.005])
-a[1].set_ylabel('Span_k2$_{norm.}$ = k2$_{half(e)}$(e$_{in,max}$ - e$_{in,min}$) / span_k2$_{default}$', fontsize=15)
+a[1].set_ylabel('Normalized Span = (max(e$_{in}$) - min(e$_{in}$)) / default span', fontsize=15)
 a[1].set_xlabel('factor ('+param_names[vp_index]+'$_{,fac}$ )', fontsize=15)
 #a[1].set_xscale('log')
 
