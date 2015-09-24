@@ -14,7 +14,7 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
     half_e = np.zeros(num_points_param)
     span_k2 = np.zeros(num_points_param)
     factor = np.zeros(num_points_param)
-    colourwheel = cm.rainbow(np.linspace(0, 1, num_points_param))
+    colourwheel = cm.rainbow(np.linspace(1, 0, num_points_param))
     for j in xrange(0,num_points_param):
         factor[j] = j*(max_param-min_param)/num_points_param + min_param   #==1 if vp_index = -1
         params[vp_index] *= factor[j]
