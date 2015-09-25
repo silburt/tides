@@ -40,13 +40,13 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
     for j in xrange(0,num_points_param):
         factor[j] = j*(max_param-min_param)/num_points_param + min_param   #==1 if vp_index = -1
         params[vp_index] *= factor[j]
-        M = params[1]*S2kg_M        #star
-        a1 = params[3]*AU2m_a       #inner planet, convert to meters from AU,
-        m1 = params[4]*J2kg_M       #inner planet, convert to kg from Jupiter mass
-        r1 = params[5]*J2m_R        #inner planet, convert to meters from Jupiter radius
-        a2 = params[6]*AU2m_a       #outer planet, convert to meters from AU,
+        M = params[1]               #star
+        a1 = params[3]              #inner planet, convert to meters from AU,
+        m1 = params[4]*J2S_M       #inner planet, convert to kg from Jupiter mass
+        r1 = params[5]*J2AU_R        #inner planet, convert to meters from Jupiter radius
+        a2 = params[6]              #outer planet, convert to meters from AU,
         e2 = params[7]              #outer planet, eccentricity
-        m2 = params[8]*J2kg_M       #outer planet, convert to kg from Jupiter mass
+        m2 = params[8]*J2S_M       #outer planet, convert to kg from Jupiter mass
         safety_first(params)
         params[vp_index] /= factor[j]
         ec2_inv = 1.0/(1.0 - e2*e2)
@@ -131,13 +131,12 @@ for i in xrange(0,len(data_bank)):
 
 #********************
 #conversion factors & constants
-#SI
-G=6.67*10**(-11)        #G in SI m^3/kg/s^2
-J2kg_M = 1.898*10**27   #jupiter mass -> kg
-S2kg_M = 1.989*10**30   #solar mass ->kg
-J2m_R = 69911000        #jupiter radius -> meters
-AU2m_a = 149597871000   #AU -> meters
-c=299792458             #c in m/s
+#G=1 units
+J2S_M = 0.0009543       #mass Jupiter -> mass sun
+J2S_R = 0.10045         #radius Jupiter -> radius sun
+J2AU_R = 0.0004673195   #radius Jupiter->AU
+c=10065.2               #speed of light AU/(yr/2pi)
+G=1                     #AU^3/Ms/(yr/2pi)^2
 
 #e1 boundaries/# points
 num_points_e = 500
@@ -172,11 +171,11 @@ if max_par - min_par != 0:
     a[0].legend(loc='upper right',prop={'size':10})
 
 #plot span and k2_half(e_inner) as a function of the varied parameter.
-#a[1].set_xlim([0,max_par*1.1])
-#a[1].set_ylim([0,maxspank2+0.005])
 a[1].set_ylabel('Span_k2$_{norm.}$ = k2$_{half(e)}$(e$_{in,max}$ - e$_{in,min}$) / span_k2$_{default}$', fontsize=15)
 a[1].set_xlabel('factor ('+param_names[vp_index]+'$_{,fac}$ )', fontsize=15)
 #a[1].set_xscale('log')
+#a[1].set_xlim([0,max_par*1.1])
+#a[1].set_ylim([0,maxspank2+0.005])
 
 #eq.16 - fit
 Batygin_fit = 0
@@ -191,12 +190,20 @@ if name == 'HAT-P-13' and Batygin_fit == 1 and vp_index == 1:
 
 plt.show()
 
-#choosing Q_inner
-#J2S_R = 0.10045         #radius Jupiter -> radius sun
-#rp = params[5]*J2S_R        #For Q only - convert to solar radius from Jupiter radius.
-#if rp > 2*0.009156 and rp < 0.1:
-#    Q1 = 2.2e4
-#elif rp >= 0.1:
-#    Q1 = 5.4e4
-#else:
-#    Q1 = 40;
+
+#********************EXTRA*****************
+#SI
+#G=6.67*10**(-11)        #G in SI m^3/kg/s^2
+#J2kg_M = 1.898*10**27   #jupiter mass -> kg
+#S2kg_M = 1.989*10**30   #solar mass ->kg
+#J2m_R = 69911000        #jupiter radius -> meters
+#AU2m_a = 149597871000   #AU -> meters
+#c=299792458             #c in m/s
+
+#M = params[1]*S2kg_M        #star
+#a1 = params[3]*AU2m_a       #inner planet, convert to meters from AU,
+#m1 = params[4]*J2kg_M       #inner planet, convert to kg from Jupiter mass
+#r1 = params[5]*J2m_R        #inner planet, convert to meters from Jupiter radius
+#a2 = params[6]*AU2m_a       #outer planet, convert to meters from AU,
+#e2 = params[7]              #outer planet, eccentricity
+#m2 = params[8]*J2kg_M       #outer planet, convert to kg from Jupiter mass
