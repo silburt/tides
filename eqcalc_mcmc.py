@@ -110,7 +110,7 @@ data, sigma_step,upper_bound,lower_bound = conversion_factors(data, sigma_step_f
 N_params = 4
 param_index = [0,2,3,6]     #index of variables that are going to be varied in the MCMC. M=0, a1=1, etc.
 num_curve_points = 500      #resolution of curve with which the span and k2_at_half_max is calc'd from
-N_iterations = 1000
+N_iterations = 100
 n_jumps = 0
 
 #ini arrays
@@ -152,4 +152,21 @@ for i in xrange(1,N_iterations):
     span_k2[i] = span_k2_current    #keep track of the evolution of span_k2
     if float(i)/100. - i/100 == 0:
         print 'iteration', i
+
+#get results
+#ini values  M=0   a1=1   m1=2 r1=3 a2=4  e2=5  m2=6   name=7
+names = ['M','a1','m1','r1','a2','e2','m2']
+units = ['Msun','AU','Msun','AU','AU','','Msun']
+print
+print 'Best Fit Parameters for System '+system
+burnin = int(N_iterations*0.1)   #first 10% = burn in?
+length = N_iterations - burnin
+for i in xrange(0,N_params):
+    result = param_results[burnin:N_iterations-1,i]
+    result.sort()
+    med = result[0.5*length]
+    high = result[0.84*length] - med
+    low = result[0.16*length]
+    print names[param_index[i]],'='+str(med)+' + '+str(high)+' - '+str(low)+' '+units[param_index[i]]
+print 'max k2_span = ',span_k2_max
 
