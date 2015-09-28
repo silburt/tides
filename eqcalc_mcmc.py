@@ -3,6 +3,7 @@
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import pylab
 import math
 import random
 
@@ -13,14 +14,18 @@ J2AU_R = 0.0004673195   #radius Jupiter->AU
 c=10065.2               #speed of light AU/(yr/2pi)
 G=1                     #AU^3/Ms/(yr/2pi)^2
 
-def conversion_factors(data, sigma_step_factor,upper_bound,lower_bound):
-    sigma_step = data/sigma_step_factor
+def conversion_factors(data,sigma_factor,upper_bound,lower_bound,param_index,N_params):
+    sigma_step = np.zeros(N_params)
+    for i in xrange(0,N_params):
+        PI = param_index[i]
+        sigma_step[i] = data[PI]/sigma_factor[PI]
+        if PI == 2 or PI == 6:  #convert to G=1 units
+            sigma_step[i] *= J2S_M
+        elif PI == 3:
+            sigma_step[i] *= J2AU_R
     data[2] *= J2S_M
     data[3] *= J2AU_R
     data[6] *= J2S_M
-    sigma_step[2] *= J2S_M
-    sigma_step[3] *= J2AU_R
-    sigma_step[6] *= J2S_M
     upper_bound[2] *= J2S_M
     upper_bound[3] *= J2AU_R
     upper_bound[6] *= J2S_M
@@ -29,13 +34,21 @@ def conversion_factors(data, sigma_step_factor,upper_bound,lower_bound):
     lower_bound[6] *= J2S_M
     return data, sigma_step, upper_bound, lower_bound
 
+def conversion_back_to_norm(params,param_index,N_params):
+    for i in xrange(0,N_params):
+        if param_index[i] == 2 or param_index[i] == 6:
+            params[:,i] /= J2S_M
+        elif param_index[i] == 3:
+            params[:,i] /= J2AU_R
+    return params
+
 #*************************FUNCTIONS************************************
 def calc_span_k2(data,param_test,N_params,param_index,num_points_e):
 #ini params
     eb = np.zeros(0)     #reset values
     k2b = np.zeros(0)
     k2prev = 0
-    minlength = 30
+    span_minvals = 30
     max_e = 0.15
 #calcs
     for i in xrange(0,N_params):
@@ -67,11 +80,11 @@ def calc_span_k2(data,param_test,N_params,param_index,num_points_e):
         if k2val >= 0 and k2val <=1.5:
             k2b = np.append(k2b,k2val)
             eb = np.append(eb,e1)
-        elif (k2prev < 0 or k2prev > 1.5) and len(k2b) > minlength:
+        elif (k2prev < 0 or k2prev > 1.5) and len(k2b) > span_minvals:
             #print 'Just calcing 0 > k2 > 1.5 values. Breaking early at iteration',i
             break
         k2prev = k2val
-    if len(k2b) > minlength:  #make sure there's actually enough useable values
+    if len(k2b) > span_minvals:  #make sure there's actually enough useable values
         maximum = max(eb)
         minimum = min(eb)
         half = 0.5*(maximum - minimum) + minimum
@@ -81,15 +94,17 @@ def calc_span_k2(data,param_test,N_params,param_index,num_points_e):
         print '!ERROR! Couldnt find half max! Need to debug. Exiting.'
         exit()
     else:
-        print 'Not enough useable values to calculate span. Span_k2 = 0'
-        return 0
+        print 'Not enough useable values to calculate span. Skip Calculation.'
+        return -1
 
 #***************************SETUP**************************************
 #****DATA************
 #ini values  M=0   a1=1   m1=2 r1=3 a2=4  e2=5  m2=6   name=7
 data_bank=[(1.22,0.04275,0.851,1.28,1.189,0.691,15.2,'HAT-P-13'),
            (1.126,0.080,0.442,1.18,2.39,0.21,3.71,'KELT-6')]
-sigma_step_factor=100      #how big is the jump size relative to the data value?
+sigma_factor=[50,50,50,50,50,50,30]    #how big is the jump size relative to the data value?
+N_params = 3
+param_index = [0,2,6]     #index of variables that are going to be varied in the MCMC. M=0, a1=1, etc.
 
 system = 'HAT-P-13'
 
@@ -99,30 +114,32 @@ for i in xrange(0,len(data_bank)):
         for j in xrange(0,7):
             data[j] = data_bank[i][j]
         break
+data_copy = data
 
 #upper/lower bounds on data
 upper_bound=[10,data[4],20,2,data[4]*5,0.99,20]
 lower_bound=[0.1,0.01,0,0.01,data[1],0,0]
 
-data, sigma_step,upper_bound,lower_bound = conversion_factors(data, sigma_step_factor,upper_bound,lower_bound)
+data,sigma_step,upper_bound,lower_bound = conversion_factors(data,sigma_factor,upper_bound,lower_bound,param_index,N_params)
 
 #****INI PARAMS*****
-N_params = 4
-param_index = [0,2,3,6]     #index of variables that are going to be varied in the MCMC. M=0, a1=1, etc.
+N_iterations = 15000
 num_curve_points = 500      #resolution of curve with which the span and k2_at_half_max is calc'd from
-N_iterations = 100
 n_jumps = 0
+prob_weight = -2
+print_increment = 500
 
 #ini arrays
 param_results = np.zeros((N_iterations,N_params))     #store the results of each parameter
 span_k2 = np.zeros(N_iterations)
+
 param_test = np.zeros(N_params)
 for i in xrange(0,N_params):
     param_test[i] = data[param_index[i]]
     param_results[0,i] = param_test[i]
 
 #random number generator
-random.seed(1)               #if no arg. it uses the current time as seed
+random.seed(2)               #if no arg. it uses the current time as seed
 
 #***************************MCMC**************************************
 #ini MCMC
@@ -130,43 +147,64 @@ span_k2_max = calc_span_k2(data,param_test,N_params,param_index,num_curve_points
 for i in xrange(1,N_iterations):
     for j in xrange(0,N_params):    #generate new random parameters
         rnd = random.gauss(0,1)
-        #print 'vals',param_test[j],rnd,sigma_step[j],rnd*sigma_step[j],param_results[i-1,j]
         param_test[j] = param_results[i-1,j] + rnd*sigma_step[j]
         while param_test[j] > upper_bound[param_index[j]] or param_test[j] < lower_bound[param_index[j]]:
             param_test[j] = param_results[i-1,j] + random.gauss(0,1)*sigma_step[j]
     span_k2_current = calc_span_k2(data,param_test,N_params,param_index,num_curve_points)
-    if span_k2_current > span_k2_max:
-        span_k2_max = span_k2_current
-        param_results[i,:] = param_test
-        n_jumps += 1
+    if span_k2_current < 0:
+        span_k2[i] = span_k2[i-1]
+        param_results[i,:] = param_results[i-1,:]
     else:
-        p = np.exp(-50*(span_k2_max - span_k2_current))
-        rand = random.random()
-        #print 'jump?',p, rand, span_k2_max, span_k2_current
-        if rand > p:
+        if span_k2_current > span_k2_max:
             span_k2_max = span_k2_current
             param_results[i,:] = param_test
             n_jumps += 1
         else:
-            param_results[i,:] = param_results[i-1,:]
-    span_k2[i] = span_k2_current    #keep track of the evolution of span_k2
-    if float(i)/100. - i/100 == 0:
+            #erf = (span_k2_max - span_k2_current)/span_k2_max
+            erf = span_k2_max - span_k2_current
+            prob_weight = -50
+            p = np.exp(prob_weight*erf)
+            rand = random.random()
+            #print 'jump?',p, rand, span_k2_max, span_k2_current
+            if rand > p:
+                span_k2_max = span_k2_current
+                param_results[i,:] = param_test
+                n_jumps += 1
+            else:
+                param_results[i,:] = param_results[i-1,:]
+        span_k2[i] = span_k2_current    #keep track of the evolution of span_k2
+    if float(i)/float(print_increment) - i/print_increment == 0:
         print 'iteration', i
 
-#get results
-#ini values  M=0   a1=1   m1=2 r1=3 a2=4  e2=5  m2=6   name=7
+param_results = conversion_back_to_norm(param_results,param_index,N_params)  #convert back to orig
 names = ['M','a1','m1','r1','a2','e2','m2']
-units = ['Msun','AU','Msun','AU','AU','','Msun']
+units = ['M$_sun$','AU','M$_Jup$','R$_Jup$','AU','','M$_Jup$']
+
+#plotting and results
+fig, a = plt.subplots(nrows=4, ncols=1, figsize=(10,10))
+fig.subplots_adjust(left=0.12, right=0.94)
+title = system+': MCMC Results, varying '+str(N_params)+' params'
+fig.text(0.5, 0.95, title, ha='center', va='center', rotation='horizontal', fontsize=20)
 print
 print 'Best Fit Parameters for System '+system
-burnin = int(N_iterations*0.1)   #first 10% = burn in?
+burnin = int(N_iterations*0.1)      #first 10% = burn in?
 length = N_iterations - burnin
 for i in xrange(0,N_params):
+    a[i].plot(param_results[:,i])
+    a[i].set_ylabel(names[param_index[i]], fontsize=15)
+    a[i].ticklabel_format(useOffset=False)
     result = param_results[burnin:N_iterations-1,i]
     result.sort()
     med = result[0.5*length]
     high = result[0.84*length] - med
     low = result[0.16*length]
+    a[i].plot([0,N_iterations],[med,med],'--',color='black')
     print names[param_index[i]],'='+str(med)+' + '+str(high)+' - '+str(low)+' '+units[param_index[i]]
-print 'max k2_span = ',span_k2_max
+a[N_params].plot(span_k2)
+a[N_params].set_xlabel('Iteration', fontsize=15)
+a[N_params].set_ylabel('span*k2', fontsize=15)
+print 'max span*k2 = ',span_k2_max
+print '%_jumps =',n_jumps/float(N_iterations)
 
+fig.savefig('eqmcmc/'+system+'_mcmc_N='+str(N_iterations)+'.png')
+plt.show()

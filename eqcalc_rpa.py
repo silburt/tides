@@ -1,4 +1,4 @@
-#The purpose of this macro is to calculate how the span and k2_at_half_emax change as a function of (Rp/a)_inner, varying a third parameter sometimes in the process.
+#The purpose of this macro is to calculate how the span*k2_at_half_emax change as a function of (Rp/a)_inner (but really it's just changing 'a' for a given size, e.g. Earth sized), varying a third parameter in the process.
 
 import sys
 import numpy as np
@@ -8,29 +8,29 @@ import math
 import matplotlib.cm as cm
 
 def safety_first(params):    #check for overstepping any bounds
-    if params[3] > params[6]:
+    if params[1] > params[4]:
         print '!ERROR! a1 > a2, reduce parameter space. Exiting.'
-        print 'a1=',params[3], 'a2=',params[6]
+        print 'a1=',params[1], 'a2=',params[4]
         exit()
-    if params[1] > 10 or params[1] < 0.1:
+    if params[0] > 10 or params[0] < 0.1:
         print '!ERROR! M < 0.1 or M > 10. Reduce parameter space. Exiting.'
         print 'M=',params[1]
         exit()
-    if params[7] > 0.99:
+    if params[5] > 0.99:
         print '!ERROR! e > 1, reduce parameter space. Exiting.'
-        print 'e=',params[7]
+        print 'e=',params[6]
         exit()
-    if params[5] > 2:   #in Jupiter radii
+    if params[3] > 2:   #in Jupiter radii
         print '!ERROR! Rp_inner > 2R_Jupiter, reduce parameter space. Exiting.'
-        print 'Rp=',params[5]
+        print 'Rp=',params[3]
         exit()
-    if params[4] > 20 or params[8] > 20:    #in Jupiter masses
+    if params[2] > 20 or params[6] > 20:    #in Jupiter masses
         print '!ERROR! mp_inner or mp_outer > 20M_Jupiter, reduce parameter space. Exiting.'
-        print 'm1=',params[4], 'm2=',params[8]
+        print 'm1=',params[2], 'm2=',params[6]
         exit()
 
 def masterloop(num_points_param, params, min_param, max_param, vp_index):
-    param_names = ['dummy','M$_*$','R$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
+    param_names = ['M$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
     min_rpa_fac = 0.5
     max_rpa_fac = 2
     num_points_rpa = 30
@@ -45,13 +45,13 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index):
         rp_a = np.zeros(num_points_rpa)
         for j in xrange(0,num_points_rpa):    #varying Rp/a in this loop
             params[vp_index] *= factor
-            M = params[1]              #star
-            a1 = params[3]*rpa_fac[j]  #inner planet, convert to meters from AU,
-            m1 = params[4]*J2S_M       #inner planet, convert to kg from Jupiter mass
-            r1 = params[5]*J2AU_R      #inner planet, convert to meters from Jupiter radius
-            a2 = params[6]             #outer planet, convert to meters from AU,
-            e2 = params[7]             #outer planet, eccentricity
-            m2 = params[8]*J2S_M       #outer planet, convert to kg from Jupiter mass
+            M = params[0]              #star
+            a1 = params[1]*rpa_fac[j]  #inner planet, convert to meters from AU,
+            m1 = params[2]*J2S_M       #inner planet, convert to kg from Jupiter mass
+            r1 = params[3]*J2AU_R      #inner planet, convert to meters from Jupiter radius
+            a2 = params[4]             #outer planet, convert to meters from AU,
+            e2 = params[5]             #outer planet, eccentricity
+            m2 = params[6]*J2S_M       #outer planet, convert to kg from Jupiter mass
             safety_first(params)
             params[vp_index] /= factor
             rp_a[j] = r1/a1
@@ -98,22 +98,27 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index):
 #ini args
 name = str(sys.argv[1])
 vp_index = int(sys.argv[2])     #1 = M, 2 = R, 3 = a1, etc.
+if vp_index == 1 or vp_index == 3:
+    print ''
+    print '!ERROR! Cant choose to vary a1 or r1, since those are already being varied. Choose again. '
+    print 'Exiting.'
+    exit()
 
-#            name      M    R     a1     m1   r1    a2   e2   m2
-data_bank=[('HAT-P-13',1.22,1.56,0.04275,0.851,1.28,1.189,0.691,15.2),
-           ('Earth',1.0,1.0,0.05,1./300.,0.1,1.0,0.5,1.0),      #Jupiter outer planet
-           ('Jupiter',1.0,1.0,0.05,1.0,1.0,1.0,0.5,10),         #10x Jupiter outer planet
-           ('Neptune',1.0,1.0,0.05,0.05,0.352,1.0,0.5,2.0),     #2x Jupiter outer planet
-           ('WASP-53',0.85,0.81,0.04106,2.13,1.074,3.39,0.829,16),
-           ('WASP-81',1.07,1.28,0.03908,0.725,1.422,2.441,0.5667,57.3),
-           ('KELT-6',1.126,1.529,0.080,0.442,1.18,2.39,0.21,3.71)]
-#                           M       R      a1        m1        r1         a2        e2        m2
-param_values = [(-1,-1),(0.5,1.5),(1,1),(0.5,1.75),(0.1,10.0),(0.5,2.0),(0.5,2.0),(0.75,1.2),(0.1,20.0)]
-param_names = ['dummy','M$_*$','R$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
-param_units = ['dummy','M$_{\odot}$','R$_{\odot}$','AU','M$_J$','R$_J$','AU','','M$_J$']
+#             M     a1     m1   r1    a2   e2   m2    name
+data_bank=[(1.22,0.04275,0.851,1.28,1.189,0.691,15.2,'HAT-P-13'),
+           (1.0,0.05,1./300.,0.1,1.0,0.5,1.0,'Earth'),      #Jupiter outer planet
+           (1.0,0.05,1.0,1.0,1.0,0.5,2.0,'Jupiter'),        #2x Jupiter outer planet
+           (1.0,0.05,0.05,0.352,1.0,0.5,2.0,'Neptune'),     #2x Jupiter outer planet
+           (0.85,0.04106,2.13,1.074,3.39,0.829,16,'WASP-53'),
+           (1.07,0.03908,0.725,1.422,2.441,0.5667,57.3,'WASP-81'),
+           (1.126,0.080,0.442,1.18,2.39,0.21,3.71,'KELT-6')]
+#                    M        a1        m1        r1         a2        e2        m2
+param_values = [(0.5,1.5),(0.5,1.75),(0.1,10.0),(0.5,2.0),(0.5,2.0),(0.75,1.2),(0.1,9.0)]
+param_names = ['M$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
+param_units = ['M$_{\odot}$','AU','M$_J$','R$_J$','AU','','M$_J$']
 
 for i in xrange(0,len(data_bank)):
-    if name == data_bank[i][0]:
+    if name == data_bank[i][7]:
         params = list(data_bank[i])
         break
 
@@ -139,7 +144,7 @@ masterloop(num_points_par, params, min_par, max_par, vp_index)
 
 #title settings
 plt.xlabel('(rp/a)$_{in}$',fontsize=15)
-plt.ylabel('k2$_{half(e)}$(e$_{in,max}$ - e$_{in,min}$)',fontsize=15)
+plt.ylabel('k2*Span = k2$_{half(e)}$(e$_{in,max}$ - e$_{in,min}$)',fontsize=15)
 plt.legend(loc='upper right',prop={'size':11})
 plt.title(name)
 plt.show()
