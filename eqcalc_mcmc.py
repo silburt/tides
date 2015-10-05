@@ -43,13 +43,14 @@ def conversion_back_to_norm(params,param_index,N_params):
     return params
 
 #*************************FUNCTIONS************************************
-def calc_span_k2(data,param_test,N_params,param_index,num_points_e):
+def calc_span_k2(data,param_test,N_params,param_index):
 #ini params
     eb = np.zeros(0)     #reset values
     k2b = np.zeros(0)
     k2prev = 0
     span_minvals = 30
-    max_e = 0.15
+    num_curve_points = 1000      #resolution of curve with which the span and k2_at_half_max is calc'd from
+    max_e = 0.2
 #calcs
     for i in xrange(0,N_params):
         data[param_index[i]] = param_test[i]
@@ -65,8 +66,8 @@ def calc_span_k2(data,param_test,N_params,param_index,num_points_e):
     term1 = (1 + 4*e2*e2)*ec2_inv
     a5R5 = (a1/r1)**5 #tidal terms
     a_c2 = (a1/c)**2
-    for i in xrange(0,num_points_e):
-        e1 = max_e*i/num_points_e+1e-5
+    for i in xrange(0,num_curve_points):
+        e1 = max_e*i/num_curve_points+1e-5
         e1_2 = e1*e1
         eb2_inv = 1.0/(1.0 - e1_2)
         eb2_inv5 = eb2_inv**(-5)
@@ -88,7 +89,7 @@ def calc_span_k2(data,param_test,N_params,param_index,num_points_e):
         maximum = max(eb)
         minimum = min(eb)
         half = 0.5*(maximum - minimum) + minimum
-        for k in xrange(0,num_points_e):
+        for k in xrange(0,num_curve_points):
             if half <= eb[k]:
                 return (maximum - minimum)*k2b[k]
         print '!ERROR! Couldnt find half max! Need to debug. Exiting.'
@@ -98,15 +99,18 @@ def calc_span_k2(data,param_test,N_params,param_index,num_points_e):
         return -1
 
 #***************************SETUP**************************************
+#****INI PARAMS*****
+system = 'Neptune'
+N_iterations = 10000
+N_params = 3
+param_index = [0,1,6]     #index of variables that are going to be varied in the MCMC. M=0, a1=1, etc.
+
 #****DATA************
 #ini values  M=0   a1=1   m1=2 r1=3 a2=4  e2=5  m2=6   name=7
 data_bank=[(1.22,0.04275,0.851,1.28,1.189,0.691,15.2,'HAT-P-13'),
+           (1.0,0.1,0.05,0.352,1.0,0.7,2.0,'Neptune'),
            (1.126,0.080,0.442,1.18,2.39,0.21,3.71,'KELT-6')]
 sigma_factor=[50,50,50,50,50,50,30]    #how big is the jump size relative to the data value?
-N_params = 3
-param_index = [0,2,6]     #index of variables that are going to be varied in the MCMC. M=0, a1=1, etc.
-
-system = 'HAT-P-13'
 
 data = np.zeros(7)
 for i in xrange(0,len(data_bank)):
@@ -117,17 +121,11 @@ for i in xrange(0,len(data_bank)):
 data_copy = data
 
 #upper/lower bounds on data
+#M=0   a1=1   m1=2 r1=3 a2=4  e2=5  m2=6
 upper_bound=[10,data[4],20,2,data[4]*5,0.99,20]
-lower_bound=[0.1,0.01,0,0.01,data[1],0,0]
+lower_bound=[0.01,0.01,0,0.01,data[1],0,0]
 
 data,sigma_step,upper_bound,lower_bound = conversion_factors(data,sigma_factor,upper_bound,lower_bound,param_index,N_params)
-
-#****INI PARAMS*****
-N_iterations = 15000
-num_curve_points = 500      #resolution of curve with which the span and k2_at_half_max is calc'd from
-n_jumps = 0
-prob_weight = -2
-print_increment = 500
 
 #ini arrays
 param_results = np.zeros((N_iterations,N_params))     #store the results of each parameter
@@ -138,19 +136,22 @@ for i in xrange(0,N_params):
     param_test[i] = data[param_index[i]]
     param_results[0,i] = param_test[i]
 
-#random number generator
+#final ini params
 random.seed(2)               #if no arg. it uses the current time as seed
+n_jumps = 0
+prob_weight = -2
+print_increment = 500
 
 #***************************MCMC**************************************
 #ini MCMC
-span_k2_max = calc_span_k2(data,param_test,N_params,param_index,num_curve_points)
+span_k2_max = calc_span_k2(data,param_test,N_params,param_index)
 for i in xrange(1,N_iterations):
     for j in xrange(0,N_params):    #generate new random parameters
         rnd = random.gauss(0,1)
         param_test[j] = param_results[i-1,j] + rnd*sigma_step[j]
         while param_test[j] > upper_bound[param_index[j]] or param_test[j] < lower_bound[param_index[j]]:
             param_test[j] = param_results[i-1,j] + random.gauss(0,1)*sigma_step[j]
-    span_k2_current = calc_span_k2(data,param_test,N_params,param_index,num_curve_points)
+    span_k2_current = calc_span_k2(data,param_test,N_params,param_index)
     if span_k2_current < 0:
         span_k2[i] = span_k2[i-1]
         param_results[i,:] = param_results[i-1,:]
@@ -178,7 +179,7 @@ for i in xrange(1,N_iterations):
 
 param_results = conversion_back_to_norm(param_results,param_index,N_params)  #convert back to orig
 names = ['M','a1','m1','r1','a2','e2','m2']
-units = ['M$_sun$','AU','M$_Jup$','R$_Jup$','AU','','M$_Jup$']
+units = ['M$_{sun}$','AU','M$_{Jup}$','R$_{Jup}$','AU','','M$_{Jup}$']
 
 #plotting and results
 fig, a = plt.subplots(nrows=4, ncols=1, figsize=(10,10))
@@ -191,7 +192,7 @@ burnin = int(N_iterations*0.1)      #first 10% = burn in?
 length = N_iterations - burnin
 for i in xrange(0,N_params):
     a[i].plot(param_results[:,i])
-    a[i].set_ylabel(names[param_index[i]], fontsize=15)
+    a[i].set_ylabel(names[param_index[i]]+' ('+units[param_index[i]]+')', fontsize=15)
     a[i].ticklabel_format(useOffset=False)
     result = param_results[burnin:N_iterations-1,i]
     result.sort()
@@ -206,5 +207,5 @@ a[N_params].set_ylabel('span*k2', fontsize=15)
 print 'max span*k2 = ',span_k2_max
 print '%_jumps =',n_jumps/float(N_iterations)
 
-fig.savefig('eqmcmc/'+system+'_mcmc_N='+str(N_iterations)+'.png')
+fig.savefig('eqcalc/eqmcmc/'+system+'_mcmc_N='+str(N_iterations)+'.png')
 plt.show()
