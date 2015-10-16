@@ -8,25 +8,25 @@ import math
 import matplotlib.cm as cm
 
 def safety_first(params):    #check for overstepping any bounds
-    if params[3] > params[6]:
+    if params[2] > params[5]:
         print '!ERROR! a1 > a2, reduce parameter space. Exiting.'
-        print 'a1=',params[3], 'a2=',params[6]
+        print 'a1=',params[2], 'a2=',params[5]
         exit()
-    if params[1] > 10 or params[1] < 0.1:
+    if params[0] > 10 or params[0] < 0.1:
         print '!ERROR! M < 0.1 or M > 10. Reduce parameter space. Exiting.'
-        print 'M=',params[1]
+        print 'M=',params[0]
         exit()
-    if params[7] > 0.99:
+    if params[6] > 0.99:
         print '!ERROR! e > 1, reduce parameter space. Exiting.'
-        print 'e=',params[7]
+        print 'e=',params[6]
         exit()
-    if params[5] > 2:   #in Jupiter radii
+    if params[4] > 2:   #in Jupiter radii
         print '!ERROR! Rp_inner > 2R_Jupiter, reduce parameter space. Exiting.'
-        print 'Rp=',params[5]
+        print 'Rp=',params[4]
         exit()
-    if params[4] > 20 or params[8] > 20:    #in Jupiter masses
+    if params[3] > 20 or params[7] > 100:    #in Jupiter masses
         print '!ERROR! mp_inner or mp_outer > 20M_Jupiter, reduce parameter space. Exiting.'
-        print 'm1=',params[4], 'm2=',params[8]
+        print 'm1=',params[3], 'm2=',params[7]
         exit()
 
 def masterloop(num_points_param, params, min_param, max_param, vp_index, contours):
@@ -40,13 +40,13 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
     for j in xrange(0,num_points_param):
         factor[j] = j*(max_param-min_param)/num_points_param + min_param   #==1 if vp_index = -1
         params[vp_index] *= factor[j]
-        M = params[1]               #star
-        a1 = params[3]              #inner planet, convert to meters from AU,
-        m1 = params[4]*J2S_M       #inner planet, convert to kg from Jupiter mass
-        r1 = params[5]*J2AU_R        #inner planet, convert to meters from Jupiter radius
-        a2 = params[6]              #outer planet, convert to meters from AU,
-        e2 = params[7]              #outer planet, eccentricity
-        m2 = params[8]*J2S_M       #outer planet, convert to kg from Jupiter mass
+        M = params[0]               #star
+        a1 = params[2]              #inner planet, convert to meters from AU,
+        m1 = params[3]*J2S_M       #inner planet, convert to kg from Jupiter mass
+        r1 = params[4]*J2AU_R        #inner planet, convert to meters from Jupiter radius
+        a2 = params[5]              #outer planet, convert to meters from AU,
+        e2 = params[6]              #outer planet, eccentricity
+        m2 = params[7]*J2S_M       #outer planet, convert to kg from Jupiter mass
         safety_first(params)
         params[vp_index] /= factor[j]
         ec2_inv = 1.0/(1.0 - e2*e2)
@@ -79,8 +79,8 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
                 eb = np.append(eb,e1)
         #colors, naming and plotting
         labels = ''
-        if float(j)/10 - j/10 == 0:
-            labels = param_names[vp_index]+' new ='+param_names[vp_index]+'*'+str(factor[j])
+        if float(j)/8 - j/8 == 0:
+            labels = param_names[vp_index]+'$_{, new}$ ='+str(params[vp_index]*factor[j])
         #(red,green,blue) = colorsys.hsv_to_rgb(0.85*float(j)/num_points_param, 1, 1)
         if len(k2b) > 0:  #make sure there's actually useable values
             if contours == 0:
@@ -114,18 +114,19 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
 name = str(sys.argv[1])
 vp_index = int(sys.argv[2])     #1 = M, 2 = R, 3 = a1, etc.
 
-#            name      M    R     a1     m1   r1    a2   e2   m2
-data_bank=[('WASP-53',0.85,0.81,0.04106,2.13,1.074,3.39,0.829,16),
-           ('WASP-81',1.07,1.28,0.03908,0.725,1.422,2.441,0.5667,57.3),
-           ('HAT-P-13',1.22,1.56,0.04275,0.851,1.28,1.189,0.691,15.2),
-           ('KELT-6',1.126,1.529,0.080,0.442,1.18,2.39,0.21,3.71)]
-#                           M       R      a1        m1        r1         a2        e2        m2
-param_values = [(-1,-1),(0.1,2.0),(1,1),(0.5,1.75),(0.1,10.0),(0.5,2.0),(0.5,2.0),(0.75,1.2),(0.1,20.0)]
-param_names = ['dummy','M$_*$','R$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
-param_units = ['dummy','M$_{\odot}$','R$_{\odot}$','AU','M$_J$','R$_J$','AU','','M$_J$']
+#             M    R     a1     m1   r1    a2   e2   m2  name
+data_bank=[(0.85,0.81,0.04106,2.13,1.074,3.39,0.829,16,'WASP-53'),
+           (1.07,1.28,0.03908,0.725,1.422,2.441,0.5667,57.3,'WASP-81'),
+           (1.22,1.56,0.04275,0.851,1.28,1.189,0.691,15.2,'HAT-P-13'),
+           (1.126,1.529,0.080,0.442,1.18,2.39,0.21,3.71,'KELT-6'),
+           (1.0,1.000,0.05000,0.050,0.352,1.00,0.700,15.0,'Neptune')]
+#                  M        R       a1        m1        r1         a2        e2        m2
+param_values = [(0.1,2.0),(1,1),(0.5,1.75),(0.1,10.0),(0.2,5.0),(0.5,2.0),(0.75,1.2),(0.1,20.0)]
+param_names = ['M$_*$','R$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
+param_units = ['M$_{\odot}$','R$_{\odot}$','AU','M$_J$','R$_J$','AU','','M$_J$']
 
 for i in xrange(0,len(data_bank)):
-    if name == data_bank[i][0]:
+    if name == data_bank[i][8]:
         params = list(data_bank[i])
         break
 
@@ -189,21 +190,3 @@ if name == 'HAT-P-13' and Batygin_fit == 1 and vp_index == 1:
     plt.plot(k2_fit,e_fit, 'r',label='Batygin fit')
 
 plt.show()
-
-
-#********************EXTRA*****************
-#SI
-#G=6.67*10**(-11)        #G in SI m^3/kg/s^2
-#J2kg_M = 1.898*10**27   #jupiter mass -> kg
-#S2kg_M = 1.989*10**30   #solar mass ->kg
-#J2m_R = 69911000        #jupiter radius -> meters
-#AU2m_a = 149597871000   #AU -> meters
-#c=299792458             #c in m/s
-
-#M = params[1]*S2kg_M        #star
-#a1 = params[3]*AU2m_a       #inner planet, convert to meters from AU,
-#m1 = params[4]*J2kg_M       #inner planet, convert to kg from Jupiter mass
-#r1 = params[5]*J2m_R        #inner planet, convert to meters from Jupiter radius
-#a2 = params[6]*AU2m_a       #outer planet, convert to meters from AU,
-#e2 = params[7]              #outer planet, eccentricity
-#m2 = params[8]*J2kg_M       #outer planet, convert to kg from Jupiter mass

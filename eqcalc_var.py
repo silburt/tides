@@ -125,7 +125,7 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index,xvar_cho
                 if k2val >= 0 and k2val <=1.5:
                     k2b = np.append(k2b,k2val)
                     eb = np.append(eb,e1)
-            if len(k2b) > 0:  #make sure there's actually useable values
+            if len(k2b) > 10:  #make sure there's actually useable values
                 maximum = max(eb)
                 minimum = min(eb)
                 half = 0.5*(maximum - minimum) + minimum
@@ -136,22 +136,25 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index,xvar_cho
                         break
         plt.plot(xvar,span_k2,color=colourwheel[k],label=param_names[vp_index]+'$_{,new}$ = '+str(round(100*params[vp_index]*factor)/100)+' '+param_units[vp_index])
 
-#ini args
+#INI ARGS*********************************************
 name = str(sys.argv[1])
-vp_index = int(sys.argv[2])     #0 = M, 1 = a1, etc.
+vp_index = int(sys.argv[2])     #0=M, 1=a1, 2=m1, 3=r1, 4=a2, 5=e2, 6=m2.
 xvar_choice = int(sys.argv[3])   #0 = a2/a1, 1=m2/m1, 2=m2/M, 3=m1/M, 4=a1/r1
 check_for_conflict(vp_index,xvar_choice)
+min_xvar_fac = 0.5              #min/max multiplative factor to xvar_choice argument
+max_xvar_fac = 2
+#INI ARGS*********************************************
 
 #             M     a1     m1   r1    a2   e2   m2    name
 data_bank=[(1.22,0.04275,0.851,1.28,1.189,0.691,15.2,'HAT-P-13'),
-           (1.0,0.05,1./300.,0.1,1.0,0.5,5.0,'Earth'),      #5xJupiter outer planet
-           (1.0,0.05,1.0,1.0,1.0,0.5,5.0,'Jupiter'),        #5x Jupiter outer planet
-           (1.0,0.05,0.05,0.352,1.0,0.5,2.0,'Neptune'),     #2x Jupiter outer planet
+           (1.0,0.05,1./300.,0.1,1.0,0.7,5.0,'Earth'),      #5xJupiter outer planet
+           (1.0,0.05,1.0,1.0,1.0,0.7,5.0,'Jupiter'),        #5x Jupiter outer planet
+           (1.0,0.05,0.05,0.352,1.0,0.7,15.0,'Neptune'),     #2x Jupiter outer planet
            (0.85,0.04106,2.13,1.074,3.39,0.829,16,'WASP-53'),
            (1.07,0.03908,0.725,1.422,2.441,0.5667,57.3,'WASP-81'),
            (1.126,0.080,0.442,1.18,2.39,0.21,3.71,'KELT-6')]
 #                    M        a1        m1        r1         a2        e2        m2
-param_values = [(0.5,1.5),(0.5,1.75),(0.1,10.0),(0.5,2.0),(0.5,2.0),(0.75,1.2),(0.1,2.0)]
+param_values = [(0.5,1.5),(0.2,5),(0.1,10.0),(0.5,2.0),(0.5,2.0),(0.75,1.5),(0.1,10.0)]
 param_names = ['M$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
 xvar_names = ['a$_{out}$/a$_{in}$','m$_{out}$/m$_{in}$','m$_{out}$/M$_*$','m$_{in}$/M$_*$','a$_{in}$/rp$_{in}$']
 
@@ -173,8 +176,6 @@ G=1                     #AU^3/Ms/(yr/2pi)^2
 num_points_par = 6
 min_par = param_values[vp_index][0]
 max_par = param_values[vp_index][1]
-min_xvar_fac = 0.01
-max_xvar_fac = 2
 #varying_name = ', Varying '+str(param_names[vp_index])+'='+str(params[vp_index])+str(param_units[vp_index])
 masterloop(num_points_par,params,min_par,max_par,vp_index,xvar_choice,min_xvar_fac,max_xvar_fac)
 
@@ -183,6 +184,6 @@ plt.xlabel(xvar_names[xvar_choice],fontsize=15)
 plt.ylabel('k2*Span = k2$_{half(e)}$(e$_{in,max}$ - e$_{in,min}$)',fontsize=15)
 plt.legend(loc='lower right',prop={'size':11})
 plt.yscale('log')
-plt.xscale('log')
+#plt.xscale('log')
 plt.title(name)
 plt.show()

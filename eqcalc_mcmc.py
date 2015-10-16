@@ -100,10 +100,10 @@ def calc_span_k2(data,param_test,N_params,param_index):
 
 #***************************SETUP**************************************
 #****INI PARAMS*****
-system = 'Neptune'
-N_iterations = 10000
-N_params = 3
-param_index = [0,1,6]     #index of variables that are going to be varied in the MCMC. M=0, a1=1, etc.
+system = 'HAT-P-13'
+N_iterations = 5000
+param_index = [0,1]     #index of variables that are going to be varied in the MCMC. M=0, a1=1, etc.
+N_params = len(param_index)
 
 #****DATA************
 #ini values  M=0   a1=1   m1=2 r1=3 a2=4  e2=5  m2=6   name=7
@@ -182,7 +182,7 @@ names = ['M','a1','m1','r1','a2','e2','m2']
 units = ['M$_{sun}$','AU','M$_{Jup}$','R$_{Jup}$','AU','','M$_{Jup}$']
 
 #plotting and results
-fig, a = plt.subplots(nrows=4, ncols=1, figsize=(10,10))
+fig, a = plt.subplots(nrows=N_params+1, ncols=1, figsize=(10,10))
 fig.subplots_adjust(left=0.12, right=0.94)
 title = system+': MCMC Results, varying '+str(N_params)+' params'
 fig.text(0.5, 0.95, title, ha='center', va='center', rotation='horizontal', fontsize=20)
