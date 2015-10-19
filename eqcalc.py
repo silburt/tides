@@ -20,7 +20,7 @@ def safety_first(params):    #check for overstepping any bounds
         print '!ERROR! e > 1, reduce parameter space. Exiting.'
         print 'e=',params[6]
         exit()
-    if params[4] > 2:   #in Jupiter radii
+    if params[4] > 5:   #in Jupiter radii
         print '!ERROR! Rp_inner > 2R_Jupiter, reduce parameter space. Exiting.'
         print 'Rp=',params[4]
         exit()
@@ -35,10 +35,14 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
     k2_of_half_e = np.zeros(num_points_param)   #arrays
     half_e = np.zeros(num_points_param)
     span_k2 = np.zeros(num_points_param)
-    factor = np.zeros(num_points_param)
-    colourwheel = cm.rainbow(np.linspace(1, 0, num_points_param))
+    #factor = np.zeros(num_points_param)
+    colourvalues = np.logspace(1, 0, num=num_points_param,base=2) - 1
+    colourwheel = cm.rainbow(colourvalues)
+    if contours == 1:
+        factor = np.logspace(np.log10(min_param), np.log10(max_param),num=num_points_param,base=10)
+    elif contours == 0:
+        factor = np.linspace(min_param, max_param, num=num_points_param)
     for j in xrange(0,num_points_param):
-        factor[j] = j*(max_param-min_param)/num_points_param + min_param   #==1 if vp_index = -1
         params[vp_index] *= factor[j]
         M = params[0]               #star
         a1 = params[2]              #inner planet, convert to meters from AU,
@@ -79,10 +83,10 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
                 eb = np.append(eb,e1)
         #colors, naming and plotting
         labels = ''
-        if float(j)/8 - j/8 == 0:
-            labels = param_names[vp_index]+'$_{, new}$ ='+str(params[vp_index]*factor[j])
+        if float(j)/5 - j/5 == 0:
+            labels = param_names[vp_index]+'$_{, new}$ ='+str(round(10000*params[vp_index]*factor[j])/10000)+' '+param_units[vp_index]
         #(red,green,blue) = colorsys.hsv_to_rgb(0.85*float(j)/num_points_param, 1, 1)
-        if len(k2b) > 0:  #make sure there's actually useable values
+        if len(k2b) > 10:  #make sure there's actually useable values
             if contours == 0:
                 colours = 'black'
                 labels = 'default curve'
@@ -98,14 +102,14 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
                     half_e[j] = half
                     k2_of_half_e[j] = k2b[k]
                     span_k2[j] = (maximum - minimum)*k2_of_half_e[j]
+                    #print span_k2[j], k2_of_half_e[j], maximum - minimum, labels
                     break
             a[0].scatter([k2_of_half_e[j]],[half_e[j]],s=10, color='black')
     if contours == 1:
         #this is for the label
         a[0].scatter([k2_of_half_e[j]],[half_e[j]],s=10, color='black',label='k2 of half-max(e$_{in}$)')
         #plot span vs. factor
-        gradient = k2_of_half_e
-        pc = a[1].scatter(factor, span_k2/span_k2_D[0], c=gradient, cmap=cm.rainbow, lw=0, label='k2 of half e', alpha = 0.9, vmin=min(k2_of_half_e), vmax=max(k2_of_half_e))
+        pc = a[1].scatter(factor, span_k2/span_k2_D[0], c=colourvalues, cmap=cm.rainbow, lw=0, label='k2 of half e', alpha = 0.9, vmin=min(k2_of_half_e), vmax=max(k2_of_half_e))
         cbar = fig.colorbar(pc)
         cbar.set_label('k2 of half-max(e$_{in}$)')
     return k2_of_half_e, half_e, factor, span_k2
@@ -114,14 +118,18 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
 name = str(sys.argv[1])
 vp_index = int(sys.argv[2])     #1 = M, 2 = R, 3 = a1, etc.
 
+#(1.0,1.000,0.05000,0.050,0.352,1.00,0.700,15.0,'Neptune')
+
 #             M    R     a1     m1   r1    a2   e2   m2  name
 data_bank=[(0.85,0.81,0.04106,2.13,1.074,3.39,0.829,16,'WASP-53'),
            (1.07,1.28,0.03908,0.725,1.422,2.441,0.5667,57.3,'WASP-81'),
            (1.22,1.56,0.04275,0.851,1.28,1.189,0.691,15.2,'HAT-P-13'),
            (1.126,1.529,0.080,0.442,1.18,2.39,0.21,3.71,'KELT-6'),
-           (1.0,1.000,0.05000,0.050,0.352,1.00,0.700,15.0,'Neptune')]
+           (1.0,1.000,0.05000,0.050,0.8,1.00,0.700,15.0,'Neptune'),
+           (1.0,1.000,0.050,1./300.,0.100,1.00,0.700,15.0,'Earth'),
+           (1.0,1.000,0.05000,1.000,1.000,1.00,0.700,15.0,'Jupiter')]
 #                  M        R       a1        m1        r1         a2        e2        m2
-param_values = [(0.1,2.0),(1,1),(0.5,1.75),(0.1,10.0),(0.2,5.0),(0.5,2.0),(0.75,1.2),(0.1,20.0)]
+param_values = [(0.1,2.0),(1,1),(0.1,1.75),(0.01,10.0),(0.2,2.0),(0.5,2.0),(0.75,1.2),(0.2,4.0)]
 param_names = ['M$_*$','R$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
 param_units = ['M$_{\odot}$','R$_{\odot}$','AU','M$_J$','R$_J$','AU','','M$_J$']
 
