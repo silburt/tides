@@ -86,7 +86,7 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
         if float(j)/5 - j/5 == 0:
             labels = param_names[vp_index]+'$_{, new}$ ='+str(round(10000*params[vp_index]*factor[j])/10000)+' '+param_units[vp_index]
         #(red,green,blue) = colorsys.hsv_to_rgb(0.85*float(j)/num_points_param, 1, 1)
-        if len(k2b) > 10:  #make sure there's actually useable values
+        if len(k2b) > 5:  #make sure there's actually useable values
             if contours == 0:
                 colours = 'black'
                 labels = 'default curve'
@@ -107,11 +107,11 @@ def masterloop(num_points_param, params, min_param, max_param, vp_index, contour
             a[0].scatter([k2_of_half_e[j]],[half_e[j]],s=10, color='black')
     if contours == 1:
         #this is for the label
-        a[0].scatter([k2_of_half_e[j]],[half_e[j]],s=10, color='black',label='k2 of half-max(e$_{in}$)')
+        a[0].scatter([k2_of_half_e[j]],[half_e[j]],s=10, color='black',label='k$_{2,HM}$')
         #plot span vs. factor
-        pc = a[1].scatter(factor, span_k2/span_k2_D[0], c=colourvalues, cmap=cm.rainbow, lw=0, label='k2 of half e', alpha = 0.9, vmin=min(k2_of_half_e), vmax=max(k2_of_half_e))
+        pc = a[1].scatter(params[vp_index]*factor, span_k2/span_k2_D[0], c=colourvalues, cmap=cm.rainbow, lw=0, label='k2 of half e', alpha = 0.9, vmin=min(k2_of_half_e), vmax=max(k2_of_half_e))
         cbar = fig.colorbar(pc)
-        cbar.set_label('k2 of half-max(e$_{in}$)')
+        cbar.set_label('k$_{2,HM}$')
     return k2_of_half_e, half_e, factor, span_k2
 
 #ini args
@@ -125,11 +125,11 @@ data_bank=[(0.85,0.81,0.04106,2.13,1.074,3.39,0.829,16,'WASP-53'),
            (1.07,1.28,0.03908,0.725,1.422,2.441,0.5667,57.3,'WASP-81'),
            (1.22,1.56,0.04275,0.851,1.28,1.189,0.691,15.2,'HAT-P-13'),
            (1.126,1.529,0.080,0.442,1.18,2.39,0.21,3.71,'KELT-6'),
-           (1.0,1.000,0.05000,0.050,0.8,1.00,0.700,15.0,'Neptune'),
+           (1.0,1.000,0.05000,0.050,0.352,1.00,0.700,15.0,'Neptune'),
            (1.0,1.000,0.050,1./300.,0.100,1.00,0.700,15.0,'Earth'),
            (1.0,1.000,0.05000,1.000,1.000,1.00,0.700,15.0,'Jupiter')]
 #                  M        R       a1        m1        r1         a2        e2        m2
-param_values = [(0.1,2.0),(1,1),(0.1,1.75),(0.01,10.0),(0.2,2.0),(0.5,2.0),(0.75,1.2),(0.2,4.0)]
+param_values = [(0.1,2.0),(1,1),(0.1,1.75),(0.01,10.0),(0.2,2.0),(0.5,2.0),(0.75,1.2),(0.01,4.0)]
 param_names = ['M$_*$','R$_*$','a$_{in}$','m$_{in}$','r$_{in}$','a$_{out}$','e$_{out}$','m$_{out}$']
 param_units = ['M$_{\odot}$','R$_{\odot}$','AU','M$_J$','R$_J$','AU','','M$_J$']
 
@@ -180,8 +180,8 @@ if max_par - min_par != 0:
     a[0].legend(loc='upper right',prop={'size':10})
 
 #plot span and k2_half(e_inner) as a function of the varied parameter.
-a[1].set_ylabel('Span_k2$_{norm.}$ = k2$_{half(e)}$(e$_{in,max}$ - e$_{in,min}$) / span_k2$_{default}$', fontsize=15)
-a[1].set_xlabel('factor ('+param_names[vp_index]+'$_{,fac}$ )', fontsize=15)
+a[1].set_ylabel('rank = k$_{2,HM}$(e$_{max}$ - e$_{min}$), norm. to '+name, fontsize=15)
+a[1].set_xlabel(param_names[vp_index]+'$_{, new}$', fontsize=15)
 #a[1].set_xscale('log')
 #a[1].set_xlim([0,max_par*1.1])
 #a[1].set_ylim([0,maxspank2+0.005])
